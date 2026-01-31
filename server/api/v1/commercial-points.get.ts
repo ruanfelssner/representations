@@ -1,0 +1,292 @@
+export default defineEventHandler(async (event) => {
+  try {
+    // Em produção, isso viria de um banco de dados
+    // Por enquanto, retornamos os dados do mock
+    const commercialPoints = {
+      success: true,
+      data: {
+        markers: [
+          {
+            lat: -27.5954,
+            lng: -48.548,
+            title: 'Florianópolis - Sede Principal',
+            value: 45,
+            color: '#2563eb',
+            size: 45,
+            type: 'sede',
+            address: 'Av. Beira Mar Norte, 500',
+            phone: '(48) 3333-4444',
+            city: 'Florianópolis',
+          },
+          {
+            lat: -26.9194,
+            lng: -49.0661,
+            title: 'Joinville - Filial Norte',
+            value: 32,
+            color: '#16a34a',
+            size: 38,
+            type: 'filial',
+            address: 'Rua do Príncipe, 1200',
+            phone: '(47) 3333-5555',
+            city: 'Joinville',
+          },
+          {
+            lat: -26.2477,
+            lng: -48.8473,
+            title: 'Itajaí - Parceiro Logística',
+            value: 28,
+            color: '#16a34a',
+            size: 35,
+            type: 'filial',
+            address: 'Av. Marcos Konder, 800',
+            phone: '(47) 3344-6666',
+            city: 'Itajaí',
+          },
+          {
+            lat: -26.9166,
+            lng: -48.6704,
+            title: 'Blumenau - Centro Comercial',
+            value: 24,
+            color: '#16a34a',
+            size: 32,
+            type: 'filial',
+            address: 'Rua XV de Novembro, 450',
+            phone: '(47) 3355-7777',
+            city: 'Blumenau',
+          },
+          {
+            lat: -28.6784,
+            lng: -49.3719,
+            title: 'Criciúma - Filial Sul',
+            value: 22,
+            color: '#16a34a',
+            size: 30,
+            type: 'filial',
+            address: 'Av. Centenário, 2500',
+            phone: '(48) 3366-8888',
+            city: 'Criciúma',
+          },
+          {
+            lat: -27.0925,
+            lng: -52.6166,
+            title: 'Chapecó - Filial Oeste',
+            value: 18,
+            color: '#16a34a',
+            size: 28,
+            type: 'filial',
+            address: 'Av. Getúlio Vargas, 1800',
+            phone: '(49) 3377-9999',
+            city: 'Chapecó',
+          },
+          {
+            lat: -27.5707,
+            lng: -52.4075,
+            title: 'Xanxerê - Distribuidor',
+            value: 12,
+            color: '#eab308',
+            size: 24,
+            type: 'distribuidor',
+            address: 'Rua Nereu Ramos, 350',
+            phone: '(49) 3388-1111',
+            city: 'Xanxerê',
+          },
+          {
+            lat: -26.4775,
+            lng: -49.0708,
+            title: 'Jaraguá do Sul - Parceiro',
+            value: 15,
+            color: '#eab308',
+            size: 26,
+            type: 'distribuidor',
+            address: 'Rua Reinoldo Rau, 520',
+            phone: '(47) 3399-2222',
+            city: 'Jaraguá do Sul',
+          },
+          {
+            lat: -27.2423,
+            lng: -49.6455,
+            title: 'Lages - Centro Regional',
+            value: 16,
+            color: '#eab308',
+            size: 26,
+            type: 'distribuidor',
+            address: 'Av. Presidente Vargas, 890',
+            phone: '(49) 3311-3333',
+            city: 'Lages',
+          },
+          {
+            lat: -28.8175,
+            lng: -49.4927,
+            title: 'Araranguá - Ponto de Apoio',
+            value: 10,
+            color: '#eab308',
+            size: 22,
+            type: 'distribuidor',
+            address: 'Av. Sete de Setembro, 620',
+            phone: '(48) 3322-4444',
+            city: 'Araranguá',
+          },
+          {
+            lat: -26.9034,
+            lng: -48.8205,
+            title: 'Brusque - Parceiro Têxtil',
+            value: 11,
+            color: '#eab308',
+            size: 23,
+            type: 'distribuidor',
+            address: 'Rua Azambuja, 320',
+            phone: '(47) 3333-5555',
+            city: 'Brusque',
+          },
+          {
+            lat: -27.2108,
+            lng: -49.6403,
+            title: 'São Joaquim - Representante',
+            value: 8,
+            color: '#f97316',
+            size: 20,
+            type: 'parceiro',
+            address: 'Rua Manoel Joaquim Pinto, 180',
+            phone: '(49) 3344-6666',
+            city: 'São Joaquim',
+          },
+          {
+            lat: -26.3045,
+            lng: -48.8487,
+            title: 'Balneário Camboriú - Escritório',
+            value: 14,
+            color: '#eab308',
+            size: 25,
+            type: 'distribuidor',
+            address: 'Av. Atlântica, 3500',
+            phone: '(47) 3355-7777',
+            city: 'Balneário Camboriú',
+          },
+          {
+            lat: -27.5826,
+            lng: -48.5229,
+            title: 'São José - Unidade Logística',
+            value: 19,
+            color: '#16a34a',
+            size: 28,
+            type: 'filial',
+            address: 'Rua José Maria da Luz, 1450',
+            phone: '(48) 3366-8888',
+            city: 'São José',
+          },
+          {
+            lat: -27.6333,
+            lng: -48.6333,
+            title: 'Palhoça - Centro de Distribuição',
+            value: 17,
+            color: '#eab308',
+            size: 27,
+            type: 'distribuidor',
+            address: 'Rod. BR-101, km 220',
+            phone: '(48) 3377-9999',
+            city: 'Palhoça',
+          },
+          {
+            lat: -26.2431,
+            lng: -48.6364,
+            title: 'Navegantes - Hub Aeroporto',
+            value: 13,
+            color: '#eab308',
+            size: 24,
+            type: 'distribuidor',
+            address: 'Av. Tancredo Neves, 850',
+            phone: '(47) 3388-1111',
+            city: 'Navegantes',
+          },
+          {
+            lat: -27.8287,
+            lng: -50.3311,
+            title: 'Tubarão - Ponto Sul',
+            value: 12,
+            color: '#eab308',
+            size: 24,
+            type: 'distribuidor',
+            address: 'Av. Marcolino Martins Cabral, 1200',
+            phone: '(48) 3399-2222',
+            city: 'Tubarão',
+          },
+          {
+            lat: -26.8351,
+            lng: -48.7787,
+            title: 'Gaspar - Parceiro Industrial',
+            value: 9,
+            color: '#f97316',
+            size: 21,
+            type: 'parceiro',
+            address: 'Rua Bahia, 450',
+            phone: '(47) 3311-3333',
+            city: 'Gaspar',
+          },
+          {
+            lat: -27.1,
+            lng: -52.3667,
+            title: 'Xaxim - Representante Oeste',
+            value: 7,
+            color: '#f97316',
+            size: 19,
+            type: 'parceiro',
+            address: 'Av. Plínio Arlindo de Nês, 890',
+            phone: '(49) 3322-4444',
+            city: 'Xaxim',
+          },
+          {
+            lat: -26.2343,
+            lng: -49.4046,
+            title: 'Rio Negrinho - Polo Madeireiro',
+            value: 8,
+            color: '#f97316',
+            size: 20,
+            type: 'parceiro',
+            address: 'Rua Joaquim Francisco de Paula, 620',
+            phone: '(47) 3333-5555',
+            city: 'Rio Negrinho',
+          },
+        ],
+        mapSettings: {
+          center: {
+            lat: -27.2423,
+            lng: -50.2189,
+          },
+          zoom: 7,
+        },
+      },
+    }
+
+    // Filtros opcionais via query params
+    const query = getQuery(event)
+    const type = query.type as string | undefined
+    const city = query.city as string | undefined
+
+    let filteredMarkers = commercialPoints.data.markers
+
+    if (type) {
+      filteredMarkers = filteredMarkers.filter(m => m.type === type)
+    }
+
+    if (city) {
+      filteredMarkers = filteredMarkers.filter(m =>
+        m.city.toLowerCase().includes(city.toLowerCase()),
+      )
+    }
+
+    return {
+      success: true,
+      data: {
+        markers: filteredMarkers,
+        mapSettings: commercialPoints.data.mapSettings,
+      },
+    }
+  }
+  catch (error) {
+    console.error('Erro ao buscar pontos comerciais:', error)
+    return {
+      success: false,
+      error: 'Erro ao buscar pontos comerciais',
+    }
+  }
+})
