@@ -257,32 +257,14 @@ export default defineEventHandler(async (event) => {
       },
     }
 
-    // Filtros opcionais via query params
-    const query = getQuery(event)
-    const type = query.type as string | undefined
-    const city = query.city as string | undefined
-
-    let filteredMarkers = commercialPoints.data.markers
-
-    if (type) {
-      filteredMarkers = filteredMarkers.filter(m => m.type === type)
-    }
-
-    if (city) {
-      filteredMarkers = filteredMarkers.filter(m =>
-        m.city.toLowerCase().includes(city.toLowerCase()),
-      )
-    }
-
     return {
       success: true,
       data: {
-        markers: filteredMarkers,
+        markers: commercialPoints.data.markers,
         mapSettings: commercialPoints.data.mapSettings,
       },
     }
-  }
-  catch (error) {
+  } catch (error) {
     console.error('Erro ao buscar pontos comerciais:', error)
     return {
       success: false,

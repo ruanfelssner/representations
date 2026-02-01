@@ -44,12 +44,29 @@
         </GoogleMap>
       </ClientOnly>
 
-      <div class="absolute top-2 right-3 flex flex-col gap-2 bg-main-primary rounded-md shadow-sm py-1 px-1">
-        <FButton :icon="showPins ? 'mdi:map-marker-off' : 'mdi:map-marker'" trailing icon-button @click="showPins = !showPins" />
-        <FButton :icon="showPolygons ? 'tabler:map-off' : 'tabler:map'" trailing icon-button @click="showPolygons = !showPolygons" />
+      <div
+        class="absolute top-2 right-3 flex flex-col gap-2 bg-main-primary rounded-md shadow-sm py-1 px-1"
+      >
+        <FButton
+          :icon="showPins ? 'mdi:map-marker-off' : 'mdi:map-marker'"
+          trailing
+          icon-button
+          @click="showPins = !showPins"
+        />
+        <FButton
+          :icon="showPolygons ? 'tabler:map-off' : 'tabler:map'"
+          trailing
+          icon-button
+          @click="showPolygons = !showPolygons"
+        />
         <FButton icon="mdi:plus" trailing icon-button @click="zoomIn" />
         <FButton icon="mdi:minus" trailing icon-button @click="zoomOut" />
-        <FButton :icon="isFullscreen ? 'mdi:fullscreen-exit' : 'mdi:fullscreen'" trailing icon-button @click="toggleFullscreen" />
+        <FButton
+          :icon="isFullscreen ? 'mdi:fullscreen-exit' : 'mdi:fullscreen'"
+          trailing
+          icon-button
+          @click="toggleFullscreen"
+        />
       </div>
     </div>
 
@@ -57,16 +74,8 @@
       v-if="selectedItem"
       class="w-full max-w-[400px] bg-neutral-white p-4 overflow-auto rounded-lg shadow"
     >
-      <FButton
-        icon="mdi:close"
-        icon-button
-        trailing
-        class="ml-auto"
-        @click="selectedItem = null"
-      />
-      <FTypo size="display-bold" color="neutral-darkest">
-        Detalhes do item selecionado
-      </FTypo>
+      <FButton icon="mdi:close" icon-button trailing class="ml-auto" @click="selectedItem = null" />
+      <FTypo size="display-bold" color="neutral-darkest"> Detalhes do item selecionado </FTypo>
       <FTypo size="display" color="neutral-darkest" class="mt-2">
         {{ selectedItem.label }}
       </FTypo>
@@ -97,7 +106,7 @@
 import { useRuntimeConfig } from '#imports'
 import { CustomMarker, GoogleMap, Polygon } from 'vue3-google-map'
 
-type LatLng = { lat: number, lng: number }
+type LatLng = { lat: number; lng: number }
 
 type MapMarker = {
   lat: number
@@ -125,7 +134,7 @@ type MapPolygon = {
 }
 
 type HeatmapPoint = LatLng & { weight?: number }
-type HeatmapOptions = { radius?: number, opacity?: number }
+type HeatmapOptions = { radius?: number; opacity?: number }
 
 type Props = {
   markers?: MapMarker[]
@@ -181,12 +190,10 @@ function zoomOut() {
 
 function toggleFullscreen() {
   const mapEl = googleMapsRef.value?.$el ?? null
-  if (!mapEl)
-    return
+  if (!mapEl) return
   if (!document.fullscreenElement) {
-    (mapEl as HTMLElement).requestFullscreen?.()
-  }
-  else {
+    ;(mapEl as HTMLElement).requestFullscreen?.()
+  } else {
     document.exitFullscreen?.()
   }
 }
@@ -199,16 +206,36 @@ const mapCenter = computed(() => ({
 const mapZoom = computed(() => props.zoom)
 
 const mapStyles = [
-  { featureType: 'administrative', elementType: 'labels.text.fill', stylers: [{ color: '#6B7280' }] },
-  { featureType: 'administrative.country', elementType: 'geometry.stroke', stylers: [{ color: '#D1D5DB', weight: 1 }] },
-  { featureType: 'administrative.province', elementType: 'geometry.stroke', stylers: [{ color: '#E5E7EB', weight: 0.5 }] },
+  {
+    featureType: 'administrative',
+    elementType: 'labels.text.fill',
+    stylers: [{ color: '#6B7280' }],
+  },
+  {
+    featureType: 'administrative.country',
+    elementType: 'geometry.stroke',
+    stylers: [{ color: '#D1D5DB', weight: 1 }],
+  },
+  {
+    featureType: 'administrative.province',
+    elementType: 'geometry.stroke',
+    stylers: [{ color: '#E5E7EB', weight: 0.5 }],
+  },
   { featureType: 'landscape', elementType: 'geometry.fill', stylers: [{ color: '#fff' }] },
   { featureType: 'water', elementType: 'geometry.fill', stylers: [{ color: '#DBEAFE' }] },
   { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#6B7280' }] },
   { featureType: 'road', elementType: 'geometry.fill', stylers: [{ color: '#FFFFFF' }] },
-  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#E5E7EB', weight: 0.5 }] },
+  {
+    featureType: 'road',
+    elementType: 'geometry.stroke',
+    stylers: [{ color: '#E5E7EB', weight: 0.5 }],
+  },
   { featureType: 'road.highway', elementType: 'geometry.fill', stylers: [{ color: '#FEF3C7' }] },
-  { featureType: 'road.highway', elementType: 'geometry.stroke', stylers: [{ color: '#F59E0B', weight: 1 }] },
+  {
+    featureType: 'road.highway',
+    elementType: 'geometry.stroke',
+    stylers: [{ color: '#F59E0B', weight: 1 }],
+  },
   { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] },
   { featureType: 'poi.business', stylers: [{ visibility: 'off' }] },
   { featureType: 'transit', stylers: [{ visibility: 'simplified' }] },
@@ -249,10 +276,9 @@ function handlePolygonClick(polygon: MapPolygon) {
 function zoomToPolygon(paths: LatLng[]) {
   const mapInstance = googleMapsRef.value?.map
   const apiInstance = googleMapsRef.value?.api
-  if (!mapInstance || !apiInstance)
-    return
+  if (!mapInstance || !apiInstance) return
   const bounds = new apiInstance.LatLngBounds()
-  paths.forEach(p => bounds.extend(p))
+  paths.forEach((p) => bounds.extend(p))
   mapInstance.fitBounds(bounds)
   const listener = mapInstance.addListener('bounds_changed', () => {
     const currentZoom = mapInstance.getZoom()
@@ -266,19 +292,18 @@ function zoomToPolygon(paths: LatLng[]) {
 function fitBoundsToData() {
   const mapInstance = (googleMapsRef.value as any)?.map
   const apiInstance = (googleMapsRef.value as any)?.api
-  if (!mapInstance || !apiInstance)
-    return
+  if (!mapInstance || !apiInstance) return
   const bounds = new apiInstance.LatLngBounds()
   let hasData = false
   props.markers.forEach((m) => {
     bounds.extend({ lat: m.lat, lng: m.lng })
     hasData = true
   })
-  props.polygons.forEach(p =>
+  props.polygons.forEach((p) =>
     p.paths.forEach((path) => {
       bounds.extend(path)
       hasData = true
-    }),
+    })
   )
   if (hasData) {
     mapInstance.fitBounds(bounds)
@@ -292,12 +317,19 @@ function fitBoundsToData() {
   }
 }
 
-watch(() => [props.markers, props.polygons], () => {
-  nextTick(() => fitBoundsToData())
-}, { deep: true })
-
-watch(() => (googleMapsRef.value as any)?.ready, (isReady) => {
-  if (isReady)
+watch(
+  () => [props.markers, props.polygons],
+  () => {
     nextTick(() => fitBoundsToData())
-}, { immediate: true })
+  },
+  { deep: true }
+)
+
+watch(
+  () => (googleMapsRef.value as any)?.ready,
+  (isReady) => {
+    if (isReady) nextTick(() => fitBoundsToData())
+  },
+  { immediate: true }
+)
 </script>
