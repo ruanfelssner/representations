@@ -69,36 +69,6 @@
         />
       </div>
     </div>
-
-    <aside
-      v-if="selectedItem"
-      class="w-full max-w-[400px] bg-neutral-white p-4 overflow-auto rounded-lg shadow"
-    >
-      <FButton icon="mdi:close" icon-button trailing class="ml-auto" @click="selectedItem = null" />
-      <FTypo size="display-bold" color="neutral-darkest"> Detalhes do item selecionado </FTypo>
-      <FTypo size="display" color="neutral-darkest" class="mt-2">
-        {{ selectedItem.label }}
-      </FTypo>
-      <section class="flex flex-col gap-2">
-        <ul class="text-neutral-dark flex flex-col gap-1">
-          <li>
-            <FTypo size="body-medium-bold">
-              Seguros: {{ selectedItem.metrics?.seguros || 0 }}
-            </FTypo>
-          </li>
-          <li>
-            <FTypo size="body-medium-bold">
-              Clientes: {{ selectedItem.metrics?.clientes || 0 }}
-            </FTypo>
-          </li>
-          <li>
-            <FTypo size="body-medium-bold">
-              Corretores: {{ selectedItem.metrics?.corretores || 0 }}
-            </FTypo>
-          </li>
-        </ul>
-      </section>
-    </aside>
   </div>
 </template>
 
@@ -172,7 +142,6 @@ const googleMapsRef = ref<InstanceType<typeof GoogleMap> | null>(null)
 const showPins = ref(true)
 const showPolygons = ref(true)
 const isFullscreen = ref(false)
-const selectedItem = ref<MapPolygon | null>(null)
 
 function zoomIn() {
   const mapInstance = googleMapsRef.value?.map
@@ -267,7 +236,6 @@ function handleMarkerClick(marker: MapMarker) {
 }
 
 function handlePolygonClick(polygon: MapPolygon) {
-  selectedItem.value = polygon
   emit('polygon-click', polygon)
   props.onPolygonClick?.(polygon)
   zoomToPolygon(polygon.paths)

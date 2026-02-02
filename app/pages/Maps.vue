@@ -167,67 +167,48 @@
     <div v-if="activeTab === 'visited'">
       <!-- Estatísticas de Visitação -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div class="bg-white rounded-2xl shadow-lg p-6 border border-cyan-100 hover:shadow-xl transition-shadow">
+        <div class="bg-white rounded-2xl shadow-lg p-6 border border-blue-100 hover:shadow-xl transition-shadow">
           <div class="flex items-center justify-between mb-4">
-            <div class="w-12 h-12 bg-cyan-100 rounded-xl flex items-center justify-center">
-              <span class="text-2xl">🗺️</span>
+            <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+              <span class="text-2xl">📊</span>
             </div>
             <div class="text-right">
-              <div class="text-3xl font-bold text-cyan-600">{{ visitedStats.total }}</div>
-              <div class="text-xs text-gray-500 uppercase tracking-wide">Total Visitado</div>
+              <div class="text-3xl font-bold text-blue-600">{{ visitedStats.total }}</div>
+              <div class="text-xs text-gray-500 uppercase tracking-wide">Total de Clientes</div>
+            </div>
+          </div>
+        </div>
+        <div class="bg-white rounded-2xl shadow-lg p-6 border border-green-100 hover:shadow-xl transition-shadow">
+          <div class="flex items-center justify-between mb-4">
+            <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+              <span class="text-2xl">✅</span>
+            </div>
+            <div class="text-right">
+              <div class="text-3xl font-bold text-green-600">{{ visitedStats.ativos }}</div>
+              <div class="text-xs text-gray-500 uppercase tracking-wide">Clientes Ativos</div>
             </div>
           </div>
         </div>
         <div class="bg-white rounded-2xl shadow-lg p-6 border border-purple-100 hover:shadow-xl transition-shadow">
           <div class="flex items-center justify-between mb-4">
             <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-              <span class="text-2xl">🏖️</span>
+              <span class="text-2xl">💰</span>
             </div>
             <div class="text-right">
-              <div class="text-3xl font-bold text-purple-600">{{ visitedStats.praias }}</div>
-              <div class="text-xs text-gray-500 uppercase tracking-wide">Praias</div>
+              <div class="text-3xl font-bold text-purple-600">{{ formatCurrency(visitedStats.faturamentoMensal) }}</div>
+              <div class="text-xs text-gray-500 uppercase tracking-wide">Faturamento Mensal</div>
             </div>
           </div>
         </div>
         <div class="bg-white rounded-2xl shadow-lg p-6 border border-amber-100 hover:shadow-xl transition-shadow">
           <div class="flex items-center justify-between mb-4">
             <div class="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
-              <span class="text-2xl">📍</span>
+              <span class="text-2xl">📈</span>
             </div>
             <div class="text-right">
-              <div class="text-3xl font-bold text-amber-600">{{ visitedStats.pontos }}</div>
-              <div class="text-xs text-gray-500 uppercase tracking-wide">Pontos Turísticos</div>
+              <div class="text-3xl font-bold text-amber-600">{{ formatCurrency(visitedStats.faturamentoAnual) }}</div>
+              <div class="text-xs text-gray-500 uppercase tracking-wide">Faturamento Anual</div>
             </div>
-          </div>
-        </div>
-        <div class="bg-white rounded-2xl shadow-lg p-6 border border-rose-100 hover:shadow-xl transition-shadow">
-          <div class="flex items-center justify-between mb-4">
-            <div class="w-12 h-12 bg-rose-100 rounded-xl flex items-center justify-center">
-              <span class="text-2xl">📸</span>
-            </div>
-            <div class="text-right">
-              <div class="text-3xl font-bold text-rose-600">{{ visitedStats.fotos }}</div>
-              <div class="text-xs text-gray-500 uppercase tracking-wide">Fotos</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Mapa de Locais Visitados -->
-      <div class="bg-white rounded-2xl shadow-2xl overflow-hidden mb-8 border border-gray-100">
-        <BrokerMaps
-          v-if="visitedMapData"
-          :markers="createVisitedMarkers"
-          :polygons="visitedMapData.polygons"
-          :center-lat="visitedMapData.mapSettings.center.lat"
-          :center-lng="visitedMapData.mapSettings.center.lng"
-          :zoom="visitedMapData.mapSettings.zoom"
-          class="h-[700px]"
-        />
-        <div v-else class="h-[700px] flex items-center justify-center">
-          <div class="text-center">
-            <div class="text-6xl mb-4">🗺️</div>
-            <div class="text-gray-500 font-medium">Carregando mapa...</div>
           </div>
         </div>
       </div>
@@ -237,18 +218,27 @@
         class="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl shadow-md p-6 mb-6 border border-blue-100"
       >
         <div class="flex items-center gap-3 mb-4">
-          <span class="text-3xl">📍</span>
+          <span class="text-3xl">🏛️</span>
           <div>
-            <h3 class="text-xl font-bold text-gray-900">Adicionar Local Visitado</h3>
-            <p class="text-sm text-gray-600">Busque um endereço e adicione ao seu mapa</p>
+            <h3 class="text-xl font-bold text-gray-900">Adicionar Novo Cliente</h3>
+            <p class="text-sm text-gray-600">Cadastre um novo cliente no mapa</p>
           </div>
         </div>
 
         <form @submit.prevent="addNewPlace" class="space-y-4">
           <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">💼 Nome do Cliente</label>
+            <input
+              v-model="newPlace.nome"
+              type="text"
+              placeholder="Ex: Supermercado Bom Preço"
+              class="w-full px-4 py-3 text-lg border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+              required
+            />
+          </div>
+          <div>
             <label class="block text-sm font-semibold text-gray-700 mb-2">🔍 Buscar Local</label>
             <input
-              ref="autocompleteInput"
               v-model="newPlace.address"
               type="text"
               placeholder="Digite o endereço ou nome do local..."
@@ -263,9 +253,7 @@
             :disabled="isGeocoding"
             class="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed transition-all font-semibold shadow-md hover:shadow-lg text-lg"
           >
-            {{
-              isGeocoding ? '🔍 Buscando...' : selectedPlace ? '✅ Adicionar ao Mapa' : '🔍 Buscar'
-            }}
+            {{ isGeocoding ? '🔍 Buscando...' : '📍 Adicionar ao Mapa' }}
           </button>
         </form>
 
@@ -281,57 +269,138 @@
         </div>
       </div>
 
-      <!-- Mensagem quando não há locais -->
-      <div
-        v-if="!visitedPlaces.length"
-        class="text-center py-16 bg-white rounded-xl shadow-sm border"
-      >
-        <div class="text-6xl mb-4">🗺️</div>
-        <h3 class="text-xl font-bold text-gray-900 mb-2">Nenhum local visitado ainda</h3>
-        <p class="text-gray-600">
-          Comece adicionando seus locais favoritos usando o formulário acima!
-        </p>
-      </div>
+      <!-- Filtros -->
+      <div class="bg-white rounded-xl shadow-md p-6 mb-6 border border-gray-100">
+        <div class="flex items-center gap-3 mb-4">
+          <span class="text-2xl">🔍</span>
+          <h3 class="text-lg font-bold text-gray-900">Filtros e Busca</h3>
+        </div>
 
-      <!-- Grid de Locais Visitados -->
-      <div v-if="visitedPlaces.length" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div
-          v-for="(place, index) in visitedPlaces"
-          :key="`${place.lat}-${place.lng}-${index}`"
-          class="bg-white rounded-xl shadow-md border overflow-hidden hover:shadow-xl transition-all"
-        >
-          <div :style="{ backgroundColor: place.color }" class="h-3" />
-          <div class="p-5">
-            <div class="flex items-start justify-between mb-3">
-              <h3 class="font-bold text-gray-900 text-lg">{{ place.title }}</h3>
-              <button
-                @click="removePlace(index)"
-                class="text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full p-1"
-                title="Remover"
-              >
-                🗑️
-              </button>
-            </div>
-            <p class="text-sm text-gray-600 mb-3 line-clamp-2">
-              {{ place.description || 'Local adicionado ao mapa' }}
-            </p>
-            <div class="flex items-center justify-between text-xs text-gray-500">
-              <span>📅 {{ formatDate(place.date) }}</span>
-              <span class="px-2 py-1 bg-blue-50 text-blue-700 rounded-full font-medium">{{
-                getTypeLabel(place.type)
-              }}</span>
-            </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Buscar Cliente</label>
+            <input
+              v-model="searchQuery"
+              type="text"
+              placeholder="Nome, cidade ou endereço..."
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Segmento</label>
+            <select
+              v-model="filterSegmento"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Todos os segmentos</option>
+              <option value="otica">👓 Ótica</option>
+              <option value="relojoaria">⌚ Relojoaria</option>
+              <option value="semijoia">💍 Semi-joias</option>
+              <option value="multimarcas">🏪 Multimarcas</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Tipo</label>
+            <select
+              v-model="filterTipo"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Todos os tipos</option>
+              <option value="cliente">✅ Cliente</option>
+              <option value="prospecto">🔍 Prospecto</option>
+              <option value="inativo">⏸️ Inativo</option>
+            </select>
           </div>
         </div>
+
+        <div v-if="searchQuery || filterSegmento || filterTipo" class="mt-4">
+          <button
+            @click="searchQuery = ''; filterSegmento = ''; filterTipo = ''"
+            class="text-sm text-blue-600 hover:text-blue-800 font-medium"
+          >
+            🔄 Limpar Filtros
+          </button>
+          <span class="ml-3 text-sm text-gray-600">
+            Mostrando {{ filteredClientes.length }} de {{ clientes.length }} clientes
+          </span>
+        </div>
+      </div>
+
+      <!-- Mapa de Locais Visitados -->
+      <div class="bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-100">
+        <div class="flex h-[700px]">
+          <div class="relative h-full w-full">
+            <BrokerMaps
+              v-if="visitedMapData"
+              :markers="createVisitedMarkers"
+              :polygons="visitedMapData.polygons"
+              :center-lat="visitedMapData.mapSettings.center.lat"
+              :center-lng="visitedMapData.mapSettings.center.lng"
+              :zoom="visitedMapData.mapSettings.zoom"
+              class="h-full"
+              @marker-click="handleVisitedMarkerClick"
+            />
+            <div v-else class="h-full flex items-center justify-center">
+              <div class="text-center">
+                <div class="text-6xl mb-4">🗺️</div>
+                <div class="text-gray-500 font-medium">Carregando mapa...</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SidePanel - ao lado do mapa -->
+          <ClientSidePanel
+            :is-open="isSidePanelOpen"
+            :client-data="selectedClient"
+            @close="isSidePanelOpen = false"
+            @add-visit="handleAddVisit"
+            @edit-client="handleOpenEditarCliente"
+            @remove-client="handleRemoveCliente"
+          />
+        </div>
+      </div>
+
+      <!-- Mensagem quando não há clientes -->
+      <div
+        v-if="!clientes.length"
+        class="text-center py-16 bg-white rounded-xl shadow-sm border mt-6"
+      >
+        <div class="text-6xl mb-4">👥</div>
+        <h3 class="text-xl font-bold text-gray-900 mb-2">Nenhum cliente cadastrado ainda</h3>
+        <p class="text-gray-600">
+          Comece adicionando seus clientes usando o formulário acima!
+        </p>
       </div>
     </div>
     </div>
+
+    <!-- Modais -->
+    <ModalNovaVisita
+      :is-open="isModalNovaVisitaOpen"
+      :cliente-nome="selectedClient?.nome || ''"
+      @close="isModalNovaVisitaOpen = false"
+      @submit="handleSubmitNovaVisita"
+    />
+
+    <ModalEditarCliente
+      :is-open="isModalEditarClienteOpen"
+      :cliente="selectedClient"
+      @close="isModalEditarClienteOpen = false"
+      @submit="handleSubmitEditarCliente"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import BrokerMaps from '../components/BrokerMaps.vue'
+import ClientSidePanel from '../components/ClientSidePanel.vue'
+import ModalNovaVisita from '../components/ModalNovaVisita.vue'
+import ModalEditarCliente from '../components/ModalEditarCliente.vue'
+import type { Cliente, Visita } from '~/types/client'
+import { useClientStorage } from '~/composables/useClientStorage'
 
 interface MarkerData {
   lat: number
@@ -346,19 +415,6 @@ interface MarkerData {
   city: string
 }
 
-interface VisitedPlace {
-  lat: number
-  lng: number
-  title: string
-  description: string
-  date: string
-  type: string
-  color: string
-  photos: number
-  rating: number
-  address: string
-}
-
 interface MapData {
   markers: any[]
   polygons: any[]
@@ -368,19 +424,27 @@ interface MapData {
   }
 }
 
-const activeTab = ref<'commercial' | 'visited'>('commercial')
+const activeTab = ref<'commercial' | 'visited'>('visited')
 const commercialMapData = ref<MapData | null>(null)
 const visitedMapData = ref<MapData | null>(null)
 const scGeoJson = ref<any>(null)
-const visitedPlaces = ref<VisitedPlace[]>([])
+const clientes = ref<Cliente[]>([])
 const isGeocoding = ref(false)
 const geocodeError = ref('')
 const geocodeSuccess = ref('')
-const selectedPlace = ref<any>(null)
-const autocompleteInput = ref<HTMLInputElement | null>(null)
+const isSidePanelOpen = ref(false)
+const selectedClient = ref<Cliente | null>(null)
+const isModalNovaVisitaOpen = ref(false)
+const isModalEditarClienteOpen = ref(false)
+const searchQuery = ref('')
+const filterSegmento = ref('')
+const filterTipo = ref('')
+
+const { getClients, saveClient, getClientStats, getClientColor, updateClient, addVisita, removeClient } = useClientStorage()
 
 const newPlace = ref({
   address: '',
+  nome: '',
 })
 
 const filters = ref({
@@ -423,7 +487,6 @@ onMounted(async () => {
       },
     }
 
-    visitedPlaces.value = visitedData.data.places
     visitedMapData.value = {
       markers: [],
       polygons: [scPolygon],
@@ -433,10 +496,31 @@ onMounted(async () => {
       },
     }
 
-    initializeAutocomplete()
+    // Carregar clientes do localStorage
+    clientes.value = getClients()
   } catch (error) {
     console.error('Erro ao carregar dados do mapa:', error)
   }
+})
+
+// Atualizar cores dos clientes periodicamente e quando a página ganha foco
+onMounted(() => {
+  // Atualizar cores a cada minuto
+  const intervalId = setInterval(() => {
+    clientes.value = getClients()
+  }, 60000)
+
+  // Atualizar quando a página ganha foco
+  const handleFocus = () => {
+    clientes.value = getClients()
+  }
+  window.addEventListener('focus', handleFocus)
+
+  // Cleanup
+  onUnmounted(() => {
+    clearInterval(intervalId)
+    window.removeEventListener('focus', handleFocus)
+  })
 })
 
 function processGeoJsonCoordinates(coordinates: any[]): { lat: number; lng: number }[] {
@@ -472,14 +556,41 @@ const filteredMarkers = computed(() => {
   })
 })
 
+const filteredClientes = computed(() => {
+  let result = clientes.value
+
+  // Filtro por busca
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase()
+    result = result.filter((cliente) =>
+      cliente.nome.toLowerCase().includes(query) ||
+      cliente.cidade?.toLowerCase().includes(query) ||
+      cliente.endereco?.toLowerCase().includes(query)
+    )
+  }
+
+  // Filtro por segmento
+  if (filterSegmento.value) {
+    result = result.filter((cliente) => cliente.segmento === filterSegmento.value)
+  }
+
+  // Filtro por tipo
+  if (filterTipo.value) {
+    result = result.filter((cliente) => cliente.tipo === filterTipo.value)
+  }
+
+  return result
+})
+
 const createVisitedMarkers = computed(() => {
-  return visitedPlaces.value.map((place) => ({
-    lat: place.lat,
-    lng: place.lng,
-    title: place.title,
-    value: place.photos,
-    color: place.color,
-    size: 30 + place.rating * 5,
+  return filteredClientes.value.map((cliente) => ({
+    lat: cliente.lat,
+    lng: cliente.lng,
+    title: cliente.nome,
+    value: cliente.visitas.length,
+    color: cliente.color,
+    size: 30 + cliente.visitas.length * 3,
+    clientId: cliente.id,
   }))
 })
 
@@ -496,11 +607,12 @@ const stats = computed(() => {
 })
 
 const visitedStats = computed(() => {
+  const stats = getClientStats(clientes.value)
   return {
-    total: visitedPlaces.value.length,
-    praias: visitedPlaces.value.filter((p) => p.type === 'praia').length,
-    pontos: visitedPlaces.value.filter((p) => p.type === 'ponto-turistico').length,
-    fotos: visitedPlaces.value.reduce((sum, p) => sum + p.photos, 0),
+    total: stats.totalClientes,
+    ativos: stats.clientesAtivos,
+    faturamentoMensal: stats.faturamentoMensal,
+    faturamentoAnual: stats.faturamentoAnual,
   }
 })
 
@@ -513,6 +625,15 @@ function formatDate(dateString: string): string {
   }).format(date)
 }
 
+function formatCurrency(value: number): string {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value)
+}
+
 function handlePolygonClick(polygon: any) {
   console.log('Polígono clicado:', polygon)
 }
@@ -521,9 +642,17 @@ function handleMarkerClick(marker: any) {
   console.log('Marker clicado:', marker)
 }
 
+function handleVisitedMarkerClick(marker: any) {
+  const cliente = clientes.value.find((c) => c.id === marker.clientId)
+  if (cliente) {
+    selectedClient.value = cliente
+    isSidePanelOpen.value = true
+  }
+}
+
 async function addNewPlace() {
-  if (!selectedPlace.value) {
-    geocodeError.value = 'Por favor, selecione um local da lista de sugestões'
+  if (!newPlace.value.nome.trim() || !newPlace.value.address.trim()) {
+    geocodeError.value = 'Por favor, preencha o nome e o endereço'
     return
   }
 
@@ -532,60 +661,55 @@ async function addNewPlace() {
   isGeocoding.value = true
 
   try {
-    const location = selectedPlace.value.geometry.location
-    const types = selectedPlace.value.types || []
-    let placeType = 'ponto-turistico'
-    let color = '#f59e0b'
+    const apiKey = useRuntimeConfig().public.googleMapsApiKey
+    const encodedAddress = encodeURIComponent(newPlace.value.address)
+    const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&key=${apiKey}&language=pt-BR`
 
-    if (types.includes('natural_feature') || types.includes('park')) {
-      placeType = 'natureza'
-      color = '#10b981'
-    } else if (types.includes('museum') || types.includes('art_gallery')) {
-      placeType = 'museu'
-      color = '#8b5cf6'
-    } else if (types.includes('church') || types.includes('place_of_worship')) {
-      placeType = 'religioso'
-      color = '#a855f7'
-    } else if (types.includes('shopping_mall') || types.includes('store')) {
-      placeType = 'mercado'
-      color = '#f97316'
+    const response = await fetch(geocodeUrl)
+    const data = await response.json()
+
+    if (data.status !== 'OK' || !data.results || data.results.length === 0) {
+      geocodeError.value = 'Não foi possível encontrar este local. Tente outro endereço.'
+      isGeocoding.value = false
+      return
     }
 
-    const newVisitedPlace: VisitedPlace = {
-      lat: location.lat(),
-      lng: location.lng(),
-      title: selectedPlace.value.name,
-      description: selectedPlace.value.formatted_address || '',
-      date: new Date().toISOString().split('T')[0],
-      type: placeType,
-      color,
-      photos: 0,
-      rating: 5,
-      address: selectedPlace.value.formatted_address || '',
+    const result = data.results[0]
+    const location = result.geometry.location
+    const addressComponents = result.address_components || []
+    const cidadeComponent = addressComponents.find((c: any) => c.types.includes('locality'))
+    const estadoComponent = addressComponents.find((c: any) =>
+      c.types.includes('administrative_area_level_1')
+    )
+
+    const novoCliente: Cliente = {
+      id: `cliente-${Date.now()}`,
+      nome: newPlace.value.nome,
+      lat: location.lat,
+      lng: location.lng,
+      endereco: result.formatted_address || '',
+      cidade: cidadeComponent?.long_name || '',
+      estado: estadoComponent?.short_name || 'SC',
+      visitas: [],
+      color: getClientColor(), // Azul padrão (sem próxima visita)
+      tipo: 'prospecto',
+      segmento: 'otica', // Padrão, usuário pode editar depois
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     }
 
-    visitedPlaces.value.push(newVisitedPlace)
+    saveClient(novoCliente)
+    clientes.value.push(novoCliente)
 
-    if (visitedMapData.value) {
-      visitedMapData.value.markers.push({
-        lat: location.lat(),
-        lng: location.lng(),
-        title: selectedPlace.value.name,
-        value: 1,
-        color,
-        size: 35,
-      })
-    }
-
-    geocodeSuccess.value = `"${selectedPlace.value.name}" adicionado com sucesso!`
+    geocodeSuccess.value = `Cliente "${novoCliente.nome}" adicionado com sucesso!`
     resetForm()
 
     setTimeout(() => {
       geocodeSuccess.value = ''
     }, 3000)
   } catch (error) {
-    console.error('Erro ao adicionar local:', error)
-    geocodeError.value = 'Erro ao adicionar local. Tente novamente.'
+    console.error('Erro ao adicionar cliente:', error)
+    geocodeError.value = 'Erro ao buscar localização. Verifique sua conexão e tente novamente.'
   } finally {
     isGeocoding.value = false
   }
@@ -594,9 +718,68 @@ async function addNewPlace() {
 function resetForm() {
   newPlace.value = {
     address: '',
+    nome: '',
   }
-  selectedPlace.value = null
   geocodeError.value = ''
+}
+
+function handleAddVisit() {
+  isModalNovaVisitaOpen.value = true
+}
+
+function handleSubmitNovaVisita(visitaData: Omit<Visita, 'id'>) {
+  if (!selectedClient.value) return
+
+  const novaVisita: Visita = {
+    ...visitaData,
+    id: `visita-${Date.now()}`,
+  }
+
+  addVisita(selectedClient.value.id, novaVisita)
+  
+  // Atualizar lista local
+  const clienteIndex = clientes.value.findIndex(c => c.id === selectedClient.value?.id)
+  if (clienteIndex >= 0) {
+    clientes.value[clienteIndex].visitas.push(novaVisita)
+    // Recarregar para atualizar cores
+    clientes.value = getClients()
+    // Atualizar cliente selecionado
+    selectedClient.value = clientes.value[clienteIndex]
+  }
+
+  isModalNovaVisitaOpen.value = false
+}
+
+function handleOpenEditarCliente() {
+  isModalEditarClienteOpen.value = true
+}
+
+function handleSubmitEditarCliente(updates: Partial<Cliente>) {
+  if (!selectedClient.value) return
+
+  updateClient(selectedClient.value.id, updates)
+  
+  // Atualizar lista local
+  const clienteIndex = clientes.value.findIndex(c => c.id === selectedClient.value?.id)
+  if (clienteIndex >= 0) {
+    clientes.value = getClients() // Recarregar para atualizar cores
+    selectedClient.value = clientes.value[clienteIndex]
+  }
+
+  isModalEditarClienteOpen.value = false
+}
+
+function handleRemoveCliente() {
+  if (!selectedClient.value) return
+
+  removeClient(selectedClient.value.id)
+  
+  // Fechar o painel e limpar seleção
+  isSidePanelOpen.value = false
+  selectedClient.value = null
+  
+  // Atualizar lista de clientes
+  clientes.value = getClients()
 }
 
 function removePlace(index: number) {
@@ -616,33 +799,5 @@ function getTypeLabel(type: string): string {
   return labels[type] || '📍 Local'
 }
 
-function initializeAutocomplete() {
-  if (!autocompleteInput.value) return
 
-  const script = document.createElement('script')
-  script.src = `https://maps.googleapis.com/maps/api/js?key=${useRuntimeConfig().public.googleMapsApiKey}&libraries=places&language=pt-BR`
-  script.async = true
-  script.defer = true
-
-  script.onload = () => {
-    const autocomplete = new (window as any).google.maps.places.Autocomplete(
-      autocompleteInput.value,
-      {
-        componentRestrictions: { country: 'br' },
-        fields: ['name', 'formatted_address', 'geometry', 'types'],
-      }
-    )
-
-    autocomplete.addListener('place_changed', () => {
-      const place = autocomplete.getPlace()
-      if (place.geometry) {
-        selectedPlace.value = place
-        newPlace.value.address = place.formatted_address || place.name || ''
-        geocodeError.value = ''
-      }
-    })
-  }
-
-  document.head.appendChild(script)
-}
 </script>
