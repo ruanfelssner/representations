@@ -1,8 +1,8 @@
 <template>
   <div class="min-h-screen">
 
-    <div class="w-full px-3 py-4 lg:px-4 lg:py-6">
-      <NTypo size="2xl" weight="bold">MVF Representações</NTypo>
+    <div class="w-full px-3 py-4 lg:px-4 lg:py-6 space-y-3">
+      <img src="/logo.webp" alt="Felssner Representações" class="h-20 lg:h-12 mx-auto" />
       <!-- Filtros + Stats -->
       <NLayer variant="paper" size="base" radius="soft" class="shadow-sm lg:shadow-lg relative">
         <div class="flex flex-col gap-3 lg:gap-4">
@@ -101,7 +101,7 @@
       </NLayer>
 
       <!-- Mapa + painel -->
-      <div class="mt-4 lg:mt-6 grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6">
         <div class="lg:col-span-9 rounded-xl lg:rounded-2xl shadow-lg lg:shadow-2xl overflow-hidden border border-gray-200 bg-white h-[450px] sm:h-[550px] lg:h-[700px]">
           <BrokerMaps
             v-if="visitedMapData"
@@ -147,12 +147,11 @@
                 />
         </Transition>
       </div>
-    </div>
 
     <!-- Formulário de Cadastro -->
     <Transition name="slide-down">
-      <div v-if="isFormOpen" class="lg:block px-4">
-        <NLayer variant="paper" size="lg" radius="soft" class="shadow-md mb-6">
+      <div v-if="isFormOpen" class="lg:block">
+        <NLayer variant="paper" size="lg" radius="soft" class="shadow-md">
         <div class="flex items-center justify-between mb-4">
           <div class="flex items-center gap-3">
             <NTypo as="span" size="2xl" class="lg:text-3xl">🏛️</NTypo>
@@ -225,7 +224,7 @@
     <!-- Mensagem quando não há clientes -->
     <div
       v-if="!clientes.length"
-      class="text-center py-12 lg:py-16 rounded-xl shadow-sm border mt-4 lg:mt-6 border-gray-200 bg-white mx-4"
+      class="text-center py-12 lg:py-16 rounded-xl shadow-sm border border-gray-200 bg-white mx-4"
     >
       <div class="text-5xl lg:text-6xl mb-3 lg:mb-4">👥</div>
       <NTypo as="h3" size="lg" weight="bold" class="mb-2 lg:text-xl">Nenhum cliente cadastrado ainda</NTypo>
@@ -234,6 +233,7 @@
       </NTypo>
     </div>
 
+    </div>
     <!-- Modais -->
     <ModalNovaVisita
       :is-open="isModalNovaVisitaOpen"
