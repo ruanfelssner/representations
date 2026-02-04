@@ -239,56 +239,55 @@
         </div>
 
         <div class="mt-3 divide-y rounded-lg border border-gray-100 bg-white overflow-hidden">
-          <div
-            v-for="t in actionPlanTop"
-            :key="t.clientId"
-            class="w-full px-3 py-3 hover:bg-slate-50 transition-colors flex items-start justify-between gap-3"
+          <NuxtLink
+            v-for="task in actionPlanTop"
+            :key="task.clientId"
+            :to="`/admin/clients/${task.clientId}`"
+            class="block w-full px-3 py-3 hover:bg-slate-50 transition-colors"
           >
-            <button type="button" class="min-w-0 flex-1 text-left" @click="selectClientById(t.clientId)">
-              <div class="flex flex-wrap items-center gap-2">
-                <NTypo weight="bold" class="truncate">{{ t.nome }}</NTypo>
-                <span
-                  class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold"
-                  :class="metaForKey(t.statusKey).chipClass"
-                >
-                  <span class="h-2 w-2 rounded-full" :class="metaForKey(t.statusKey).dotClass" />
-                  {{ metaForKey(t.statusKey).emoji }} {{ metaForKey(t.statusKey).label }}
-                </span>
-                <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-700">
-                  {{ t.priority }}
-                </span>
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2">
+                  <NTypo weight="bold" class="truncate">{{ task.nome }}</NTypo>
+                  <span
+                    class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold"
+                    :class="metaForKey(task.statusKey).chipClass"
+                  >
+                    <span class="h-2 w-2 rounded-full" :class="metaForKey(task.statusKey).dotClass" />
+                    {{ metaForKey(task.statusKey).emoji }} {{ metaForKey(task.statusKey).label }}
+                  </span>
+                  <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-700">
+                    {{ task.priority }}
+                  </span>
+                </div>
+
+                <NTypo size="xs" tone="muted" class="mt-1 truncate">
+                  <span v-if="task.cidade">{{ task.cidade }}</span>
+                  <span v-if="task.cidade && task.segmento"> • </span>
+                  <span v-if="task.segmento">{{ task.segmento }}</span>
+                  <span v-if="task.valueMetricLabel && task.valueMetric > 0"> • {{ task.valueMetricLabel }}</span>
+                </NTypo>
+
+                <NTypo v-if="task.reasons.length" size="xs" class="mt-1 text-slate-700">
+                  {{ task.suggestedActionLabel }} • {{ task.reasons.join(' · ') }}
+                </NTypo>
               </div>
 
-              <NTypo size="xs" tone="muted" class="mt-1 truncate">
-                <span v-if="t.cidade">{{ t.cidade }}</span>
-                <span v-if="t.cidade && t.segmento"> • </span>
-                <span v-if="t.segmento">{{ t.segmento }}</span>
-                <span v-if="t.valueMetricLabel && t.valueMetric > 0"> • {{ t.valueMetricLabel }}</span>
-              </NTypo>
-
-              <NTypo v-if="t.reasons.length" size="xs" class="mt-1 text-slate-700">
-                {{ t.suggestedActionLabel }} • {{ t.reasons.join(' · ') }}
-              </NTypo>
-            </button>
-
-            <div class="shrink-0 flex items-center gap-2">
-              <NButton
-                v-if="t.telefone"
-                variant="success"
-                size="zs"
-                leading-icon="mdi:whatsapp"
-                :href="whatsAppUrl(t.telefone, t.nome)"
-                target="_blank"
-                rel="noopener noreferrer"
-                @click.stop="noop"
-              >
-                WhatsApp
-              </NButton>
-              <NButton variant="outline" size="zs" :leading-icon="t.suggestedIcon" @click="selectClientById(t.clientId)">
-                {{ t.suggestedActionLabel }}
-              </NButton>
+              <div class="shrink-0 flex items-center gap-2" @click.prevent>
+                <NButton
+                  v-if="task.telefone"
+                  variant="success"
+                  size="zs"
+                  leading-icon="mdi:whatsapp"
+                  :href="whatsAppUrl(task.telefone, task.nome)"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  WhatsApp
+                </NButton>
+              </div>
             </div>
-          </div>
+          </NuxtLink>
         </div>
       </NLayer>
 
@@ -470,7 +469,7 @@ onMounted(() => {
 async function loadClients() {
   try {
     loadClientsError.value = ''
-    const data = await fetchClients()
+    const data = await fetchClients({ scope: 'portfolio' })
     clientes.value = (data.clients || []) as Cliente[]
     if (data.salesTotals) {
       salesTotals.value = {
@@ -538,8 +537,15 @@ const filteredMarkers = computed(() => {
   })
 })
 
+const portfolioClientes = computed(() => {
+  if (filterTipo.value === 'inativo') {
+    return clientes.value.filter((c) => (c as any)?.status === 'inativo')
+  }
+  return clientes.value.filter((c) => (c as any)?.status !== 'inativo')
+})
+
 const filteredClientes = computed(() => {
-  let result = clientes.value
+  let result = portfolioClientes.value
 
   // Filtro por busca
   if (searchQuery.value) {
@@ -663,7 +669,7 @@ const carteiraBuckets = computed(() => {
   let potencial = 0
   let inativo = 0
 
-  for (const c of clientes.value as any[]) {
+  for (const c of portfolioClientes.value as any[]) {
     const k = keyForClient(c)
     if (k === 'inativo') inativo++
     else if (k === 'potencial') potencial++
@@ -726,7 +732,7 @@ const trimestralVsMesmoTrimestreAnoAnterior = computed(() =>
 )
 const anualVsAnoAnterior = computed(() => deltaMeta(salesTotals.value.year, salesTotals.value.yearPrevYear))
 
-const actionPlanTop = computed(() => topTasks(clientes.value, { limit: 8 }))
+const actionPlanTop = computed(() => topTasks(portfolioClientes.value, { limit: 8 }))
 
 function whatsAppUrl(telefoneRaw: string, nome: string) {
   const telefone = String(telefoneRaw || '').replace(/\D/g, '')
@@ -755,27 +761,12 @@ function formatCurrency(value: number): string {
   }).format(value)
 }
 
-function handlePolygonClick(polygon: any) {
-  console.log('Polígono clicado:', polygon)
-}
-
-function handleMarkerClick(marker: any) {
-  console.log('Marker clicado:', marker)
-}
-
 function handleVisitedMarkerClick(marker: any) {
   const cliente = clientes.value.find((c) => c.id === marker.clientId)
   if (cliente) {
     selectedClient.value = cliente
     isSidePanelOpen.value = true
   }
-}
-
-function selectClientById(clientId: string) {
-  const cliente = clientes.value.find((c) => c.id === clientId)
-  if (!cliente) return
-  selectedClient.value = cliente
-  isSidePanelOpen.value = true
 }
 
 function handleAddVisit() {

@@ -162,16 +162,33 @@
             type="submit"
             variant="primary"
             :disabled="isSubmitting"
-            class="sm:flex-1"
+            class="flex-1"
           >
             {{ isSubmitting ? '⏳ Salvando...' : isNew ? '📝 Criar Cliente' : '💾 Salvar Alterações' }}
+          </NButton>
+          <NButton
+            v-if="!isNew && client?.status !== 'inativo'"
+            @click="handleInativar"
+            variant="danger"
+            :disabled="isSubmitting"
+            class="flex-1"
+          >
+            ⏸️ Inativar Cliente
+          </NButton>
+          <NButton
+            v-if="!isNew && client?.status === 'inativo'"
+            @click="handleReativar"
+            variant="success"
+            :disabled="isSubmitting"
+            class="flex-1"
+          >
+            ✅ Reativar Cliente
           </NButton>
           <NButton
             as="NuxtLink"
             to="/admin/clients"
             variant="outline"
             :disabled="isSubmitting"
-            class="sm:flex-1"
           >
             Cancelar
           </NButton>
@@ -441,5 +458,67 @@ function whatsAppUrl(telefoneRaw: string, nome: string) {
   if (!telefone) return '#'
   const mensagem = encodeURIComponent(`Olá ${nome}! Sou representante comercial e gostaria de falar com você.`)
   return `https://wa.me/55${telefone}?text=${mensagem}`
+}
+
+async function handleInativar() {
+  if (!client.value) return
+  
+  const confirmar = confirm(`Tem certeza que deseja inativar o cliente "${client.value.nome}"?`)
+  if (!confirmar) return
+
+  isSubmitting.value = true
+  submitError.value = ''
+  submitSuccess.value = ''
+
+  try {
+    await patchClient(id, { status: 'inativo' })
+    submitSuccess.value = 'Cliente inativado com sucesso!'
+    
+    // Atualizar o form local
+    form.value.status = 'inativo'
+    
+    // Recarregar dados
+    await refreshHistorico()
+    
+    setTimeout(() => {
+      submitSuccess.value = ''
+    }, 3000)
+  } catch (error: any) {
+    console.error('Erro ao inativar cliente:', error)
+    submitError.value = error?.data?.message || error?.message || 'Erro ao inativar cliente. Tente novamente.'
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+async function handleReativar() {
+  if (!client.value) return
+  
+  const confirmar = confirm(`Tem certeza que deseja reativar o cliente "${client.value.nome}"?`)
+  if (!confirmar) return
+
+  isSubmitting.value = true
+  submitError.value = ''
+  submitSuccess.value = ''
+
+  try {
+    await patchClient(id, { status: 'ativo' })
+    submitSuccess.value = 'Cliente reativado com sucesso!'
+    
+    // Atualizar o form local
+    form.value.status = 'ativo'
+    
+    // Recarregar dados
+    await refreshHistorico()
+    
+    setTimeout(() => {
+      submitSuccess.value = ''
+    }, 3000)
+  } catch (error: any) {
+    console.error('Erro ao reativar cliente:', error)
+    submitError.value = error?.data?.message || error?.message || 'Erro ao reativar cliente. Tente novamente.'
+  } finally {
+    isSubmitting.value = false
+  }
 }
 </script>

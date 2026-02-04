@@ -16,7 +16,8 @@ const SalesTotalsSchema = z.object({
 })
 
 export function useClientsApi() {
-  const fetchClients = async () => {
+  const fetchClients = async (opts?: { scope?: 'all' | 'portfolio' }) => {
+    const query = opts?.scope ? `?scope=${encodeURIComponent(opts.scope)}` : ''
     const res = await $fetch<
       ApiResponse<{
         clients: unknown
@@ -25,7 +26,7 @@ export function useClientsApi() {
         contactsThisMonth?: unknown
         contactsPrevMonth?: unknown
       }>
-    >('/api/v1/clients')
+    >(`/api/v1/clients${query}`)
     const parsed = z
       .object({
         clients: z.array(ClientDtoSchema),
