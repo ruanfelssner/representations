@@ -108,24 +108,58 @@
             <NTypo size="xl" weight="bold" class="tabular-nums text-sky-500 lg:text-2xl">
               {{ visitedStats.contatosNoMes }}
             </NTypo>
+            <div class="mt-2 flex items-center gap-1 text-[11px] font-semibold" :class="contatosVsMesAnterior.class">
+              <NIcon :name="contatosVsMesAnterior.icon" class="w-4 h-4" />
+              <span class="tabular-nums">{{ contatosVsMesAnterior.text }}</span>
+              <span class="font-medium text-slate-500">vs mês anterior</span>
+            </div>
           </div>
           <div class="bg-violet-50 border border-violet-100 rounded-lg p-3 lg:p-4">
             <NTypo size="xs" tone="muted" class="mb-1">Mensal</NTypo>
-            <NTypo size="sm" weight="bold" class="tabular-nums text-violet-500 lg:text-xl">
+            <NTypo size="xl" weight="bold" class="tabular-nums text-violet-500 lg:text-2xl">
               {{ formatCurrency(visitedStats.faturamentoMensal) }}
             </NTypo>
+            <div class="mt-2 space-y-1 text-[11px] font-semibold">
+              <div class="flex items-center gap-1" :class="mensalVsMesAnterior.class">
+                <NIcon :name="mensalVsMesAnterior.icon" class="w-4 h-4" />
+                <span class="tabular-nums">{{ mensalVsMesAnterior.text }}</span>
+                <span class="font-medium text-slate-500">vs mês anterior</span>
+              </div>
+              <div class="flex items-center gap-1" :class="mensalVsMesmoMesAnoAnterior.class">
+                <NIcon :name="mensalVsMesmoMesAnoAnterior.icon" class="w-4 h-4" />
+                <span class="tabular-nums">{{ mensalVsMesmoMesAnoAnterior.text }}</span>
+                <span class="font-medium text-slate-500">vs mesmo mês (ano anterior)</span>
+              </div>
+            </div>
           </div>
           <div class="bg-amber-50 border border-amber-100 rounded-lg p-3 lg:p-4">
             <NTypo size="xs" tone="muted" class="mb-1">Trimestral</NTypo>
-            <NTypo size="sm" weight="bold" class="tabular-nums text-amber-600 lg:text-xl">
+            <NTypo size="xl" weight="bold" class="tabular-nums text-amber-600 lg:text-2xl">
               {{ formatCurrency(visitedStats.faturamentoTrimestral) }}
             </NTypo>
+            <div class="mt-2 space-y-1 text-[11px] font-semibold">
+              <div class="flex items-center gap-1" :class="trimestralVsTrimestreAnterior.class">
+                <NIcon :name="trimestralVsTrimestreAnterior.icon" class="w-4 h-4" />
+                <span class="tabular-nums">{{ trimestralVsTrimestreAnterior.text }}</span>
+                <span class="font-medium text-slate-500">vs trimestre anterior</span>
+              </div>
+              <div class="flex items-center gap-1" :class="trimestralVsMesmoTrimestreAnoAnterior.class">
+                <NIcon :name="trimestralVsMesmoTrimestreAnoAnterior.icon" class="w-4 h-4" />
+                <span class="tabular-nums">{{ trimestralVsMesmoTrimestreAnoAnterior.text }}</span>
+                <span class="font-medium text-slate-500">vs mesmo trimestre (ano anterior)</span>
+              </div>
+            </div>
           </div>
           <div class="bg-orange-50 border border-orange-100 rounded-lg p-3 lg:p-4">
             <NTypo size="xs" tone="muted" class="mb-1">Anual</NTypo>
-            <NTypo size="sm" weight="bold" class="tabular-nums text-orange-500 lg:text-xl">
+            <NTypo size="xl" weight="bold" class="tabular-nums text-orange-500 lg:text-2xl">
               {{ formatCurrency(visitedStats.faturamentoAnual) }}
             </NTypo>
+            <div class="mt-2 flex items-center gap-1 text-[11px] font-semibold" :class="anualVsAnoAnterior.class">
+              <NIcon :name="anualVsAnoAnterior.icon" class="w-4 h-4" />
+              <span class="tabular-nums">{{ anualVsAnoAnterior.text }}</span>
+              <span class="font-medium text-slate-500">vs mesmo período (ano anterior)</span>
+            </div>
           </div>
         </div>
       </NLayer>
@@ -326,8 +360,27 @@ const commercialMapData = ref<MapData | null>(null)
 const visitedMapData = ref<MapData | null>(null)
 const scGeoJson = ref<any>(null)
 const clientes = ref<Cliente[]>([])
-const salesTotals = ref<{ month: number; quarter: number; year: number }>({ month: 0, quarter: 0, year: 0 })
+const salesTotals = ref<{
+  month: number
+  monthPrev: number
+  monthPrevYear: number
+  quarter: number
+  quarterPrev: number
+  quarterPrevYear: number
+  year: number
+  yearPrevYear: number
+}>({
+  month: 0,
+  monthPrev: 0,
+  monthPrevYear: 0,
+  quarter: 0,
+  quarterPrev: 0,
+  quarterPrevYear: 0,
+  year: 0,
+  yearPrevYear: 0,
+})
 const contactsThisMonth = ref(0)
+const contactsPrevMonth = ref(0)
 const loadClientsError = ref('')
 const isGeocoding = ref(false)
 const geocodeError = ref('')
@@ -433,8 +486,20 @@ async function loadClients() {
     loadClientsError.value = ''
     const data = await fetchClients()
     clientes.value = (data.clients || []) as Cliente[]
-    if (data.salesTotals) salesTotals.value = data.salesTotals
+    if (data.salesTotals) {
+      salesTotals.value = {
+        month: data.salesTotals.month,
+        monthPrev: data.salesTotals.monthPrev || 0,
+        monthPrevYear: data.salesTotals.monthPrevYear || 0,
+        quarter: data.salesTotals.quarter,
+        quarterPrev: data.salesTotals.quarterPrev || 0,
+        quarterPrevYear: data.salesTotals.quarterPrevYear || 0,
+        year: data.salesTotals.year,
+        yearPrevYear: data.salesTotals.yearPrevYear || 0,
+      }
+    }
     if (typeof data.contactsThisMonth === 'number') contactsThisMonth.value = data.contactsThisMonth
+    if (typeof data.contactsPrevMonth === 'number') contactsPrevMonth.value = data.contactsPrevMonth
 
     if (visitedMapData.value?.mapSettings && data.mapSettings) {
       visitedMapData.value.mapSettings = data.mapSettings
@@ -646,6 +711,34 @@ const visitedStats = computed(() => {
     faturamentoAnual: salesTotals.value.year,
   }
 })
+
+function deltaMeta(current: number, previous: number) {
+  const c = Number.isFinite(current) ? current : 0
+  const p = Number.isFinite(previous) ? previous : 0
+
+  if (p <= 0) {
+    if (c <= 0) return { text: '0%', class: 'text-slate-600', icon: 'mdi:minus' }
+    return { text: 'novo', class: 'text-emerald-700', icon: 'mdi:trending-up' }
+  }
+
+  const pct = Math.round(((c - p) / p) * 100)
+  if (pct > 0) return { text: `+${pct}%`, class: 'text-emerald-700', icon: 'mdi:trending-up' }
+  if (pct < 0) return { text: `${pct}%`, class: 'text-red-700', icon: 'mdi:trending-down' }
+  return { text: '0%', class: 'text-slate-600', icon: 'mdi:minus' }
+}
+
+const contatosVsMesAnterior = computed(() => deltaMeta(contactsThisMonth.value, contactsPrevMonth.value))
+const mensalVsMesAnterior = computed(() => deltaMeta(salesTotals.value.month, salesTotals.value.monthPrev))
+const mensalVsMesmoMesAnoAnterior = computed(() =>
+  deltaMeta(salesTotals.value.month, salesTotals.value.monthPrevYear)
+)
+const trimestralVsTrimestreAnterior = computed(() =>
+  deltaMeta(salesTotals.value.quarter, salesTotals.value.quarterPrev)
+)
+const trimestralVsMesmoTrimestreAnoAnterior = computed(() =>
+  deltaMeta(salesTotals.value.quarter, salesTotals.value.quarterPrevYear)
+)
+const anualVsAnoAnterior = computed(() => deltaMeta(salesTotals.value.year, salesTotals.value.yearPrevYear))
 
 function formatDate(dateString: string): string {
   const date = new Date(dateString)

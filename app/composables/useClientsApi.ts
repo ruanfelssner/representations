@@ -6,28 +6,50 @@ type ApiResponse<T> = { success: boolean; data: T }
 
 const SalesTotalsSchema = z.object({
   month: z.number(),
+  monthPrev: z.number().optional(),
+  monthPrevYear: z.number().optional(),
   quarter: z.number(),
+  quarterPrev: z.number().optional(),
+  quarterPrevYear: z.number().optional(),
   year: z.number(),
+  yearPrevYear: z.number().optional(),
 })
 
 export function useClientsApi() {
   const fetchClients = async () => {
-    const res = await $fetch<ApiResponse<{ clients: unknown; mapSettings: any; salesTotals?: unknown; contactsThisMonth?: unknown }>>(
-      '/api/v1/clients'
-    )
+    const res = await $fetch<
+      ApiResponse<{
+        clients: unknown
+        mapSettings: any
+        salesTotals?: unknown
+        contactsThisMonth?: unknown
+        contactsPrevMonth?: unknown
+      }>
+    >('/api/v1/clients')
     const parsed = z
       .object({
         clients: z.array(ClientDtoSchema),
         mapSettings: z.any(),
         salesTotals: SalesTotalsSchema.optional(),
         contactsThisMonth: z.number().optional(),
+        contactsPrevMonth: z.number().optional(),
       })
       .parse(res.data)
     return parsed as {
       clients: Cliente[]
       mapSettings: any
-      salesTotals?: { month: number; quarter: number; year: number }
+      salesTotals?: {
+        month: number
+        monthPrev?: number
+        monthPrevYear?: number
+        quarter: number
+        quarterPrev?: number
+        quarterPrevYear?: number
+        year: number
+        yearPrevYear?: number
+      }
       contactsThisMonth?: number
+      contactsPrevMonth?: number
     }
   }
 

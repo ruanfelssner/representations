@@ -16,8 +16,15 @@ type SalesTotals = { month: number; quarter: number; year: number }
 
 type HistoricoSummaryResult = {
   byClientId: Map<string, HistoricoSummary>
-  salesTotals: SalesTotals
+  salesTotals: SalesTotals & {
+    monthPrev: number
+    monthPrevYear: number
+    quarterPrev: number
+    quarterPrevYear: number
+    yearPrevYear: number
+  }
   contactsThisMonth: number
+  contactsPrevMonth: number
 }
 
 declare global {
@@ -39,8 +46,31 @@ async function getHistoricoSummary(db: any): Promise<HistoricoSummaryResult> {
   const month = now.getUTCMonth()
   const quarterStartMonth = Math.floor(month / 3) * 3
   const monthStart = new Date(Date.UTC(year, month, 1, 0, 0, 0, 0))
+  const prevMonthStart = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0))
+  const prevMonthDurationMs = Math.max(0, now.getTime() - monthStart.getTime())
+  const prevMonthCutoff = new Date(Math.min(monthStart.getTime(), prevMonthStart.getTime() + prevMonthDurationMs))
+
+  const monthStartPrevYear = new Date(Date.UTC(year - 1, month, 1, 0, 0, 0, 0))
+  const nextMonthStartPrevYear = new Date(Date.UTC(year - 1, month + 1, 1, 0, 0, 0, 0))
+  const monthPrevYearCutoff = new Date(
+    Math.min(nextMonthStartPrevYear.getTime(), monthStartPrevYear.getTime() + prevMonthDurationMs)
+  )
+
   const quarterStart = new Date(Date.UTC(year, quarterStartMonth, 1, 0, 0, 0, 0))
+  const prevQuarterStart = new Date(Date.UTC(year, quarterStartMonth - 3, 1, 0, 0, 0, 0))
+  const quarterDurationMs = Math.max(0, now.getTime() - quarterStart.getTime())
+  const prevQuarterCutoff = new Date(Math.min(quarterStart.getTime(), prevQuarterStart.getTime() + quarterDurationMs))
+
+  const quarterStartPrevYear = new Date(Date.UTC(year - 1, quarterStartMonth, 1, 0, 0, 0, 0))
+  const nextQuarterStartPrevYear = new Date(Date.UTC(year - 1, quarterStartMonth + 3, 1, 0, 0, 0, 0))
+  const quarterPrevYearCutoff = new Date(
+    Math.min(nextQuarterStartPrevYear.getTime(), quarterStartPrevYear.getTime() + quarterDurationMs)
+  )
+
   const yearStart = new Date(Date.UTC(year, 0, 1, 0, 0, 0, 0))
+  const prevYearStart = new Date(Date.UTC(year - 1, 0, 1, 0, 0, 0, 0))
+  const yearDurationMs = Math.max(0, now.getTime() - yearStart.getTime())
+  const prevYearCutoff = new Date(Math.min(yearStart.getTime(), prevYearStart.getTime() + yearDurationMs))
   const farFuture = new Date('9999-12-31T00:00:00.000Z')
 
   const pipeline: any[] = [
@@ -109,6 +139,22 @@ async function getHistoricoSummary(db: any): Promise<HistoricoSummaryResult> {
                     {
                       $and: [
                         { $gte: ['$dataDate', monthStart] },
+                        { $lt: ['$dataDate', now] },
+                        { $not: [{ $in: ['$tipo', SALES_TYPES] }] },
+                      ],
+                    },
+                    1,
+                    0,
+                  ],
+                },
+              },
+              contactsPrevMonth: {
+                $sum: {
+                  $cond: [
+                    {
+                      $and: [
+                        { $gte: ['$dataDate', prevMonthStart] },
+                        { $lt: ['$dataDate', prevMonthCutoff] },
                         { $not: [{ $in: ['$tipo', SALES_TYPES] }] },
                       ],
                     },
@@ -120,7 +166,25 @@ async function getHistoricoSummary(db: any): Promise<HistoricoSummaryResult> {
               month: {
                 $sum: {
                   $cond: [
-                    { $and: [{ $in: ['$tipo', SALES_TYPES] }, { $gte: ['$dataDate', monthStart] }] },
+                    { $and: [{ $in: ['$tipo', SALES_TYPES] }, { $gte: ['$dataDate', monthStart] }, { $lt: ['$dataDate', now] }] },
+                    '$totalVendaNum',
+                    0,
+                  ],
+                },
+              },
+              monthPrev: {
+                $sum: {
+                  $cond: [
+                    { $and: [{ $in: ['$tipo', SALES_TYPES] }, { $gte: ['$dataDate', prevMonthStart] }, { $lt: ['$dataDate', prevMonthCutoff] }] },
+                    '$totalVendaNum',
+                    0,
+                  ],
+                },
+              },
+              monthPrevYear: {
+                $sum: {
+                  $cond: [
+                    { $and: [{ $in: ['$tipo', SALES_TYPES] }, { $gte: ['$dataDate', monthStartPrevYear] }, { $lt: ['$dataDate', monthPrevYearCutoff] }] },
                     '$totalVendaNum',
                     0,
                   ],
@@ -129,7 +193,25 @@ async function getHistoricoSummary(db: any): Promise<HistoricoSummaryResult> {
               quarter: {
                 $sum: {
                   $cond: [
-                    { $and: [{ $in: ['$tipo', SALES_TYPES] }, { $gte: ['$dataDate', quarterStart] }] },
+                    { $and: [{ $in: ['$tipo', SALES_TYPES] }, { $gte: ['$dataDate', quarterStart] }, { $lt: ['$dataDate', now] }] },
+                    '$totalVendaNum',
+                    0,
+                  ],
+                },
+              },
+              quarterPrev: {
+                $sum: {
+                  $cond: [
+                    { $and: [{ $in: ['$tipo', SALES_TYPES] }, { $gte: ['$dataDate', prevQuarterStart] }, { $lt: ['$dataDate', prevQuarterCutoff] }] },
+                    '$totalVendaNum',
+                    0,
+                  ],
+                },
+              },
+              quarterPrevYear: {
+                $sum: {
+                  $cond: [
+                    { $and: [{ $in: ['$tipo', SALES_TYPES] }, { $gte: ['$dataDate', quarterStartPrevYear] }, { $lt: ['$dataDate', quarterPrevYearCutoff] }] },
                     '$totalVendaNum',
                     0,
                   ],
@@ -138,7 +220,16 @@ async function getHistoricoSummary(db: any): Promise<HistoricoSummaryResult> {
               year: {
                 $sum: {
                   $cond: [
-                    { $and: [{ $in: ['$tipo', SALES_TYPES] }, { $gte: ['$dataDate', yearStart] }] },
+                    { $and: [{ $in: ['$tipo', SALES_TYPES] }, { $gte: ['$dataDate', yearStart] }, { $lt: ['$dataDate', now] }] },
+                    '$totalVendaNum',
+                    0,
+                  ],
+                },
+              },
+              yearPrevYear: {
+                $sum: {
+                  $cond: [
+                    { $and: [{ $in: ['$tipo', SALES_TYPES] }, { $gte: ['$dataDate', prevYearStart] }, { $lt: ['$dataDate', prevYearCutoff] }] },
                     '$totalVendaNum',
                     0,
                   ],
@@ -187,15 +278,28 @@ async function getHistoricoSummary(db: any): Promise<HistoricoSummaryResult> {
   }
 
   const contactsThisMonth = Number(totalsRow?.contactsThisMonth) || 0
+  const contactsPrevMonth = Number(totalsRow?.contactsPrevMonth) || 0
 
-  const value: HistoricoSummaryResult = { byClientId, salesTotals, contactsThisMonth }
+  const value: HistoricoSummaryResult = {
+    byClientId,
+    salesTotals: {
+      ...salesTotals,
+      monthPrev: Number(totalsRow?.monthPrev) || 0,
+      monthPrevYear: Number(totalsRow?.monthPrevYear) || 0,
+      quarterPrev: Number(totalsRow?.quarterPrev) || 0,
+      quarterPrevYear: Number(totalsRow?.quarterPrevYear) || 0,
+      yearPrevYear: Number(totalsRow?.yearPrevYear) || 0,
+    },
+    contactsThisMonth,
+    contactsPrevMonth,
+  }
   globalThis.__clientsHistoricoSummaryCache = { at: Date.now(), value }
   return value
 }
 
 export default defineEventHandler(async (event) => {
   const db = await getMongoDb()
-  const { byClientId: summaryByClientId, salesTotals, contactsThisMonth } = await getHistoricoSummary(db)
+  const { byClientId: summaryByClientId, salesTotals, contactsThisMonth, contactsPrevMonth } = await getHistoricoSummary(db)
   const clients = await db
     .collection('clients')
     .find({}, { projection: { rawOrders: 0 } })
@@ -239,5 +343,5 @@ export default defineEventHandler(async (event) => {
       ? { center: { lat: center.lat / center.n, lng: center.lng / center.n }, zoom: 7 }
       : { center: { lat: -27.5954, lng: -48.548 }, zoom: 7 }
 
-  return { success: true, data: { clients: mapped, mapSettings, salesTotals, contactsThisMonth } }
+  return { success: true, data: { clients: mapped, mapSettings, salesTotals, contactsThisMonth, contactsPrevMonth } }
 })
