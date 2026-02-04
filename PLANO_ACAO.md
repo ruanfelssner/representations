@@ -9,8 +9,8 @@
 
 Este documento detalha a refatoração completa do sistema, passando de uma estrutura monolítica (visitas dentro de clients) para uma arquitetura mais robusta e escalável com:
 
-- ✅ **4 Collections normalizadas** (clients, users, historicoCliente, produtos, historicoValores)
-- ✅ **Zero duplicação** - vendas extraídas de historicoCliente, analytics/timeline on-demand
+- ✅ **5 collections persistidas** (clients, users, historicoCliente, produtos, historicoValores)
+- ✅ **Zero duplicação** - vendas e visitas (tipos) extraídas de historicoCliente
 - ✅ **Importação de dados** da planilha "Plano de Ouro"
 - ✅ **Sistema de users/roles** (vendedor, gerente, admin, supervisor) com autenticação preparada
 - ✅ **Análises on-demand** - agregações rápidas + previsões com cache Redis opcional
@@ -24,6 +24,37 @@ Este documento detalha a refatoração completa do sistema, passando de uma estr
 
 ---
 
+## ⚠️ Pontos de atenção (ajustes antes de construir em cima)
+
+### 1) Inconsistência no número de collections
+
+No sumário existia “4 collections”, mas eram listadas 5. O plano foi alinhado para **5 collections persistidas**:
+`clients`, `users`, `historicoCliente`, `produtos`, `historicoValores`.
+
+### 2) “visitas” vs “historicoCliente” (ambiguidade)
+
+Decisão adotada neste plano (Opção A): **não existe collection `visitas`**.  
+“Visita” vira um **tipo** dentro de `historicoCliente`:
+- `visita_fisica` (sem venda)
+- `venda_fisica` (com venda)
+
+Isso evita arquitetura “meio a meio” e elimina risco de desincronização.
+
+### 3) Migração: atenção a `clients_backup_*`
+
+MongoDB não resolve wildcard em `db.collection('clients_backup_*')`.  
+Se a estratégia de migração renomear a collection para backup, o script deve **guardar o nome real gerado** (ex.: `clients_backup_1700000000000`) e usar exatamente esse nome nas leituras.
+
+### 4) Índice geoespacial (MongoDB)
+
+Para geo-query real (raio, near, clusters), padronizar:
+- `clients.localizacao.geo` em GeoJSON (`{ type: "Point", coordinates: [lng, lat] }`)
+- índice `2dsphere` em `clients.localizacao.geo`
+
+`latitude`/`longitude` continuam existindo como conveniência/UI, mas o índice de mapa deve ser no GeoJSON.
+
+---
+
 ## ⚠️ REQUISITOS CRÍTICOS
 
 ### Geo Referenciamento
@@ -34,6 +65,7 @@ Cada cliente deve manter/ter:
 
 - `localizacao.latitude` (number): Coordenada de latitude
 - `localizacao.longitude` (number): Coordenada de longitude
+- `localizacao.geo` (GeoJSON Point): `{ type: "Point", coordinates: [lng, lat] }` (campo indexado `2dsphere`)
 - `endereco.endereco_completo` (string): Endereço formatado para geocodificação
 
 **Status Atual:**
@@ -72,13 +104,15 @@ Cada cliente deve manter/ter:
   "lat": -27.7002587,              ⭐ PRESERVAR COMO localizacao.latitude
   "lng": -49.3348321,              ⭐ PRESERVAR COMO localizacao.longitude
   "color": "#3b82f6",              ❌ REMOVER (UI concern)
-  "visitas": [...]                 ❌ MOVER PARA COLLECTION SEPARADA
+  "visitas": [...]                 ❌ MOVER PARA `historicoCliente` (tipo=visita_fisica|venda_fisica)
 }
 ```
 
 **PROPOSTO (Schema Normalizado):**
 
-```
+**Nota:** não existe collection `visitas`. Toda interação/visita/venda vira evento em `historicoCliente`.
+
+```txt
 clients {
   _id: string (CNPJ)
 
@@ -100,6 +134,7 @@ clients {
   localizacao: {              ⭐ CRÍTICO - GEO REFERENCIAMENTO
     latitude: number
     longitude: number
+    geo: { type: "Point", coordinates: [longitude, latitude] }  ⭐ índice 2dsphere
   }
 
   objectives: {
@@ -109,27 +144,18 @@ clients {
     anoTarget?: number
   }
 
+  sales: { // ⭐ Camada comercial (alavanca de vendas)
+    stage: 'lead' | 'ativo' | 'negociacao' | 'perdido' | 'reativacao'
+    ownerUserId?: string
+    nextActionAt?: datetime
+    nextActionType?: 'ligar' | 'visitar' | 'enviar_catalogo' | 'cobrar'
+    lastContactAt?: datetime
+    priorityScore?: number (0-100)
+  }
+
   status: 'ativo' | 'inativo' | 'potencial'
   createdAt: datetime
   updatedAt: datetime
-}
-```
-
-visitas {
-\_id (ObjectId)
-clientId (ref)
-userId (ref)
-data
-descricao
-statusContato: 'atendeu' | 'nao_atendeu' | 'agendado' | 'em_espera'
-feedback
-items: [ { produtoId (ref), quantidade, valorUnitario, total } ]
-vendeuAlgo: boolean
-totalVenda: number (soma)
-duracao: number (minutos)
-proximoContato: date (sugestão)
-createdAt
-updatedAt
 }
 
 historicoCliente { // ⭐ NOVA - Histórico completo de interações com cliente
@@ -199,56 +225,52 @@ valor: number
 createdAt: datetime
 }
 
-// ⚠️ NOTA: analytics e timeline são computadas on-demand (ver seção 0.2.2)
-// Não são collections persistidas, evitando duplicação de dados
-periodo: 'mes' | 'semestre' | 'ano'
-ano: number
-mes: number (1-12, opcional)
+// ⚠️ DTOs (não são collections) — respostas de API computadas on-demand (ver seção 0.2.2)
+analyticsResponse {
+  periodo: 'mes' | 'semestre' | 'ano'
+  ano: number
+  mes?: number (1-12)
 
-// Métricas coletadas
-totalVisitas: number
-totalVendas: number
-totalFaturamento: number
-ticketMedio: number
-produtosTopVendidos: [ { produtoId, qtd, faturamento } ]
+  totalVisitas: number         // tipo in ['visita_fisica','venda_fisica']
+  totalVendas: number          // tipo in ['venda_fisica','venda_ligacao']
+  totalFaturamento: number     // soma de totalVenda (vendas)
+  ticketMedio: number
 
-// Previsões (inteligência)
-previsaoFaturamentoMesAtual: number
-previsaoFaturamentoProxMes: number
-previsaoFaturamentoProxTrimestre: number
-previsaoFaturamentoAno: number
-probabilidadeAtingirMeta: percentage
+  produtosTopVendidos: [ { produtoId, qtd, faturamento } ]
 
-// Sugestões
-proximasAcoes: [
-{
-tipo: 'ligar' | 'oferecer' | 'agendamento'
-descricao
-prioridade: 'alta' | 'media' | 'baixa'
-dataRecomendada
-razao
-}
-]
+  // Previsões (inteligência)
+  previsaoFaturamentoMesAtual: number
+  previsaoFaturamentoProxMes: number
+  previsaoFaturamentoProxTrimestre: number
+  previsaoFaturamentoAno: number
+  probabilidadeAtingirMeta: percentage
 
-createdAt
-updatedAt
+  proximasAcoes: [
+    {
+      tipo: 'ligar' | 'oferecer' | 'agendamento'
+      descricao: string
+      prioridade: 'alta' | 'media' | 'baixa'
+      dataRecomendada: datetime
+      razao: string
+    }
+  ]
+
+  computedAt: datetime
 }
 
-timeline {
-\_id
-clientId (ref)
-events: [
-{
-id
-data
-tipo: 'visita' | 'contato' | 'venda' | 'agendamento' | 'acao_sugerida'
-titulo
-descricao
+timelineResponse {
+  clientId: string
+  events: [
+    {
+      id: string
+      data: datetime
+      tipo: 'visita' | 'contato' | 'venda' | 'agendamento' | 'acao_sugerida'
+      titulo: string
+      descricao?: string
+    }
+  ]
 }
-]
-}
-
-````
+```
 
 ### 0.2 Estrutura de Dados: Schemas Zod
 
@@ -256,7 +278,7 @@ Será criado arquivo `app/types/schemas.ts` com validação em runtime.
 
 ---
 
-## � Mapeamento de Transformação de Dados
+## 🔄 Mapeamento de Transformação de Dados
 
 ### De campos atuais para nova estrutura:
 
@@ -297,7 +319,7 @@ historicoCliente (Source of Truth Único)
 ├─ Imutável (registro de auditoria)
 └─ Query simples para vendas: find({ tipo: { $in: ['venda_fisica', 'venda_ligacao'] } })
 
-analytics (Cache Pré-Calculado)
+cache (Redis opcional)
 ├─ Agregações: totalVendas, totalFaturamento, produtosTopVendidos
 ├─ Previsões: regressão linear para próximos períodos
 ├─ Atualizado 1x/dia (ou em tempo real para vendas críticas)
@@ -348,7 +370,7 @@ Redis Cache (Opcional)
 ```
 
 **Benefícios:**
-✅ 4 collections ao invés de 6
+✅ 5 collections ao invés de 7
 ✅ Zero duplicação
 ✅ Sempre sincronizado
 ✅ Simples (agregação vs sincronização)
@@ -356,7 +378,7 @@ Redis Cache (Opcional)
 
 ---
 
-## �🔄 FASE 1: Preparação do Backend
+## 🔧 FASE 1: Preparação do Backend
 
 ### 1.1 Criar Schemas Zod para Validação
 
@@ -387,6 +409,11 @@ export const ClientSchema = z.object({
   localizacao: z.object({
     latitude: z.number(),
     longitude: z.number(),
+    // GeoJSON para índice 2dsphere (queries de proximidade/raio)
+    geo: z.object({
+      type: z.literal('Point'),
+      coordinates: z.tuple([z.number(), z.number()]), // [lng, lat]
+    }).optional(),
   }).optional(),
 
   telefone: z.string().optional(),
@@ -396,6 +423,16 @@ export const ClientSchema = z.object({
     mesTarget: z.number().optional(),
     semestreTarget: z.number().optional(),
     anoTarget: z.number().optional(),
+  }).optional(),
+
+  // ⭐ Camada comercial (alavanca de vendas)
+  sales: z.object({
+    stage: z.enum(['lead', 'ativo', 'negociacao', 'perdido', 'reativacao']).optional(),
+    ownerUserId: z.string().optional(),
+    nextActionAt: z.string().datetime().optional(),
+    nextActionType: z.enum(['ligar', 'visitar', 'enviar_catalogo', 'cobrar']).optional(),
+    lastContactAt: z.string().datetime().optional(),
+    priorityScore: z.number().min(0).max(100).optional(),
   }).optional(),
 
   status: z.enum(['ativo', 'inativo', 'potencial']).default('ativo'),
@@ -497,7 +534,7 @@ export type HistoricoCliente = z.infer<typeof HistoricoClienteSchema>
 
 // ⚠️ NOTA: Analytics e Timeline NÃO são schemas de collection
 // São computados on-demand. Ver seções 0.2.2 e 1.2.6/1.2.7 para implementação
-````
+```
 
 ### 1.2 Criar Endpoints API
 
@@ -659,8 +696,9 @@ export default defineEventHandler(async (event) => {
   // Atualizar stats do client
   await updateClientStats(db, validated.clientId)
 
-  // Gerar analytics se necessário
-  await updateAnalytics(db, validated.clientId)
+  // ⭐ Camada comercial (FASE 8 - recomendado)
+  // - Atualizar clients.sales.lastContactAt (ex.: validated.data)
+  // - Persistir/validar nextActionAt (ex.: validated.proximoContato) para não deixar cliente sem follow-up
 
   return { success: true, data: evento }
 })
@@ -685,7 +723,7 @@ async function updateClientStats(db: any, clientId: string) {
     { _id: clientId },
     {
       $set: {
-        'metrics.mesAberto': faturamento,
+        'objectives.mesAberto': faturamento,
         updatedAt: new Date().toISOString(),
       },
     }
@@ -711,91 +749,16 @@ export default defineEventHandler(async (event) => {
 })
 ```
 
-**Arquivo:** `server/api/v1/visitas.get.ts`
+**Nota (decisão do plano):** não criar collection `visitas` nem endpoints que gravam em `visitas`.  
+Se precisar da UX/rota “visitas” no front, trate como **alias de leitura** em cima de `historicoCliente`:
 
-```typescript
-// GET - Listar visitas com filtros opcionais
-export default defineEventHandler(async (event) => {
-  const query = getQuery(event)
-  const db = await getMongoDb()
-
-  const filter: Record<string, any> = {}
-  if (query.clientId) filter.clientId = query.clientId
-  if (query.vendedorId) filter.vendedorId = query.vendedorId
-  if (query.periodo) {
-    const now = new Date()
-    const start = new Date(now.getFullYear(), now.getMonth(), 1)
-    filter.data = { $gte: start.toISOString() }
-  }
-
-  const visitas = await db.collection('visitas').find(filter).sort({ data: -1 }).toArray()
-  return visitas
-})
-```
-
-**Arquivo:** `server/api/v1/visitas.post.ts`
-
-```typescript
-// POST - Criar nova visita (substitui clients/[id]/visitas.post.ts)
-export default defineEventHandler(async (event) => {
-  const db = await getMongoDb()
-  const body = await readBody(event)
-
-  const validated = VisitaSchema.omit({ _id: true, createdAt: true, updatedAt: true }).parse(body)
-
-  // Calcular totalVenda
-  const totalVenda = validated.items.reduce(
-    (sum, item) => sum + item.quantidade * item.valorUnitario,
-    0
-  )
-
-  const visita = {
-    _id: new ObjectId(),
-    ...validated,
-    totalVenda,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  }
-
-  await db.collection('visitas').insertOne(visita)
-
-  // Atualizar stats do client
-  await updateClientStats(db, validated.clientId)
-
-  // ⚠️ NOTA: Analytics e Timeline são computados on-demand
-  // Não há necessidade de persistir ou sincronizar aqui
-
-  return { success: true, data: visita, proximasAcoes: acoes }
-})
-
-async function updateClientStats(db: any, clientId: string) {
-  const thisMonth = new Date()
-  thisMonth.setDate(1)
-  thisMonth.setHours(0, 0, 0, 0)
-
-  const visitas = await db
-    .collection('visitas')
-    .find({
-      clientId,
-      data: { $gte: thisMonth.toISOString() },
-    })
-    .toArray()
-
-  const faturamento = visitas.reduce((sum, v) => sum + v.totalVenda, 0)
-
-  await db.collection('clients').updateOne(
-    { _id: clientId },
-    {
-      $set: {
-        'metrics.mesAberto': faturamento,
-        updatedAt: new Date().toISOString(),
-      },
-    }
-  )
-}
-
-// ⚠️ Funções createTimelineEntry e updateAnalytics removidas
-// Analytics e Timeline são computados on-demand nos endpoints 1.2.6 e 1.2.7
+```ts
+// Exemplo: visitas = eventos físicos no historicoCliente
+const visitas = await db
+  .collection('historicoCliente')
+  .find({ clientId, tipo: { $in: ['visita_fisica', 'venda_fisica'] } })
+  .sort({ data: -1 })
+  .toArray()
 ```
 
 #### 1.2.5.1 Estratégia de Vendas: Hybrid Approach (SEM Duplicação)
@@ -825,11 +788,11 @@ const totalVendas = await db.collection('historicoCliente').countDocuments({
 })
 ```
 
-**2) Analytics Collection: Agregações Pré-Calculadas (Cache)**
+**2) Cache de Analytics (Redis opcional)**
 
-- Collection `analytics` contém **resumos e previsões**, não dados brutos
-- Atualizada periodicamente (1x/dia ou por trigger de evento crítico)
-- Dados de exemplo:
+- Cache opcional para previsões/agregações custosas (TTL 6–12h)
+- Chave sugerida: `analytics:${clientId}:${periodo}:${ano}:${mes?}`
+- O payload cacheado é a própria resposta do endpoint `/api/v1/analytics/[clientId]`
 
 ```typescript
 {
@@ -971,7 +934,7 @@ export default defineEventHandler(async (event) => {
 
 ---
 
-## � FASE 1.5: Migração de Dados Existentes
+## 🔁 FASE 1.5: Migração de Dados Existentes
 
 ### 1.5.1 Visão Geral da Migração
 
@@ -1122,6 +1085,9 @@ export default defineEventHandler(async (event) => {
 
 **Arquivo:** `scripts/migrate_step1_clients.ts`
 
+**Nota (repo atual):** já existe `scripts/migrate_clients_structure.ts` com a normalização básica (in-place).  
+Este passo pode ser implementado criando `migrate_step1_clients.ts` como descrito abaixo **ou** adaptando o script existente para também preencher `localizacao.geo` e criar o índice `2dsphere`.
+
 ```typescript
 import { getMongoDb } from '../server/utils/mongo'
 
@@ -1151,10 +1117,12 @@ async function migrateClients() {
 
   // 1. Backup collection atual
   console.log('📦 Criando backup...')
-  await db.collection('clients').rename('clients_backup_' + Date.now())
+  const backupName = `clients_backup_${Date.now()}`
+  await db.collection('clients').rename(backupName)
+  console.log(`📦 Backup criado: ${backupName}`)
 
   // 2. Buscar todos os clientes antigos
-  const clientesAntigos = await db.collection<ClienteAntigo>('clients_backup_*').find({}).toArray()
+  const clientesAntigos = await db.collection<ClienteAntigo>(backupName).find({}).toArray()
 
   console.log(`📊 Total de clientes: ${clientesAntigos.length}`)
 
@@ -1201,6 +1169,7 @@ async function migrateClients() {
       localizacao: {
         latitude: clienteAntigo.lat,
         longitude: clienteAntigo.lng,
+        geo: { type: 'Point', coordinates: [clienteAntigo.lng, clienteAntigo.lat] },
       },
 
       objectives: {
@@ -1232,12 +1201,7 @@ async function migrateClients() {
   // 3. Criar índices
   console.log('\n🔍 Criando índices...')
   await db.collection('clients').createIndex({ cnpj: 1 })
-  await db
-    .collection('clients')
-    .createIndex({ 'localizacao.latitude': 1, 'localizacao.longitude': 1 })
-  await db.collection('clients').createIndex({
-    localizacao: '2dsphere',
-  })
+  await db.collection('clients').createIndex({ 'localizacao.geo': '2dsphere' })
   console.log('✅ Índices criados!')
 }
 
@@ -1249,6 +1213,9 @@ migrateClients().catch(console.error)
 ### 1.5.6 Script de Migração: PASSO 2 - Migrar Visitas → historicoCliente
 
 **Arquivo:** `scripts/migrate_step2_historico.ts`
+
+**Nota (repo atual):** existe `scripts/migrate_visitas_to_collection.ts`, mas ele atende a **Opção B** (collection `visitas`).  
+Como este plano adotou **Opção A**, este passo deve inserir em `historicoCliente` (como no script abaixo) e depois remover `visitas` de `clients`.
 
 ```typescript
 import { getMongoDb } from '../server/utils/mongo'
@@ -1272,9 +1239,15 @@ async function migrateHistorico() {
 
   console.log('🚀 Iniciando migração de visitas → historicoCliente...')
 
-  // Buscar clientes do backup (que têm visitas embedded)
+  // Buscar clientes da collection fonte (por padrão: 'clients').
+  // Se você fez rename para backup no PASSO 1, passe via env:
+  // CLIENTS_SOURCE_COLLECTION="clients_backup_1700000000000"
+  const sourceCollection =
+    process.env.CLIENTS_SOURCE_COLLECTION || process.env.CLIENTS_BACKUP_COLLECTION || 'clients'
+  console.log(`📥 Lendo clientes de: ${sourceCollection}`)
+
   const clientesComVisitas = await db
-    .collection('clients_backup_*')
+    .collection(sourceCollection)
     .find({ visitas: { $exists: true, $ne: [] } })
     .toArray()
 
@@ -1418,13 +1391,15 @@ mongodump --uri="mongodb://..." --out=./backup-pre-migracao
 
 # 1. Migrar clients (normalizar estrutura)
 tsx scripts/migrate_step1_clients.ts
+# ⚠️ Anote o backupName impresso no log (ex.: clients_backup_1700000000000)
 
 # 2. Validar migração de clients
 # - Verificar que todos têm lat/lng
 # - Confirmar contagem correta
 
 # 3. Migrar visitas → historicoCliente
-tsx scripts/migrate_step2_historico.ts
+CLIENTS_SOURCE_COLLECTION="clients_backup_1700000000000" tsx scripts/migrate_step2_historico.ts
+# (Se você não renomeou a collection no PASSO 1, pode rodar sem env var: tsx scripts/migrate_step2_historico.ts)
 
 # 4. Validar migração de histórico
 # - Confirmar contagem de eventos
@@ -1452,6 +1427,12 @@ db.clients.countDocuments({
   "localizacao.longitude": { $exists: true }
 })
 # Deve ser = total de clients
+
+# 2.1 Validar GeoJSON (para queries 2dsphere)
+db.clients.countDocuments({
+  "localizacao.geo": { $exists: true },
+  "localizacao.geo.type": "Point"
+})
 
 # 3. Validar referências
 db.historicoCliente.aggregate([
@@ -1486,7 +1467,8 @@ Se algo der errado durante a migração:
 mongorestore --uri="mongodb://..." --drop ./backup-pre-migracao
 
 # Ou renomear collections de volta
-db.clients_backup_TIMESTAMP.rename("clients")
+# Troque pelo backupName impresso no PASSO 1
+db.getCollection("clients_backup_1700000000000").renameCollection("clients", true)
 ```
 
 ---
@@ -1938,9 +1920,9 @@ db.historicoCliente.aggregate([
 
 ```bash
 # FASE 1.5 - Migrar dados atuais
-✅ 1. Executar migrate_step1_clients.ts
+✅ 1. Executar scripts/migrate_clients_structure.ts (ou scripts/migrate_step1_clients.ts)
 ✅ 2. Validar clients (geolocalização)
-✅ 3. Executar migrate_step2_historico.ts
+✅ 3. Executar scripts/migrate_step2_historico.ts (Opção A)
 ✅ 4. Validar historicoCliente (integridade)
 
 # FASE 2 - Importar Plano de Ouro
@@ -1949,7 +1931,7 @@ db.historicoCliente.aggregate([
 ✅ 7. Verificar produtos e valores
 
 # Rollback (se necessário)
-❌ Restaurar backup: clients_backup_*
+❌ Restaurar backup: `mongorestore --drop` (recomendado) **ou** renomear usando o backupName real (ex.: `clients_backup_1700000000000`)
 ❌ Truncar: historicoCliente, produtos, historicoValores
 ```
 
@@ -2085,7 +2067,7 @@ async function importPlanoOuro() {
       console.log(`📦 ${produtosMap.size} produtos processados`)
 
       // 4. Criar/atualizar clients e visitas
-      let visitasCount = 0
+      let eventosCount = 0
 
       for (const [cnpj, clientData] of clientsMap) {
         // Upsert client
@@ -2121,7 +2103,7 @@ async function importPlanoOuro() {
           .collection('clients')
           .updateOne({ _id: clientId }, { $set: clientDoc }, { upsert: true })
 
-        // Criar visitas histórico
+        // Criar eventos em historicoCliente (vendas históricas)
         // Agrupar vendas por mês
         const ventasPorMes = new Map<string, any[]>()
         clientData.vendas.forEach((venda) => {
@@ -2137,31 +2119,33 @@ async function importPlanoOuro() {
 
           const items = vendas.map((v) => ({
             produtoId: produtosMap.get(v.produto)!,
+            nome: v.produto,
             quantidade: v.qtd,
             valorUnitario: v.valor,
+            total: v.total,
           }))
 
           const totalVenda = vendas.reduce((sum, v) => sum + v.total, 0)
 
-          const visita = {
+          const evento = {
             _id: new ObjectId(),
             clientId,
-            vendedorId: 'vendedor-importacao', // placeholder
+            userId: 'user-importacao-plano-ouro', // placeholder
+            tipo: 'venda_fisica',
             data: data.toISOString(),
-            descricao: `Compra importada do histórico`,
-            statusContato: 'atendeu',
-            feedback: '',
             items,
-            vendeuAlgo: true,
+            descricao: 'Venda histórica - Plano de Ouro',
+            resultado: 'sucesso',
+            feedback: '',
             totalVenda,
-            duracao: undefined,
-            proximoContato: undefined,
+            duracao: null,
+            proximoContato: null,
             createdAt: data.toISOString(),
             updatedAt: new Date().toISOString(),
           }
 
-          await db.collection('visitas').insertOne(visita)
-          visitasCount++
+          await db.collection('historicoCliente').insertOne(evento)
+          eventosCount++
         }
 
         // Atualizar histórico de valores dos produtos
@@ -2190,7 +2174,7 @@ async function importPlanoOuro() {
         })
       }
 
-      console.log(`✅ ${visitasCount} visitas/vendas importadas`)
+      console.log(`✅ ${eventosCount} eventos (vendas) importados`)
       console.log('🎉 Importação concluída!')
     })
 }
@@ -2201,7 +2185,7 @@ importPlanoOuro().catch(console.error)
 **Executar:**
 
 ```bash
-tsx scripts/import_plano_ouro_new.ts
+tsx scripts/import_plano_ouro.ts
 ```
 
 ---
@@ -2262,26 +2246,29 @@ export async function calculateAnalytics(
       break
   }
 
-  // 2. Buscar visitas do período
-  const visitas = await db
-    .collection('visitas')
+  // 2. Buscar eventos do período (source of truth: historicoCliente)
+  const eventos = await db
+    .collection('historicoCliente')
     .find({
       clientId,
       data: { $gte: startDate.toISOString(), $lte: endDate.toISOString() },
     })
     .toArray()
 
+  const visitas = eventos.filter((e: any) => ['visita_fisica', 'venda_fisica'].includes(e.tipo))
+  const vendas = eventos.filter((e: any) => ['venda_fisica', 'venda_ligacao'].includes(e.tipo))
+
   // 3. Calcular métricas básicas
   const totalVisitas = visitas.length
-  const totalVendas = visitas.filter((v) => v.vendeuAlgo).length
-  const totalFaturamento = visitas.reduce((sum, v) => sum + (v.totalVenda || 0), 0)
+  const totalVendas = vendas.length
+  const totalFaturamento = vendas.reduce((sum, v) => sum + (v.totalVenda || 0), 0)
   const ticketMedio = totalVendas > 0 ? totalFaturamento / totalVendas : 0
 
   // 4. Produtos top vendidos
   const produtosMap = new Map<string, { nome: string; qtd: number; faturamento: number }>()
 
-  for (const visita of visitas) {
-    for (const item of visita.items || []) {
+  for (const venda of vendas) {
+    for (const item of venda.items || []) {
       const produto = await db.collection('produtos').findOne({ _id: item.produtoId })
       const key = item.produtoId
 
@@ -2301,10 +2288,10 @@ export async function calculateAnalytics(
     .slice(0, 5)
 
   // 5. Previsões (regressão linear simples)
-  const previsoes = calculatePrevisoes(db, clientId, visitas, totalFaturamento, periodo)
+  const previsoes = calculatePrevisoes(db, clientId, vendas, totalFaturamento, periodo)
 
   // 6. Próximas ações sugeridas
-  const proximasAcoes = generateProximasAcoes(clientId, visitas, totalVendas, totalVisitas)
+  const proximasAcoes = generateProximasAcoes(clientId, eventos, totalVendas, totalVisitas)
 
   return {
     totalVisitas,
@@ -2320,7 +2307,7 @@ export async function calculateAnalytics(
 function calculatePrevisoes(
   db: Db,
   clientId: string,
-  visitasAtual: any[],
+  vendasPeriodo: any[],
   faturamentoAtual: number,
   periodo: string
 ): Promise<{
@@ -2348,17 +2335,17 @@ function calculatePrevisoes(
   const probabilidade = Math.min(100, (previsaoMesAtual / metaMesAtual) * 100)
 
   return Promise.resolve({
-    previsaoFaturamentoMesAtual,
-    previsaoFaturamentoProxMes,
-    previsaoFaturamentoProxTrimestre,
-    previsaoFaturamentoAno,
+    previsaoFaturamentoMesAtual: previsaoMesAtual,
+    previsaoFaturamentoProxMes: previsaoProxMes,
+    previsaoFaturamentoProxTrimestre: previsaoProxTrimestre,
+    previsaoFaturamentoAno: previsaoAno,
     probabilidadeAtingirMeta: Math.round(probabilidade),
   })
 }
 
 function generateProximasAcoes(
   clientId: string,
-  visitas: any[],
+  eventos: any[],
   totalVendas: number,
   totalVisitas: number
 ): Array<{
@@ -2395,7 +2382,13 @@ function generateProximasAcoes(
   }
 
   // Agendamento de próxima visita
-  const ultimaVisita = visitas.length > 0 ? new Date(visitas[visitas.length - 1].data) : null
+  const visitas = eventos.filter((e: any) => ['visita_fisica', 'venda_fisica'].includes(e.tipo))
+  const ultimaVisita =
+    visitas.length > 0
+      ? new Date(
+          visitas.reduce((max: string, e: any) => (e.data > max ? e.data : max), visitas[0].data)
+        )
+      : null
   if (!ultimaVisita || now.getTime() - ultimaVisita.getTime() > 14 * 24 * 60 * 60 * 1000) {
     acoes.push({
       tipo: 'agendamento',
@@ -2410,7 +2403,7 @@ function generateProximasAcoes(
 }
 ```
 
-### 3.2 Endpoint para Gerar/Atualizar Analytics
+### 3.2 Endpoint para Invalidar Cache de Analytics (Opcional)
 
 **Arquivo:** `server/api/v1/analytics/[clientId]/refresh.post.ts`
 
@@ -2427,35 +2420,19 @@ export default defineEventHandler(async (event) => {
   if (!clientId) throw createError({ statusCode: 400, statusMessage: 'clientId é obrigatório' })
 
   const db = await getMongoDb()
+  const redis = useRedis?.() // Opcional
 
   // Verificar se cliente existe
   const client = await db.collection('clients').findOne({ _id: clientId })
   if (!client) throw createError({ statusCode: 404, statusMessage: 'Cliente não encontrado' })
 
-  // Calcular analytics
+  // Invalidar cache (se existir)
+  await redis?.del(`previsoes:${clientId}`)
+
+  // Recalcular analytics (on-demand)
   const analytics = await calculateAnalytics(db, clientId, periodo)
 
-  // Salvar ou atualizar no banco
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = now.getMonth() + 1
-
-  const analyticsDoc = {
-    _id: `analytics-${clientId}-${periodo}-${year}-${periodo === 'mes' ? month : ''}`,
-    clientId,
-    periodo,
-    ano: year,
-    mes: periodo === 'mes' ? month : undefined,
-    ...analytics,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  }
-
-  await db
-    .collection('analytics')
-    .updateOne({ _id: analyticsDoc._id }, { $set: analyticsDoc }, { upsert: true })
-
-  return { success: true, data: analyticsDoc }
+  return { success: true, data: analytics, refreshedAt: new Date().toISOString() }
 })
 ```
 
@@ -2548,7 +2525,7 @@ interface TimelineEvent {
   tipo: 'visita' | 'contato' | 'venda' | 'agendamento' | 'acao_sugerida'
   titulo: string
   descricao?: string
-  vendedorId?: string
+  userId?: string
   resultado: 'sucesso' | 'pendente' | 'fracasso'
   proximoPassoRecomendado?: string
   createdAt: string
@@ -2672,33 +2649,33 @@ onMounted(() => {
 
 ---
 
-## 🎨 FASE 5: Componentes de Vendedores e Produtos
+## 🎨 FASE 5: Componentes de Usuários e Produtos
 
-### 5.1 Gerenciador de Vendedores
+### 5.1 Gerenciador de Usuários (vendedores/gerentes/admin)
 
-**Arquivo:** `app/components/VendedoresManager.vue`
+**Arquivo:** `app/components/UsersManager.vue`
 
 ```vue
 <template>
-  <div class="space-y-4">
-    <div class="flex justify-between items-center">
-      <NTypo variant="heading-2">Vendedores</NTypo>
+    <div class="space-y-4">
+      <div class="flex justify-between items-center">
+      <NTypo variant="heading-2">Usuários</NTypo>
       <NButton @click="showModalCreate = true">
         <NIcon name="plus" class="w-4 h-4 mr-2" />
-        Novo Vendedor
+        Novo Usuário
       </NButton>
     </div>
 
-    <!-- Lista de Vendedores -->
+    <!-- Lista de Usuários -->
     <div v-if="vendedores.length === 0" class="text-center py-8">
-      <NEmptyState title="Sem vendedores" description="Crie o primeiro vendedor" />
+      <NEmptyState title="Sem usuários" description="Crie o primeiro usuário" />
     </div>
 
     <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <NLayer v-for="vendedor in vendedores" :key="vendedor._id" class="p-4">
         <div class="flex justify-between items-start">
           <div>
-            <NTypo variant="body-bold">{{ vendedor.name }}</NTypo>
+            <NTypo variant="body-bold">{{ vendedor.nome }}</NTypo>
             <p class="text-sm text-gray-600">{{ vendedor.email }}</p>
             <p class="text-sm text-gray-600">{{ vendedor.telefone }}</p>
           </div>
@@ -2715,11 +2692,11 @@ onMounted(() => {
     </div>
 
     <!-- Modal Criar/Editar -->
-    <NModal v-model="showModalCreate" title="Novo Vendedor">
+    <NModal v-model="showModalCreate" title="Novo Usuário">
       <form @submit.prevent="submitVendedor" class="space-y-4">
         <div>
           <label class="block text-sm font-medium mb-1">Nome</label>
-          <NInput v-model="formVendedor.name" placeholder="Nome completo" />
+          <NInput v-model="formVendedor.nome" placeholder="Nome completo" />
         </div>
         <div>
           <label class="block text-sm font-medium mb-1">Email</label>
@@ -2747,7 +2724,7 @@ import { ref, onMounted } from 'vue'
 
 interface Vendedor {
   _id: string
-  name: string
+  nome: string
   email: string
   telefone?: string
   ativo: boolean
@@ -2760,16 +2737,17 @@ interface Vendedor {
 const vendedores = ref<Vendedor[]>([])
 const showModalCreate = ref(false)
 const formVendedor = ref({
-  name: '',
+  nome: '',
   email: '',
   telefone: '',
+  role: 'vendedor',
   dataAdmissao: new Date().toISOString(),
   meta: { mesAberto: 0 },
 })
 
 const loadVendedores = async () => {
   try {
-    const response = await $fetch('/api/v1/vendedores')
+    const response = await $fetch('/api/v1/users?role=vendedor')
     vendedores.value = response
   } catch (error) {
     console.error('Erro ao carregar vendedores:', error)
@@ -2778,14 +2756,15 @@ const loadVendedores = async () => {
 
 const submitVendedor = async () => {
   try {
-    await $fetch('/api/v1/vendedores', {
+    await $fetch('/api/v1/users', {
       method: 'POST',
       body: formVendedor.value,
     })
     formVendedor.value = {
-      name: '',
+      nome: '',
       email: '',
       telefone: '',
+      role: 'vendedor',
       dataAdmissao: new Date().toISOString(),
       meta: { mesAberto: 0 },
     }
@@ -2933,12 +2912,84 @@ Adicionar:
 
 ---
 
+## 💼 FASE 8: Processo Comercial (alavancar vendas)
+
+### 8.1 Cadência (próxima ação)
+
+Objetivo: transformar “dados” em rotina de venda com follow-up obrigatório.
+
+**Campos mínimos por cliente (persistidos em `clients.sales`):**
+
+- `stage`: lead / ativo / negociacao / perdido / reativacao
+- `ownerUserId`: vendedor dono
+- `nextActionAt` + `nextActionType`: ligar / visitar / enviar_catalogo / cobrar
+- `lastContactAt`: último toque
+- `priorityScore`: 0–100
+
+**Regras operacionais simples:**
+
+- Ao criar qualquer evento em `historicoCliente`, exigir/atualizar `nextActionAt` (não deixar cliente “sem follow-up”).
+- Ao inserir evento (visita/ligação/venda), atualizar `clients.sales.lastContactAt`.
+- “Lista Hoje”: clientes com `nextActionAt <= now`, ordenados por `priorityScore`.
+
+### 8.2 Heurística de reposição (sem ML)
+
+- Usar o histórico do Plano de Ouro + vendas novas para inferir frequência de recompra (por cliente/produto).
+- Se passou **X dias** desde a última compra e a tendência histórica sugere recompra em **Y dias**, gerar “ação recomendada”:
+  - Ex.: “Ligar e oferecer reposição do AEX0113”.
+
+### 8.3 Segmentação que vira dinheiro
+
+Segmentações sugeridas (começar simples e evoluir):
+
+- **RFM (Recency, Frequency, Monetary):** VIP / Reativação / Nutrição
+- **Curva ABC (faturamento):** A (visita + relacionamento), B (cadência mista), C (digital)
+- **Geo-clusters:** agrupar por região para roteirizar dia de campo (menos custo, mais visitas)
+
+### 8.4 Playbooks por segmento (ótica vs joalheria)
+
+- **Ótica:** reposição, lançamentos, combos, exposição/vitrine
+- **Joalheria:** mix premium, giro de coleção, datas sazonais
+
+Entregáveis práticos:
+- Templates de WhatsApp/e-mail por `nextActionType`
+- Combos e recomendações por segmento/ABC
+
+### 8.5 Rotina de gestão (painel do gerente)
+
+KPIs por vendedor (semanal):
+- visitas/contatos por semana
+- taxa de conversão (contato → venda)
+- ticket médio
+- clientes em risco (sem contato há X dias / queda de compra)
+
+Ritual recomendado: reunião semanal de 30 min com **top 10 riscos + top 10 oportunidades** por vendedor.
+
+### 8.6 Roadmap pragmático
+
+**Quick wins (1–2 semanas):**
+- Próxima ação obrigatória ao salvar qualquer evento
+- Lista “Hoje” do vendedor (nextActionAt vencido)
+- Templates por tipo de ação (cobrança, catálogo, lançamento)
+
+**Médio prazo (1–2 meses):**
+- Sugestão de reposição (heurística)
+- Ranking de produtos por região/segmento
+- Mapa com rota do dia (próximos + prioridade)
+
+**Longo prazo (3–6 meses):**
+- Previsão de faturamento mais robusta (cache Redis ok)
+- Churn risk (cliente “esfriando”)
+- Recomendador simples (“quem compra A também compra B”, por segmento)
+
+---
+
 ## ✅ Checklist de Implementação
 
 ### FASE 0 - Modelagem
 
 - [ ] Revisar schemas Zod em `app/types/schemas.ts`
-- [ ] **[CRÍTICO]** Validar que `latitude`, `longitude` e `enderecoCompleto` estão presentes em todos os clientes
+- [ ] **[CRÍTICO]** Validar que `latitude`, `longitude`, `localizacao.geo` e `endereco.endereco_completo` estão presentes em todos os clientes
 - [ ] Documentar relações entre collections
 - [ ] Planejar índices geoespaciais (2dsphere) para mapas
 
@@ -2946,29 +2997,30 @@ Adicionar:
 
 - [ ] Criar endpoints de users (vendedor, gerente, admin, supervisor)
 - [ ] Criar endpoints de produtos
-- [ ] Refatorar endpoint de visitas
+- [ ] Criar endpoints de `historicoCliente` (substitui visitas como collection)
 - [ ] Criar endpoints de analytics (on-demand)
 - [ ] Criar endpoints de timeline (on-demand)
-- [ ] **[CRÍTICO]** Preservar campos de geo nos clientes (latitude, longitude, enderecoCompleto)
+- [ ] **[CRÍTICO]** Preservar campos de geo nos clientes (latitude, longitude, endereco.endereco_completo)
 - [ ] Validar com Zod
 
 ### FASE 1.5 - Migração de Dados Existentes ⭐ CRÍTICO
 
 - [ ] **[PRÉ-REQUISITO]** Fazer backup completo do banco de dados
 - [ ] **[VALIDAÇÃO]** Verificar que TODOS os 47,754 clientes têm lat/lng preenchidos
-- [ ] Executar `migrate_step1_clients.ts` (migrar estrutura de clients)
+- [ ] Executar `scripts/migrate_clients_structure.ts` (ou criar `scripts/migrate_step1_clients.ts`)
 - [ ] Validar migração de clients:
   - [ ] Contagem correta (~47,754)
   - [ ] Todos têm `localizacao.latitude` e `localizacao.longitude`
+  - [ ] Todos têm `localizacao.geo` (GeoJSON Point)
   - [ ] Campo `endereco` estruturado corretamente
   - [ ] Status definido (ativo/potencial)
-- [ ] Executar `migrate_step2_historico.ts` (migrar visitas → historicoCliente)
+- [ ] Executar `scripts/migrate_step2_historico.ts` (migrar visitas → historicoCliente; Opção A)
 - [ ] Validar migração de histórico:
   - [ ] Contagem de eventos bate com soma de visitas
   - [ ] Produtos criados automaticamente
   - [ ] Referências clientId todas válidas
   - [ ] historicoValores criado para produtos
-- [ ] Criar índices geoespaciais (2dsphere) em clients.localizacao
+- [ ] Criar índices geoespaciais (2dsphere) em `clients.localizacao.geo`
 - [ ] Validar queries geoespaciais funcionando
 - [ ] **[ROLLBACK PREPARADO]** Manter backup até validação completa
 
@@ -2988,7 +3040,7 @@ Adicionar:
 ### FASE 4 - Timeline
 
 - [ ] Criar componente `ClientTimeline.vue`
-- [ ] Integrar com dados de visitas
+- [ ] Integrar com dados de `historicoCliente`
 - [ ] Implementar lógica de sugestões
 - [ ] Adicionar página de detalhes
 
@@ -3007,10 +3059,19 @@ Adicionar:
 
 ### FASE 7 - Testes
 
-- [ ] Testar fluxo completo de visita
+- [ ] Testar fluxo completo de evento (visita/venda/ligação)
 - [ ] Validar analytics
 - [ ] Testar importação de dados
 - [ ] Verificar timeline
+
+### FASE 8 - Comercial (alavancar vendas)
+
+- [ ] Adicionar `clients.sales` (stage/owner/nextAction/score)
+- [ ] Tornar `nextActionAt` obrigatório ao registrar evento
+- [ ] Implementar “Lista Hoje” do vendedor (nextActionAt vencido)
+- [ ] Implementar segmentação inicial (RFM/ABC/Geo) a partir do histórico
+- [ ] Implementar painel do gerente (KPIs + clientes em risco/oportunidades)
+- [ ] Criar templates por ação/segmento (WhatsApp/e-mail)
 
 ---
 
@@ -3019,11 +3080,12 @@ Adicionar:
 1. **⭐ GEO REFERENCIAMENTO - CRÍTICO:** Preservar `latitude` e `longitude` de todos os clientes. Validar que estão preenchidos corretamente antes da migração. Isso é essencial para os mapas funcionarem.
 2. **Migração de Dados Existentes:** Antes de deletar `visitas` do schema de clients, executar script de migração
 3. **Indexes:** Criar indexes em MongoDB para:
-   - `clientId`, `vendedorId`, `produtoId` em visitas
-   - `latitude` e `longitude` para queries geoespaciais (2dsphere index)
+   - `historicoCliente`: `clientId + data` (principal), `userId`, `tipo`
+   - `clients`: `localizacao.geo` (índice `2dsphere`)
 4. **Permissões:** Considerar controle de acesso baseado em vendedor
 5. **Retenção:** Define política de retenção de dados históricos
 6. **Backup:** Fazer backup antes de executar script de importação
+7. **Idempotência:** Para importações/migrações, prefira `_id` determinístico ou índice `unique` (ex.: `clientId + tipo + data + origem`) para evitar duplicatas.
 
 ---
 
