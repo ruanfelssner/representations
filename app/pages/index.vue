@@ -2,7 +2,6 @@
   <div class="min-h-screen">
 
     <div class="w-full px-3 py-4 lg:px-4 lg:py-6 space-y-3">
-      <img src="/logo.webp" alt="Felssner Representações" class="h-20 lg:h-12 mx-auto" />
       <!-- Filtros + Stats -->
       <NLayer variant="paper" size="base" radius="soft" class="shadow-sm lg:shadow-lg relative">
         <div class="flex flex-col gap-3 lg:gap-4">
@@ -221,79 +220,6 @@
         </Transition>
       </div>
 
-    <!-- Formulário de Cadastro -->
-    <Transition name="slide-down">
-      <div v-if="isFormOpen" class="lg:block">
-        <NLayer variant="paper" size="lg" radius="soft" class="shadow-md">
-        <div class="flex items-center justify-between mb-4">
-          <div class="flex items-center gap-3">
-            <NTypo as="span" size="2xl" class="lg:text-3xl">🏛️</NTypo>
-            <div>
-              <NTypo as="h3" size="lg" weight="bold" class="lg:text-xl">Adicionar Novo Cliente</NTypo>
-              <NTypo size="xs" tone="muted" class="lg:text-sm">Cadastre um novo cliente no mapa</NTypo>
-            </div>
-          </div>
-          <button
-            @click="isFormOpen = false"
-            class="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <NIcon name="x" class="w-5 h-5" />
-          </button>
-        </div>
-
-        <form @submit.prevent="addNewPlace" class="space-y-3 lg:space-y-4">
-          <div>
-            <NTypo as="label" size="xs" weight="semibold" tone="muted" class="block mb-1.5 lg:mb-2 lg:text-sm">
-              💼 Nome do Cliente
-            </NTypo>
-            <input
-              v-model="newPlace.nome"
-              type="text"
-              placeholder="Ex: Supermercado Bom Preço"
-              class="w-full px-3 py-2.5 text-base lg:px-4 lg:py-3 lg:text-lg rounded-lg border border-gray-200 bg-white focus:ring-2 focus:ring-sky-400 focus:border-sky-400 transition-all"
-              required
-            />
-          </div>
-          <div>
-            <NTypo as="label" size="xs" weight="semibold" tone="muted" class="block mb-1.5 lg:mb-2 lg:text-sm">
-              🔍 Buscar Local
-            </NTypo>
-            <input
-              v-model="newPlace.address"
-              type="text"
-              placeholder="Digite o endereço ou nome do local..."
-              class="w-full px-3 py-2.5 text-base lg:px-4 lg:py-3 lg:text-lg rounded-lg border border-gray-200 bg-white focus:ring-2 focus:ring-sky-400 focus:border-sky-400 transition-all"
-              required
-            />
-            <NTypo size="xs" tone="muted" class="mt-1.5">Ex: Praia do Campeche, Florianópolis - SC</NTypo>
-          </div>
-
-          <button
-            type="submit"
-            :disabled="isGeocoding"
-            class="w-full bg-blue-500 text-white px-4 py-2.5 lg:px-6 lg:py-3 rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all font-semibold shadow-sm hover:shadow-md text-base lg:text-lg active:scale-95"
-          >
-            {{ isGeocoding ? '🔍 Buscando...' : '📍 Adicionar ao Mapa' }}
-          </button>
-        </form>
-
-        <div
-          v-if="geocodeError"
-          class="mt-3 lg:mt-4 p-3 lg:p-4 rounded-lg border border-red-200 bg-red-50"
-        >
-          <NTypo size="sm" weight="medium" class="text-red-700">❌ {{ geocodeError }}</NTypo>
-        </div>
-
-        <div
-          v-if="geocodeSuccess"
-          class="mt-3 lg:mt-4 p-3 lg:p-4 rounded-lg border border-green-200 bg-green-50"
-        >
-          <NTypo size="sm" weight="medium" class="text-green-700">✅ {{ geocodeSuccess }}</NTypo>
-        </div>
-      </NLayer>
-      </div>
-    </Transition>
-
     <!-- Mensagem quando não há clientes -->
     <div
       v-if="!clientes.length"
@@ -382,9 +308,6 @@ const salesTotals = ref<{
 const contactsThisMonth = ref(0)
 const contactsPrevMonth = ref(0)
 const loadClientsError = ref('')
-const isGeocoding = ref(false)
-const geocodeError = ref('')
-const geocodeSuccess = ref('')
 const isSidePanelOpen = ref(false)
 const selectedClient = ref<Cliente | null>(null)
 const isModalNovaVisitaOpen = ref(false)
@@ -392,18 +315,11 @@ const isModalEditarClienteOpen = ref(false)
 const searchQuery = ref('')
 const filterSegmento = ref('')
 const filterTipo = ref('')
-const isFormOpen = ref(true) // Desktop: aberto por padrão
-const isSidePanelOpenMobile = ref(false)
 
-const { fetchClients, createClient, patchClient, deleteClient } = useClientsApi()
+const { fetchClients, patchClient, deleteClient } = useClientsApi()
 const { createEvento } = useHistoricoClienteApi()
 const { keyForClient, metaForClient } = useClientEngagementStatus()
 const currentUserId = 'user-app'
-
-const newPlace = ref({
-  address: '',
-  nome: '',
-})
 
 const filters = ref({
   sede: true,
@@ -771,52 +687,7 @@ function handleVisitedMarkerClick(marker: any) {
   if (cliente) {
     selectedClient.value = cliente
     isSidePanelOpen.value = true
-    // No mobile, fecha o formulário se estiver aberto
-    if (window.innerWidth < 1024) {
-      isFormOpen.value = false
-    }
   }
-}
-
-async function addNewPlace() {
-  if (!newPlace.value.nome.trim() || !newPlace.value.address.trim()) {
-    geocodeError.value = 'Por favor, preencha o nome e o endereço'
-    return
-  }
-
-  geocodeError.value = ''
-  geocodeSuccess.value = ''
-  isGeocoding.value = true
-
-  try {
-    const novoCliente = await createClient({
-      nome: newPlace.value.nome,
-      endereco_completo: newPlace.value.address,
-      status: 'potencial',
-      segmento: 'otica',
-    })
-
-    geocodeSuccess.value = `Cliente "${novoCliente.nome}" adicionado com sucesso!`
-    resetForm()
-    await loadClients()
-
-    setTimeout(() => {
-      geocodeSuccess.value = ''
-    }, 3000)
-  } catch (error) {
-    console.error('Erro ao adicionar cliente:', error)
-    geocodeError.value = 'Erro ao salvar/geocodificar. Verifique sua conexão e tente novamente.'
-  } finally {
-    isGeocoding.value = false
-  }
-}
-
-function resetForm() {
-  newPlace.value = {
-    address: '',
-    nome: '',
-  }
-  geocodeError.value = ''
 }
 
 function handleAddVisit() {
@@ -861,4 +732,8 @@ function handleRemoveCliente() {
     await loadClients()
   })
 }
+
+definePageMeta({
+  layout: 'default',
+})
 </script>

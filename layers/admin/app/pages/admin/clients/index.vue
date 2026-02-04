@@ -6,7 +6,20 @@
           <NTypo as="h1" size="lg" weight="bold">Clientes</NTypo>
           <NTypo size="sm" tone="muted" class="mt-1">Lista (carrega via /api/v1/clients).</NTypo>
         </div>
-        <NButton variant="outline" leading-icon="mdi:refresh" label="Atualizar" @click="refresh()" />
+        <div class="flex items-center gap-2">
+          <NButton 
+            as="NuxtLink" 
+            to="/admin/clients/new" 
+            variant="primary" 
+            leading-icon="mdi:plus" 
+            size="sm"
+          >
+            Novo Cliente
+          </NButton>
+          <NButton variant="outline" leading-icon="mdi:refresh" size="sm" @click="refresh()">
+            Atualizar
+          </NButton>
+        </div>
       </div>
       <div class="mt-4">
         <input

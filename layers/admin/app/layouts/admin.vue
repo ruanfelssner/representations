@@ -1,30 +1,56 @@
 <template>
   <div class="min-h-screen bg-slate-50">
-    <header class="border-b bg-white">
-      <NContainer class="py-3 flex items-center justify-between gap-3">
-        <NuxtLink to="/admin" class="flex items-center gap-2">
-          <NIcon name="mdi:shield-account" class="w-6 h-6 text-slate-700" />
-          <NTypo as="span" size="sm" weight="bold" class="text-slate-800">Admin</NTypo>
-        </NuxtLink>
+    <NAppHeader 
+      logo-link="/admin" 
+      :menu-open="isMenuOpen"
+      :show-menu-button="true"
+      @toggle-menu="toggleMenu"
+    >
+      <template #actions>
+        <NButton as="NuxtLink" to="/" variant="outline" size="xs" leading-icon="mdi:map">
+          Mapa
+        </NButton>
+      </template>
+      <template #mobileActions>
+        <NButton as="NuxtLink" to="/" variant="ghost" size="xs">
+          <NIcon name="mdi:map" class="w-5 h-5" />
+        </NButton>
+      </template>
+    </NAppHeader>
 
-        <div class="flex items-center gap-2">
-          <NButton as="NuxtLink" to="/" variant="outline" size="xs" leading-icon="mdi:map" label="Mapa" />
-        </div>
-      </NContainer>
-    </header>
-
-    <NContainer class="py-4">
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        <aside class="lg:col-span-3">
-          <div class="rounded-2xl border bg-white p-3">
-            <div class="space-y-2">
-              <NButton as="NuxtLink" to="/admin" variant="ghost" class="w-full justify-start" leading-icon="mdi:view-dashboard" label="Visão geral" />
-              <NButton as="NuxtLink" to="/admin/clients" variant="ghost" class="w-full justify-start" leading-icon="mdi:account-group" label="Clientes" />
-              <NButton as="NuxtLink" to="/admin/users" variant="ghost" class="w-full justify-start" leading-icon="mdi:account" label="Usuários" />
-              <NButton as="NuxtLink" to="/admin/produtos" variant="ghost" class="w-full justify-start" leading-icon="mdi:package-variant" label="Produtos" />
+    <NContainer class="py-4 lg:py-6">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6">
+        <!-- Navigation Sidebar/Drawer -->
+        <div class="lg:col-span-3">
+          <NNavMenu :is-open="isMenuOpen" @close="closeMenu">
+            <div class="space-y-1">
+              <NNavItem 
+                to="/admin" 
+                icon="mdi:view-dashboard" 
+                label="Dashboard" 
+                @click="closeMenu"
+              />
+              <NNavItem 
+                to="/admin/clients" 
+                icon="mdi:account-group" 
+                label="Clientes" 
+                @click="closeMenu"
+              />
+              <NNavItem 
+                to="/admin/users" 
+                icon="mdi:account" 
+                label="Usuários" 
+                @click="closeMenu"
+              />
+              <NNavItem 
+                to="/admin/produtos" 
+                icon="mdi:package-variant" 
+                label="Produtos" 
+                @click="closeMenu"
+              />
             </div>
-          </div>
-        </aside>
+          </NNavMenu>
+        </div>
 
         <main class="lg:col-span-9">
           <slot />
@@ -33,4 +59,18 @@
     </NContainer>
   </div>
 </template>
+
+<script setup lang="ts">
+import { ref } from 'vue'
+
+const isMenuOpen = ref(false)
+
+function toggleMenu() {
+  isMenuOpen.value = !isMenuOpen.value
+}
+
+function closeMenu() {
+  isMenuOpen.value = false
+}
+</script>
 
