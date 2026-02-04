@@ -1,6 +1,7 @@
 import { createError } from 'h3'
 import { geocodeAddress } from '../../utils/geocode'
 import { getMongoDb } from '../../utils/mongo'
+import { toClientApi } from '../../utils/dto'
 
 export default defineEventHandler(async (event) => {
   const body = (await readBody(event).catch(() => ({}))) as Record<string, unknown>
@@ -35,20 +36,38 @@ export default defineEventHandler(async (event) => {
     nome,
     telefone: (body.telefone as string | undefined) || undefined,
     email: (body.email as string | undefined) || undefined,
-    endereco: geo.formatted_address || endereco_completo,
-    endereco_completo,
-    cidade: (body.cidade as string | undefined) || '',
-    estado: (body.estado as string | undefined) || 'SC',
-    lat: geo.lat,
-    lng: geo.lng,
-    visitas: [],
-    tipo: (body.tipo as string | undefined) || 'prospecto',
-    segmento: (body.segmento as string | undefined) || 'otica',
+    segmento: (body.segmento as string | undefined) || undefined,
+    endereco: {
+      rua: (body.endereco as string | undefined) || undefined,
+      bairro: undefined,
+      cidade: (body.cidade as string | undefined) || '',
+      cep: (body.cep as string | undefined) || undefined,
+      uf: (body.estado as string | undefined) || 'SC',
+      endereco_completo,
+    },
+    localizacao: {
+      latitude: geo.lat,
+      longitude: geo.lng,
+      geo: { type: 'Point', coordinates: [geo.lng, geo.lat] },
+    },
+    objectives: {
+      mesAberto: 0,
+      mesTarget: 5000,
+      semestreTarget: 30000,
+      anoTarget: 60000,
+    },
+    status:
+      (body.status as string | undefined) === 'ativo'
+        ? 'ativo'
+        : (body.status as string | undefined) === 'inativo'
+          ? 'inativo'
+          : (body.tipo as string | undefined) === 'inativo'
+            ? 'inativo'
+            : 'potencial',
     createdAt: now,
     updatedAt: now,
   }
 
   await db.collection('clients').updateOne({ _id: id }, { $setOnInsert: doc }, { upsert: true })
-  const { _id, ...rest } = doc as any
-  return { success: true, data: { ...rest, id } }
+  return { success: true, data: toClientApi(doc) }
 })

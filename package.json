@@ -13,7 +13,12 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "import:aco-e-ouro": "tsx scripts/import_aco_e_ouro.ts",
+    "import:plano-ouro": "tsx scripts/import_plano_ouro.ts",
     "mongo:unset-color": "tsx scripts/mongo_unset_color.ts",
+    "migrate:step1:clients": "tsx scripts/migrate_step1_clients.ts",
+    "migrate:step2:historico": "tsx scripts/migrate_step2_historico.ts",
+    "rebuild:from-sources": "tsx scripts/rebuild_from_sources.ts",
+    "recompute:client-sales": "tsx scripts/recompute_client_sales.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.{js,ts,vue,json,md}\""

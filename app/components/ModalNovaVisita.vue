@@ -73,6 +73,18 @@
                   />
                 </div>
 
+                <!-- Próximo contato -->
+                <div>
+                  <label class="block text-sm font-semibold text-gray-700 mb-2">
+                    📌 Próximo contato (opcional)
+                  </label>
+                  <input
+                    v-model="form.proximoContato"
+                    type="datetime-local"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  />
+                </div>
+
                 <!-- Vendeu Algo? -->
                 <div class="bg-gray-50 rounded-xl p-4 border-2 border-dashed border-gray-300">
                   <label class="flex items-center gap-3 cursor-pointer">
@@ -145,7 +157,7 @@
                           <option value="">Selecione um produto...</option>
                           <option v-for="produto in produtos" :key="produto.id" :value="produto.id">
                             {{ produto.categoria === 'oculos' ? '👓' : produto.categoria === 'relogio' ? '⌚' : produto.categoria === 'semijoia' ? '💍' : '🎁' }}
-                            {{ produto.nome }} - {{ formatCurrency(produto.preco) }}
+                            {{ produto.nome }} - {{ formatCurrency(produto.valor) }}
                           </option>
                         </select>
 
@@ -208,7 +220,6 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import type { Visita, ProdutoVendido } from '~/types/client'
 import { PRODUTOS_MOCK } from '~/types/product'
 
 interface Props {
@@ -216,9 +227,19 @@ interface Props {
   clienteNome: string
 }
 
+type NovoEventoPayload = {
+  data: string
+  descricao: string
+  tipo: 'visita_fisica' | 'venda_fisica'
+  items?: Array<{ produtoId: string; nome: string; quantidade: number; valorUnitario: number }>
+  duracao?: number
+  proximoContato?: string
+  resultado?: 'sucesso' | 'pendente' | 'fracasso'
+}
+
 interface Emits {
   (e: 'close'): void
-  (e: 'submit', visita: Omit<Visita, 'id'>): void
+  (e: 'submit', payload: NovoEventoPayload): void
 }
 
 const props = defineProps<Props>()
@@ -231,8 +252,9 @@ const form = ref({
   descricao: '',
   vendeuAlgo: false,
   valorVenda: 0,
-  produtos: [] as ProdutoVendido[],
+  produtos: [] as Array<{ produtoId: string; nome: string; quantidade: number; precoUnitario: number }>,
   duracao: undefined as number | undefined,
+  proximoContato: '',
 })
 
 const novoProduto = ref({
@@ -252,14 +274,19 @@ watch(() => novoProduto.value.produtoId, (produtoId) => {
   if (produtoId) {
     const produto = produtos.find(p => p.id === produtoId)
     if (produto) {
-      novoProduto.value.preco = produto.preco
+      novoProduto.value.preco = produto.valor
     }
   }
 })
 
 const isFormValid = computed(() => {
   if (!form.value.data || !form.value.descricao) return false
-  if (form.value.vendeuAlgo && (!form.value.valorVenda || form.value.valorVenda <= 0)) return false
+  if (
+    form.value.vendeuAlgo &&
+    (form.value.produtos.length === 0 && (!form.value.valorVenda || form.value.valorVenda <= 0))
+  ) {
+    return false
+  }
   return true
 })
 
@@ -298,16 +325,36 @@ function formatCurrency(value: number): string {
 function handleSubmit() {
   if (!isFormValid.value) return
 
-  const visita: Omit<Visita, 'id'> = {
+  const items =
+    form.value.vendeuAlgo && form.value.produtos.length > 0
+      ? form.value.produtos.map((p) => ({
+          produtoId: p.produtoId,
+          nome: p.nome,
+          quantidade: p.quantidade,
+          valorUnitario: p.precoUnitario,
+        }))
+      : form.value.vendeuAlgo && form.value.valorVenda > 0
+        ? [
+            {
+              produtoId: 'produto-generico',
+              nome: 'Venda sem detalhes',
+              quantidade: 1,
+              valorUnitario: form.value.valorVenda,
+            },
+          ]
+        : undefined
+
+  const payload: NovoEventoPayload = {
     data: new Date(form.value.data).toISOString(),
     descricao: form.value.descricao,
-    vendeuAlgo: form.value.vendeuAlgo,
-    valorVenda: form.value.vendeuAlgo ? form.value.valorVenda : undefined,
-    produtos: form.value.vendeuAlgo && form.value.produtos.length > 0 ? form.value.produtos : undefined,
+    tipo: form.value.vendeuAlgo ? 'venda_fisica' : 'visita_fisica',
+    items,
     duracao: form.value.duracao,
+    proximoContato: form.value.proximoContato ? new Date(form.value.proximoContato).toISOString() : undefined,
+    resultado: form.value.vendeuAlgo ? 'sucesso' : 'pendente',
   }
 
-  emit('submit', visita)
+  emit('submit', payload)
   resetForm()
 }
 
@@ -319,6 +366,7 @@ function resetForm() {
     valorVenda: 0,
     produtos: [],
     duracao: undefined,
+    proximoContato: '',
   }
 }
 

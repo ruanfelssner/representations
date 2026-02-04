@@ -1,11 +1,26 @@
-import type { Cliente, Visita } from '~/types/client'
+import { z } from 'zod'
+import type { Cliente } from '~/types/client'
+import { ClientDtoSchema } from '~/types/schemas'
 
 type ApiResponse<T> = { success: boolean; data: T }
 
+const SalesTotalsSchema = z.object({
+  month: z.number(),
+  quarter: z.number(),
+  year: z.number(),
+})
+
 export function useClientsApi() {
   const fetchClients = async () => {
-    const res = await $fetch<ApiResponse<{ clients: Cliente[]; mapSettings: any }>>('/api/v1/clients')
-    return res.data
+    const res = await $fetch<ApiResponse<{ clients: unknown; mapSettings: any; salesTotals?: unknown }>>('/api/v1/clients')
+    const parsed = z
+      .object({
+        clients: z.array(ClientDtoSchema),
+        mapSettings: z.any(),
+        salesTotals: SalesTotalsSchema.optional(),
+      })
+      .parse(res.data)
+    return parsed as { clients: Cliente[]; mapSettings: any; salesTotals?: { month: number; quarter: number; year: number } }
   }
 
   const createClient = async (payload: {
@@ -15,34 +30,25 @@ export function useClientsApi() {
     email?: string
     cidade?: string
     estado?: string
-    tipo?: Cliente['tipo']
-    segmento?: Cliente['segmento']
+    status?: 'ativo' | 'potencial' | 'inativo'
+    segmento?: string
     cnpj?: string
   }) => {
-    const res = await $fetch<ApiResponse<Cliente>>('/api/v1/clients', { method: 'POST', body: payload })
-    return res.data
+    const res = await $fetch<ApiResponse<unknown>>('/api/v1/clients', { method: 'POST', body: payload })
+    return ClientDtoSchema.parse(res.data) as Cliente
   }
 
   const patchClient = async (id: string, updates: Partial<Cliente> & { endereco_completo?: string }) => {
-    const res = await $fetch<ApiResponse<Cliente>>(`/api/v1/clients/${encodeURIComponent(id)}`, {
+    const res = await $fetch<ApiResponse<unknown>>(`/api/v1/clients/${encodeURIComponent(id)}`, {
       method: 'PATCH',
       body: updates,
     })
-    return res.data
+    return ClientDtoSchema.parse(res.data) as Cliente
   }
 
   const deleteClient = async (id: string) => {
     await $fetch<ApiResponse<unknown>>(`/api/v1/clients/${encodeURIComponent(id)}`, { method: 'DELETE' })
   }
 
-  const addVisitaApi = async (id: string, visita: Omit<Visita, 'id'>) => {
-    const res = await $fetch<ApiResponse<Cliente>>(
-      `/api/v1/clients/${encodeURIComponent(id)}/visitas`,
-      { method: 'POST', body: visita }
-    )
-    return res.data
-  }
-
-  return { fetchClients, createClient, patchClient, deleteClient, addVisitaApi }
+  return { fetchClients, createClient, patchClient, deleteClient }
 }
-

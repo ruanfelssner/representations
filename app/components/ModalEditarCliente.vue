@@ -2,247 +2,149 @@
   <Teleport to="body">
     <Transition name="fade">
       <div v-if="isOpen" class="fixed inset-0 z-50 overflow-y-auto">
-        <!-- Overlay -->
         <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity" @click="$emit('close')" />
 
-        <!-- Modal -->
         <div class="flex min-h-full items-center justify-center p-4">
           <div class="relative bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-            <!-- Header -->
-            <div class="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-5 text-white flex-shrink-0">
+            <div class="bg-gradient-to-r from-sky-500 to-violet-500 px-6 py-5 text-white flex-shrink-0">
               <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                  <span class="text-3xl">✏️</span>
-                  <div>
-                    <h3 class="text-xl font-bold">Editar Cliente</h3>
-                    <p class="text-sm text-blue-100">{{ cliente?.nome }}</p>
-                  </div>
+                <div>
+                  <h3 class="text-xl font-bold">Editar Cliente</h3>
+                  <p class="text-sm text-white/80">{{ cliente?.nome || '' }}</p>
                 </div>
-                <button
-                  @click="$emit('close')"
-                  class="rounded-lg p-2 hover:bg-white/20 transition-colors"
-                >
-                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                <button @click="$emit('close')" class="rounded-lg p-2 hover:bg-white/20 transition-colors">
+                  <NIcon name="mdi:close" class="w-6 h-6 text-white" />
                 </button>
               </div>
             </div>
 
-            <!-- Form Content -->
             <div class="overflow-y-auto flex-1 p-6">
-              <form @submit.prevent="handleSubmit" class="space-y-6">
-                <!-- Dados Básicos -->
-                <div class="space-y-4">
-                  <h4 class="text-lg font-bold text-gray-900 flex items-center gap-2">
-                    <span>👤</span> Dados Básicos
-                  </h4>
-                  
-                  <div class="grid grid-cols-2 gap-4">
-                    <div class="col-span-2">
-                      <label class="block text-sm font-semibold text-gray-700 mb-2">
-                        Nome do Cliente *
-                      </label>
-                      <input
-                        v-model="form.nome"
-                        type="text"
-                        required
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
+              <form @submit.prevent="handleSubmit" class="space-y-5">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div class="md:col-span-2">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Nome *</label>
+                    <input
+                      v-model="form.nome"
+                      type="text"
+                      required
+                      class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                    />
+                  </div>
 
-                    <div>
-                      <label class="block text-sm font-semibold text-gray-700 mb-2">
-                        📞 Telefone
-                      </label>
-                      <input
-                        v-model="form.telefone"
-                        type="tel"
-                        placeholder="(00) 00000-0000"
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
+                  <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Segmento</label>
+                    <select
+                      v-model="form.segmento"
+                      class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                    >
+                      <option value="otica">Ótica</option>
+                      <option value="relojoaria">Relojoaria</option>
+                      <option value="semijoia">Semi-joias</option>
+                      <option value="multimarcas">Multimarcas</option>
+                      <option value="joalheria">Joalheria</option>
+                    </select>
+                  </div>
 
-                    <div>
-                      <label class="block text-sm font-semibold text-gray-700 mb-2">
-                        📧 E-mail
-                      </label>
-                      <input
-                        v-model="form.email"
-                        type="email"
-                        placeholder="contato@exemplo.com"
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
+                  <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Status</label>
+                    <select
+                      v-model="form.status"
+                      class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                    >
+                      <option value="ativo">Ativo</option>
+                      <option value="potencial">Potencial</option>
+                      <option value="inativo">Inativo</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Telefone</label>
+                    <input
+                      v-model="form.telefone"
+                      type="text"
+                      class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Email</label>
+                    <input
+                      v-model="form.email"
+                      type="email"
+                      class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div class="md:col-span-2">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                      Endereço completo (re-geocodifica)
+                    </label>
+                    <textarea
+                      v-model="form.endereco_completo"
+                      rows="2"
+                      class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent resize-none"
+                      placeholder="Ex: Rua X, Bairro Y, Cidade/UF, CEP..."
+                    />
                   </div>
                 </div>
 
-                <!-- Classificação -->
-                <div class="space-y-4 bg-gray-50 rounded-xl p-4">
-                  <h4 class="text-lg font-bold text-gray-900 flex items-center gap-2">
-                    <span>🏷️</span> Classificação
-                  </h4>
+                <div class="border-t pt-5">
+                  <h4 class="text-sm font-bold text-gray-900 mb-3">Camada comercial</h4>
 
-                  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label class="block text-sm font-semibold text-gray-700 mb-2">
-                        Tipo
-                      </label>
+                      <label class="block text-sm font-semibold text-gray-700 mb-2">Etapa</label>
                       <select
-                        v-model="form.tipo"
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        v-model="form.stage"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
                       >
-                        <option value="prospecto">🔍 Prospecto</option>
-                        <option value="cliente">✅ Cliente</option>
-                        <option value="inativo">⏸️ Inativo</option>
+                        <option value="">(não definido)</option>
+                        <option value="lead">Lead</option>
+                        <option value="ativo">Ativo</option>
+                        <option value="negociacao">Negociação</option>
+                        <option value="perdido">Perdido</option>
+                        <option value="reativacao">Reativação</option>
                       </select>
                     </div>
 
                     <div>
-                      <label class="block text-sm font-semibold text-gray-700 mb-2">
-                        Segmento *
-                      </label>
-                      <select
-                        v-model="form.segmento"
-                        required
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value="otica">👓 Ótica</option>
-                        <option value="relojoaria">⌚ Relojoaria</option>
-                        <option value="semijoia">💍 Semi-joias</option>
-                        <option value="multimarcas">🏪 Multimarcas</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label class="block text-sm font-semibold text-gray-700 mb-2">
-                        Porte
-                      </label>
-                      <select
-                        v-model="form.porte"
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value="">Não definido</option>
-                        <option value="pequeno">🏠 Pequeno</option>
-                        <option value="medio">🏢 Médio</option>
-                        <option value="grande">🏭 Grande</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label class="block text-sm font-semibold text-gray-700 mb-2">
-                        Potencial
-                      </label>
-                      <select
-                        v-model="form.potencial"
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value="">Não definido</option>
-                        <option value="baixo">📉 Baixo</option>
-                        <option value="medio">📊 Médio</option>
-                        <option value="alto">📈 Alto</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Próxima Visita e Recorrência -->
-                <div class="space-y-4 bg-blue-50 rounded-xl p-4 border border-blue-200">
-                  <h4 class="text-lg font-bold text-blue-900 flex items-center gap-2">
-                    <span>📅</span> Agendamento e Recorrência
-                  </h4>
-
-                  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    <div>
-                      <label class="block text-sm font-semibold text-blue-800 mb-2">
-                        Próxima Visita
-                      </label>
+                      <label class="block text-sm font-semibold text-gray-700 mb-2">Pontuação (0–100)</label>
                       <input
-                        v-model="form.proximaVisita"
-                        type="date"
-                        class="w-full px-4 py-3 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
-                      />
-                    </div>
-
-                    <div>
-                      <label class="block text-sm font-semibold text-blue-800 mb-2">
-                        Tipo de Recorrência
-                      </label>
-                      <select
-                        v-model="form.recorrenciaTipo"
-                        class="w-full px-4 py-3 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
-                      >
-                        <option value="">Sem recorrência</option>
-                        <option value="semanal">📅 Semanal</option>
-                        <option value="quinzenal">📆 Quinzenal</option>
-                        <option value="mensal">🗓️ Mensal</option>
-                        <option value="bimestral">📋 Bimestral</option>
-                        <option value="trimestral">📊 Trimestral</option>
-                      </select>
-                    </div>
-
-                    <div v-if="form.recorrenciaTipo === 'semanal'" class="col-span-2">
-                      <label class="block text-sm font-semibold text-blue-800 mb-2">
-                        Dia da Semana Preferido
-                      </label>
-                      <select
-                        v-model.number="form.diaPreferido"
-                        class="w-full px-4 py-3 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
-                      >
-                        <option :value="1">Segunda-feira</option>
-                        <option :value="2">Terça-feira</option>
-                        <option :value="3">Quarta-feira</option>
-                        <option :value="4">Quinta-feira</option>
-                        <option :value="5">Sexta-feira</option>
-                        <option :value="6">Sábado</option>
-                        <option :value="7">Domingo</option>
-                      </select>
-                    </div>
-
-                    <div v-if="form.recorrenciaTipo === 'mensal' || form.recorrenciaTipo === 'bimestral' || form.recorrenciaTipo === 'trimestral'" class="col-span-2">
-                      <label class="block text-sm font-semibold text-blue-800 mb-2">
-                        Dia do Mês Preferido (1-31)
-                      </label>
-                      <input
-                        v-model.number="form.diaPreferido"
+                        v-model.number="form.priorityScore"
                         type="number"
-                        min="1"
-                        max="31"
-                        class="w-full px-4 py-3 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
+                        min="0"
+                        max="100"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
                       />
                     </div>
 
-                    <div v-if="form.recorrenciaTipo" class="col-span-2">
-                      <label class="flex items-center gap-3 cursor-pointer">
-                        <input
-                          v-model="form.recorrenciaAtivo"
-                          type="checkbox"
-                          class="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
-                        />
-                        <span class="text-sm font-semibold text-blue-800">
-                          ✅ Recorrência ativa (agendar automaticamente próximas visitas)
-                        </span>
-                      </label>
+                    <div>
+                      <label class="block text-sm font-semibold text-gray-700 mb-2">Próxima ação</label>
+                      <select
+                        v-model="form.nextActionType"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                      >
+                        <option value="">(não definido)</option>
+                        <option value="ligar">Ligar</option>
+                        <option value="visitar">Visitar</option>
+                        <option value="enviar_catalogo">Enviar catálogo</option>
+                        <option value="cobrar">Cobrar</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label class="block text-sm font-semibold text-gray-700 mb-2">Data da próxima ação</label>
+                      <input
+                        v-model="form.nextActionAt"
+                        type="datetime-local"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                      />
                     </div>
                   </div>
-                </div>
-
-                <!-- Observações -->
-                <div>
-                  <label class="block text-sm font-semibold text-gray-700 mb-2">
-                    📝 Observações
-                  </label>
-                  <textarea
-                    v-model="form.observacoes"
-                    rows="3"
-                    placeholder="Anotações importantes sobre o cliente..."
-                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 resize-none"
-                  />
                 </div>
               </form>
             </div>
 
-            <!-- Footer Actions -->
             <div class="border-t border-gray-200 px-6 py-4 bg-gray-50 flex gap-3 justify-end flex-shrink-0">
               <button
                 type="button"
@@ -254,9 +156,9 @@
               <button
                 @click="handleSubmit"
                 :disabled="!isFormValid"
-                class="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed font-semibold shadow-md"
+                class="px-6 py-2.5 bg-gradient-to-r from-sky-500 to-violet-500 text-white rounded-lg hover:from-sky-600 hover:to-violet-600 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed font-semibold shadow-md"
               >
-                💾 Salvar Alterações
+                Salvar
               </button>
             </div>
           </div>
@@ -267,8 +169,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import type { Cliente, Recorrencia, SegmentoCliente, PorteCliente, PotencialCliente, TipoRecorrencia } from '~/types/client'
+import { computed, ref, watch } from 'vue'
+import type { Cliente } from '~/types/client'
 
 interface Props {
   isOpen: boolean
@@ -277,7 +179,7 @@ interface Props {
 
 interface Emits {
   (e: 'close'): void
-  (e: 'submit', updates: Partial<Cliente>): void
+  (e: 'submit', updates: Record<string, unknown>): void
 }
 
 const props = defineProps<Props>()
@@ -287,87 +189,80 @@ const form = ref({
   nome: '',
   telefone: '',
   email: '',
-  tipo: 'prospecto' as 'cliente' | 'prospecto' | 'inativo',
-  segmento: 'otica' as SegmentoCliente,
-  porte: undefined as PorteCliente | undefined,
-  potencial: undefined as PotencialCliente | undefined,
-  proximaVisita: '',
-  recorrenciaTipo: '' as TipoRecorrencia | '',
-  diaPreferido: undefined as number | undefined,
-  recorrenciaAtivo: false,
-  observacoes: '',
+  segmento: 'otica',
+  status: 'potencial',
+  endereco_completo: '',
+
+  stage: '' as '' | 'lead' | 'ativo' | 'negociacao' | 'perdido' | 'reativacao',
+  priorityScore: undefined as number | undefined,
+  nextActionType: '' as '' | 'ligar' | 'visitar' | 'enviar_catalogo' | 'cobrar',
+  nextActionAt: '',
 })
 
-watch(() => props.cliente, (cliente) => {
-  if (cliente) {
+watch(
+  () => props.cliente,
+  (cliente) => {
+    if (!cliente) return
     form.value = {
       nome: cliente.nome,
       telefone: cliente.telefone || '',
       email: cliente.email || '',
-      tipo: cliente.tipo,
-      segmento: cliente.segmento,
-      porte: cliente.porte,
-      potencial: cliente.potencial,
-      proximaVisita: cliente.proximaVisita ? cliente.proximaVisita.slice(0, 10) : '',
-      recorrenciaTipo: cliente.recorrencia?.tipo || '',
-      diaPreferido: cliente.recorrencia?.diaPreferido,
-      recorrenciaAtivo: cliente.recorrencia?.ativo || false,
-      observacoes: cliente.observacoes || '',
+      segmento: (cliente.segmento as any) || 'otica',
+      status: (cliente.status as any) || 'potencial',
+      endereco_completo: cliente.endereco_completo || cliente.endereco?.endereco_completo || '',
+      stage: (cliente.sales?.stage as any) || '',
+      priorityScore: typeof cliente.sales?.priorityScore === 'number' ? cliente.sales.priorityScore : undefined,
+      nextActionType: (cliente.sales?.nextActionType as any) || '',
+      nextActionAt: cliente.sales?.nextActionAt ? cliente.sales.nextActionAt.slice(0, 16) : '',
     }
-  }
-}, { immediate: true })
+  },
+  { immediate: true }
+)
 
-const isFormValid = computed(() => {
-  return form.value.nome && form.value.segmento
-})
+const isFormValid = computed(() => Boolean(form.value.nome.trim()))
 
 function handleSubmit() {
   if (!isFormValid.value) return
 
-  const updates: Partial<Cliente> = {
-    nome: form.value.nome,
-    telefone: form.value.telefone || undefined,
-    email: form.value.email || undefined,
-    tipo: form.value.tipo,
-    segmento: form.value.segmento,
-    porte: form.value.porte || undefined,
-    potencial: form.value.potencial || undefined,
-    proximaVisita: form.value.proximaVisita ? new Date(form.value.proximaVisita).toISOString() : undefined,
-    observacoes: form.value.observacoes || undefined,
+  const updates: Record<string, unknown> = {
+    nome: form.value.nome.trim(),
+    telefone: form.value.telefone.trim() || undefined,
+    email: form.value.email.trim() || undefined,
+    segmento: form.value.segmento || undefined,
+    status: form.value.status,
+    sales: {
+      stage: form.value.stage || undefined,
+      priorityScore: typeof form.value.priorityScore === 'number' ? form.value.priorityScore : undefined,
+      nextActionType: form.value.nextActionType || undefined,
+      nextActionAt: form.value.nextActionAt ? new Date(form.value.nextActionAt).toISOString() : undefined,
+    },
   }
 
-  if (form.value.recorrenciaTipo) {
-    updates.recorrencia = {
-      tipo: form.value.recorrenciaTipo as TipoRecorrencia,
-      diaPreferido: form.value.diaPreferido,
-      ativo: form.value.recorrenciaAtivo,
-    }
-  } else {
-    updates.recorrencia = undefined
+  if (form.value.endereco_completo.trim()) {
+    updates.endereco_completo = form.value.endereco_completo.trim()
   }
 
   emit('submit', updates)
 }
 
-// Reset form when modal closes
-watch(() => props.isOpen, (isOpen) => {
-  if (!isOpen) {
+watch(
+  () => props.isOpen,
+  (isOpen) => {
+    if (isOpen) return
     form.value = {
       nome: '',
       telefone: '',
       email: '',
-      tipo: 'prospecto',
       segmento: 'otica',
-      porte: undefined,
-      potencial: undefined,
-      proximaVisita: '',
-      recorrenciaTipo: '',
-      diaPreferido: undefined,
-      recorrenciaAtivo: false,
-      observacoes: '',
+      status: 'potencial',
+      endereco_completo: '',
+      stage: '',
+      priorityScore: undefined,
+      nextActionType: '',
+      nextActionAt: '',
     }
   }
-})
+)
 </script>
 
 <style scoped>

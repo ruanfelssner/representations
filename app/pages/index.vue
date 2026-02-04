@@ -7,7 +7,7 @@
       <NLayer variant="paper" size="base" radius="soft" class="shadow-sm lg:shadow-lg relative">
         <div class="flex flex-col gap-3 lg:gap-4">
           <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <div class="col-span-2 ">
+            <div class="col-span-2 lg:col-span-1">
               <NTypo as="label" size="xs" weight="semibold" tone="muted" class="block mb-1">
                 Buscar
               </NTypo>
@@ -57,22 +57,22 @@
 
             <div>
               <NTypo as="label" size="xs" weight="semibold" tone="muted" class="block mb-1">
-                Tipo
+                Status
               </NTypo>
               <select
                 v-model="filterTipo"
                 class="w-full px-3 py-2 rounded-lg border bg-white border-gray-200 focus:ring-2 focus:ring-sky-400 focus:border-sky-400 transition-colors"
               >
                 <option value="">Todos</option>
-                <option value="cliente">✅ Cliente</option>
-                <option value="prospecto">🔍 Prospecto</option>
+                <option value="ativo">✅ Ativo</option>
+                <option value="potencial">🔍 Potencial</option>
                 <option value="inativo">⏸️ Inativo</option>
               </select>
             </div>
           </div>
         </div>
 
-        <div class="mt-4 grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-3">
+        <div class="mt-4 grid grid-cols-2 lg:grid-cols-5 gap-2 lg:gap-3">
           <div class="bg-sky-50 border border-sky-100 rounded-lg p-3 lg:p-4">
             <NTypo size="xs" tone="muted" class="mb-1">Total</NTypo>
             <NTypo size="xl" weight="bold" class="tabular-nums text-sky-500 lg:text-2xl">
@@ -84,11 +84,35 @@
             <NTypo size="xl" weight="bold" class="tabular-nums text-emerald-500 lg:text-2xl">
               {{ visitedStats.ativos }}
             </NTypo>
+            <div class="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-semibold">
+              <span class="inline-flex items-center gap-1 text-emerald-700">
+                <span class="h-2 w-2 rounded-full bg-emerald-500" />
+                {{ visitedStats.ativosVerde }} ≤90d
+              </span>
+              <span class="inline-flex items-center gap-1 text-yellow-700">
+                <span class="h-2 w-2 rounded-full bg-yellow-500" />
+                {{ visitedStats.ativosAmarelo }} ≤180d
+              </span>
+              <span class="inline-flex items-center gap-1 text-red-700">
+                <span class="h-2 w-2 rounded-full bg-red-500" />
+                {{ visitedStats.ativosVermelho }} &gt;180d
+              </span>
+              <span v-if="visitedStats.ativosSemContato" class="inline-flex items-center gap-1 text-sky-700">
+                <span class="h-2 w-2 rounded-full bg-sky-500" />
+                {{ visitedStats.ativosSemContato }} sem contato
+              </span>
+            </div>
           </div>
           <div class="bg-violet-50 border border-violet-100 rounded-lg p-3 lg:p-4">
             <NTypo size="xs" tone="muted" class="mb-1">Mensal</NTypo>
             <NTypo size="sm" weight="bold" class="tabular-nums text-violet-500 lg:text-xl">
               {{ formatCurrency(visitedStats.faturamentoMensal) }}
+            </NTypo>
+          </div>
+          <div class="bg-amber-50 border border-amber-100 rounded-lg p-3 lg:p-4">
+            <NTypo size="xs" tone="muted" class="mb-1">Trimestral</NTypo>
+            <NTypo size="sm" weight="bold" class="tabular-nums text-amber-600 lg:text-xl">
+              {{ formatCurrency(visitedStats.faturamentoTrimestral) }}
             </NTypo>
           </div>
           <div class="bg-orange-50 border border-orange-100 rounded-lg p-3 lg:p-4">
@@ -99,6 +123,15 @@
           </div>
         </div>
       </NLayer>
+
+      <div v-if="loadClientsError" class="rounded-xl border border-red-200 bg-red-50 p-3 lg:p-4">
+        <NTypo size="sm" weight="semibold" class="text-red-700">
+          Falha ao carregar clientes: {{ loadClientsError }}
+        </NTypo>
+        <NTypo size="xs" tone="muted" class="mt-1">
+          Verifique se o Mongo está rodando e se `NUXT_MONGO_URI` / `NUXT_MONGO_DB_NAME` estão configurados.
+        </NTypo>
+      </div>
 
       <!-- Mapa + painel -->
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6">
@@ -257,9 +290,9 @@ import BrokerMaps from '../components/BrokerMaps.vue'
 import ClientSidePanel from '../components/ClientSidePanel.vue'
 import ModalNovaVisita from '../components/ModalNovaVisita.vue'
 import ModalEditarCliente from '../components/ModalEditarCliente.vue'
-import type { Cliente, Visita } from '~/types/client'
-import { useClientStorage } from '~/composables/useClientStorage'
+import type { Cliente } from '~/types/client'
 import { useClientsApi } from '~/composables/useClientsApi'
+import { useHistoricoClienteApi } from '~/composables/useHistoricoClienteApi'
 
 interface MarkerData {
   lat: number
@@ -287,6 +320,8 @@ const commercialMapData = ref<MapData | null>(null)
 const visitedMapData = ref<MapData | null>(null)
 const scGeoJson = ref<any>(null)
 const clientes = ref<Cliente[]>([])
+const salesTotals = ref<{ month: number; quarter: number; year: number }>({ month: 0, quarter: 0, year: 0 })
+const loadClientsError = ref('')
 const isGeocoding = ref(false)
 const geocodeError = ref('')
 const geocodeSuccess = ref('')
@@ -300,8 +335,9 @@ const filterTipo = ref('')
 const isFormOpen = ref(true) // Desktop: aberto por padrão
 const isSidePanelOpenMobile = ref(false)
 
-const { getClientStats, getClientColor, getClientColorByLastVisit } = useClientStorage()
-const { fetchClients, createClient, patchClient, deleteClient, addVisitaApi } = useClientsApi()
+const { fetchClients, createClient, patchClient, deleteClient } = useClientsApi()
+const { createEvento } = useHistoricoClienteApi()
+const currentUserId = 'user-app'
 
 const newPlace = ref({
   address: '',
@@ -385,26 +421,27 @@ onMounted(() => {
 })
 
 async function loadClients() {
-  const data = await fetchClients()
-  const mapped = (data.clients || []).map((c) => ({
-    ...c,
-    visitas: Array.isArray(c.visitas) ? c.visitas : [],
-    // Sempre recalcula no client (campo `color` no Mongo pode estar desatualizado)
-    color: c.proximaVisita
-      ? getClientColor(c.proximaVisita)
-      : getClientColorByLastVisit({
-          ...(c as any),
-          visitas: Array.isArray(c.visitas) ? c.visitas : [],
-        }),
-  }))
-  clientes.value = mapped
+  try {
+    loadClientsError.value = ''
+    const data = await fetchClients()
+    clientes.value = (data.clients || []) as Cliente[]
+    if (data.salesTotals) salesTotals.value = data.salesTotals
 
-  if (visitedMapData.value?.mapSettings && data.mapSettings) {
-    visitedMapData.value.mapSettings = data.mapSettings
-  }
+    if (visitedMapData.value?.mapSettings && data.mapSettings) {
+      visitedMapData.value.mapSettings = data.mapSettings
+    }
 
-  if (selectedClient.value) {
-    selectedClient.value = mapped.find((c) => c.id === selectedClient.value?.id) || null
+    if (selectedClient.value) {
+      selectedClient.value = clientes.value.find((c) => c.id === selectedClient.value?.id) || null
+    }
+  } catch (err: any) {
+    console.error('Erro ao carregar clientes:', err)
+    clientes.value = []
+    loadClientsError.value =
+      err?.data?.statusMessage ||
+      err?.data?.message ||
+      err?.message ||
+      'Erro desconhecido'
   }
 }
 
@@ -465,22 +502,111 @@ const filteredClientes = computed(() => {
 
   // Filtro por tipo
   if (filterTipo.value) {
-    result = result.filter((cliente) => cliente.tipo === filterTipo.value)
+    result = result.filter((cliente: any) => cliente.status === filterTipo.value)
   }
 
   return result
 })
 
+const MAX_PINS = 2500
+const clientesParaPins = computed(() => {
+  const geocoded = filteredClientes.value.filter(
+    (c) => Number.isFinite((c as any).lat) && Number.isFinite((c as any).lng)
+  )
+  if (geocoded.length <= MAX_PINS) return geocoded
+  return geocoded.slice(0, MAX_PINS)
+})
+
+function markerColor(cliente: any) {
+  if (cliente?.status === 'inativo') return '#9ca3af'
+
+  const last = cliente?.sales?.lastContactAt ? new Date(cliente.sales.lastContactAt) : null
+  if (last && !Number.isNaN(last.getTime())) {
+    const hoje = new Date()
+    hoje.setHours(0, 0, 0, 0)
+    const lastDay = new Date(last)
+    lastDay.setHours(0, 0, 0, 0)
+    const dias = Math.ceil((hoje.getTime() - lastDay.getTime()) / (1000 * 60 * 60 * 24))
+    // Regra (carteira): <=90 verde | 91–180 amarelo | >180 vermelho
+    if (dias > 180) return '#ef4444'
+    if (dias > 90) return '#eab308'
+    return '#22c55e'
+  }
+
+  const next = cliente?.sales?.nextActionAt ? new Date(cliente.sales.nextActionAt) : null
+  if (next && !Number.isNaN(next.getTime())) {
+    const hoje = new Date()
+    hoje.setHours(0, 0, 0, 0)
+    const dataProxima = new Date(next)
+    dataProxima.setHours(0, 0, 0, 0)
+    const diasRestantes = Math.ceil((dataProxima.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24))
+    if (diasRestantes < 0) return '#ef4444'
+    if (diasRestantes <= 3) return '#eab308'
+    return '#22c55e'
+  }
+
+  return '#3b82f6'
+}
+
+function safeNumber(v: any) {
+  const n = typeof v === 'number' ? v : Number(v)
+  return Number.isFinite(n) ? n : 0
+}
+
+function formatCompactMoney(v: number) {
+  const n = Math.round(v)
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n >= 10_000_000 ? 0 : 1)}M`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(n >= 10_000 ? 0 : 1)}k`
+  return String(n)
+}
+
+const pinMetricByClientId = computed(() => {
+  const list = clientesParaPins.value
+  const pairs = list.map((c: any) => {
+    const totalAllTime = safeNumber(c?.sales?.totalAllTime)
+    const total12m = safeNumber(c?.sales?.total12m)
+    const total90d = safeNumber(c?.sales?.total90d)
+    const mesAberto = safeNumber(c?.objectives?.mesAberto)
+    const metric = total90d || total12m || mesAberto || totalAllTime || safeNumber(c?.sales?.priorityScore)
+    return { id: c.id, metric, totalAllTime, total12m, total90d, mesAberto }
+  })
+
+  pairs.sort((a, b) => b.metric - a.metric)
+
+  const rank = new Map<string, number>()
+  const metric = new Map<string, number>()
+  const totals = new Map<string, { totalAllTime: number; total12m: number; total90d: number; mesAberto: number }>()
+  pairs.forEach((p, idx) => {
+    rank.set(p.id, idx + 1)
+    metric.set(p.id, p.metric)
+    totals.set(p.id, { totalAllTime: p.totalAllTime, total12m: p.total12m, total90d: p.total90d, mesAberto: p.mesAberto })
+  })
+
+  const maxMetric = pairs.length ? Math.max(1, pairs[0].metric) : 1
+  return { rank, metric, totals, maxMetric }
+})
+
 const createVisitedMarkers = computed(() => {
-  return filteredClientes.value
-    .filter((cliente) => typeof cliente.lat === 'number' && typeof cliente.lng === 'number')
+  const meta = pinMetricByClientId.value
+  return clientesParaPins.value
     .map((cliente) => ({
       lat: cliente.lat,
       lng: cliente.lng,
-      title: cliente.nome,
-      value: cliente.visitas.length,
-      color: cliente.color,
-      size: Math.min(26, 16 + Math.min(cliente.visitas.length, 12) * 0.8),
+      title: (() => {
+        const id = (cliente as any).id
+        const m = meta.metric.get(id) || 0
+        const r = meta.rank.get(id) || 1
+        return m > 0 ? `${cliente.nome} (#${r} · R$ ${formatCompactMoney(m)})` : `${cliente.nome} (#${r})`
+      })(),
+      // Número do pin: ranking (sempre varia). O "peso" fica no tamanho.
+      value: meta.rank.get((cliente as any).id) || 1,
+      color: markerColor(cliente),
+      size: (() => {
+        const m = meta.metric.get((cliente as any).id) || 0
+        if (m <= 0) return 18
+        const ratio = Math.max(0, Math.min(1, m / meta.maxMetric))
+        return 16 + Math.round(ratio * 12)
+      })(),
       clientId: cliente.id,
     }))
 })
@@ -497,13 +623,54 @@ const stats = computed(() => {
   }
 })
 
+const carteiraBuckets = computed(() => {
+  const hoje = new Date()
+  hoje.setHours(0, 0, 0, 0)
+  const msPerDay = 1000 * 60 * 60 * 24
+
+  let verde = 0
+  let amarelo = 0
+  let vermelho = 0
+  let semContato = 0
+
+  for (const c of clientes.value as any[]) {
+    if (c?.status === 'inativo') continue
+
+    const lastIso = c?.sales?.lastContactAt
+    if (typeof lastIso !== 'string' || !lastIso) {
+      semContato++
+      continue
+    }
+
+    const last = new Date(lastIso)
+    if (Number.isNaN(last.getTime())) {
+      semContato++
+      continue
+    }
+
+    last.setHours(0, 0, 0, 0)
+    const dias = Math.ceil((hoje.getTime() - last.getTime()) / msPerDay)
+
+    if (dias > 180) vermelho++
+    else if (dias > 90) amarelo++
+    else verde++
+  }
+
+  return { verde, amarelo, vermelho, semContato, total: verde + amarelo + vermelho + semContato }
+})
+
 const visitedStats = computed(() => {
-  const stats = getClientStats(clientes.value)
+  const carteira = carteiraBuckets.value
   return {
-    total: stats.totalClientes,
-    ativos: stats.clientesAtivos,
-    faturamentoMensal: stats.faturamentoMensal,
-    faturamentoAnual: stats.faturamentoAnual,
+    total: clientes.value.length,
+    ativos: carteira.total,
+    ativosVerde: carteira.verde,
+    ativosAmarelo: carteira.amarelo,
+    ativosVermelho: carteira.vermelho,
+    ativosSemContato: carteira.semContato,
+    faturamentoMensal: salesTotals.value.month,
+    faturamentoTrimestral: salesTotals.value.quarter,
+    faturamentoAnual: salesTotals.value.year,
   }
 })
 
@@ -559,7 +726,7 @@ async function addNewPlace() {
     const novoCliente = await createClient({
       nome: newPlace.value.nome,
       endereco_completo: newPlace.value.address,
-      tipo: 'prospecto',
+      status: 'potencial',
       segmento: 'otica',
     })
 
@@ -590,11 +757,14 @@ function handleAddVisit() {
   isModalNovaVisitaOpen.value = true
 }
 
-function handleSubmitNovaVisita(visitaData: Omit<Visita, 'id'>) {
+function handleSubmitNovaVisita(payload: any) {
   if (!selectedClient.value) return
 
-  addVisitaApi(selectedClient.value.id, visitaData).then(async (updated) => {
-    selectedClient.value = updated
+  createEvento({
+    clientId: selectedClient.value.id,
+    userId: currentUserId,
+    ...payload,
+  }).then(async () => {
     await loadClients()
   })
 
@@ -605,10 +775,10 @@ function handleOpenEditarCliente() {
   isModalEditarClienteOpen.value = true
 }
 
-function handleSubmitEditarCliente(updates: Partial<Cliente>) {
+function handleSubmitEditarCliente(updates: Record<string, unknown>) {
   if (!selectedClient.value) return
 
-  patchClient(selectedClient.value.id, updates).then(async (updated) => {
+  patchClient(selectedClient.value.id, updates as any).then(async (updated) => {
     selectedClient.value = updated
     await loadClients()
   })

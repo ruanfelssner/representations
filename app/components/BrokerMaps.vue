@@ -17,7 +17,7 @@
           <template v-if="showPins">
             <CustomMarker
               v-for="marker in markers"
-              :key="`marker-${marker.lat}-${marker.lng}`"
+              :key="`marker-${(marker as any).clientId || marker.title || ''}-${marker.lat}-${marker.lng}`"
               :options="{
                 position: { lat: marker.lat, lng: marker.lng },
                 title: marker.title || `${marker.value} seguros`,
