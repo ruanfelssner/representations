@@ -163,14 +163,6 @@
         </div>
       </NLayer>
 
-      <div v-if="loadClientsError" class="rounded-xl border border-red-200 bg-red-50 p-3 lg:p-4">
-        <NTypo size="sm" weight="semibold" class="text-red-700">
-          Falha ao carregar clientes: {{ loadClientsError }}
-        </NTypo>
-        <NTypo size="xs" tone="muted" class="mt-1">
-          Verifique se o Mongo está rodando e se `NUXT_MONGO_URI` / `NUXT_MONGO_DB_NAME` estão configurados.
-        </NTypo>
-      </div>
 
       <!-- Mapa + painel -->
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6">
@@ -231,6 +223,83 @@
         Comece adicionando seus clientes usando o formulário acima!
       </NTypo>
     </div>
+
+    
+      <NLayer v-if="actionPlanTop.length" variant="paper" size="base" radius="soft" class="shadow-sm lg:shadow-lg">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <NTypo as="h2" size="sm" weight="bold">Plano de ação</NTypo>
+            <NTypo size="xs" tone="muted" class="mt-0.5">
+              Comece pelos críticos com maior impacto e follow-ups atrasados.
+            </NTypo>
+          </div>
+          <NButton variant="outline" size="zs" leading-icon="mdi:refresh" @click="loadClients()">
+            Atualizar
+          </NButton>
+        </div>
+
+        <div class="mt-3 divide-y rounded-lg border border-gray-100 bg-white overflow-hidden">
+          <div
+            v-for="t in actionPlanTop"
+            :key="t.clientId"
+            class="w-full px-3 py-3 hover:bg-slate-50 transition-colors flex items-start justify-between gap-3"
+          >
+            <button type="button" class="min-w-0 flex-1 text-left" @click="selectClientById(t.clientId)">
+              <div class="flex flex-wrap items-center gap-2">
+                <NTypo weight="bold" class="truncate">{{ t.nome }}</NTypo>
+                <span
+                  class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold"
+                  :class="metaForKey(t.statusKey).chipClass"
+                >
+                  <span class="h-2 w-2 rounded-full" :class="metaForKey(t.statusKey).dotClass" />
+                  {{ metaForKey(t.statusKey).emoji }} {{ metaForKey(t.statusKey).label }}
+                </span>
+                <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-700">
+                  {{ t.priority }}
+                </span>
+              </div>
+
+              <NTypo size="xs" tone="muted" class="mt-1 truncate">
+                <span v-if="t.cidade">{{ t.cidade }}</span>
+                <span v-if="t.cidade && t.segmento"> • </span>
+                <span v-if="t.segmento">{{ t.segmento }}</span>
+                <span v-if="t.valueMetricLabel && t.valueMetric > 0"> • {{ t.valueMetricLabel }}</span>
+              </NTypo>
+
+              <NTypo v-if="t.reasons.length" size="xs" class="mt-1 text-slate-700">
+                {{ t.suggestedActionLabel }} • {{ t.reasons.join(' · ') }}
+              </NTypo>
+            </button>
+
+            <div class="shrink-0 flex items-center gap-2">
+              <NButton
+                v-if="t.telefone"
+                variant="success"
+                size="zs"
+                leading-icon="mdi:whatsapp"
+                :href="whatsAppUrl(t.telefone, t.nome)"
+                target="_blank"
+                rel="noopener noreferrer"
+                @click.stop="noop"
+              >
+                WhatsApp
+              </NButton>
+              <NButton variant="outline" size="zs" :leading-icon="t.suggestedIcon" @click="selectClientById(t.clientId)">
+                {{ t.suggestedActionLabel }}
+              </NButton>
+            </div>
+          </div>
+        </div>
+      </NLayer>
+
+      <div v-if="loadClientsError" class="rounded-xl border border-red-200 bg-red-50 p-3 lg:p-4">
+        <NTypo size="sm" weight="semibold" class="text-red-700">
+          Falha ao carregar clientes: {{ loadClientsError }}
+        </NTypo>
+        <NTypo size="xs" tone="muted" class="mt-1">
+          Verifique se o Mongo está rodando e se `NUXT_MONGO_URI` / `NUXT_MONGO_DB_NAME` estão configurados.
+        </NTypo>
+      </div>
 
     </div>
     <!-- Modais -->
@@ -318,7 +387,8 @@ const filterTipo = ref('')
 
 const { fetchClients, patchClient, deleteClient } = useClientsApi()
 const { createEvento } = useHistoricoClienteApi()
-const { keyForClient, metaForClient } = useClientEngagementStatus()
+const { keyForClient, metaForClient, metaForKey } = useClientEngagementStatus()
+const { topTasks } = useSellerActionPlan()
 const currentUserId = 'user-app'
 
 const filters = ref({
@@ -656,6 +726,17 @@ const trimestralVsMesmoTrimestreAnoAnterior = computed(() =>
 )
 const anualVsAnoAnterior = computed(() => deltaMeta(salesTotals.value.year, salesTotals.value.yearPrevYear))
 
+const actionPlanTop = computed(() => topTasks(clientes.value, { limit: 8 }))
+
+function whatsAppUrl(telefoneRaw: string, nome: string) {
+  const telefone = String(telefoneRaw || '').replace(/\D/g, '')
+  if (!telefone) return '#'
+  const mensagem = encodeURIComponent(`Olá ${nome}! Sou representante comercial e gostaria de falar com você.`)
+  return `https://wa.me/55${telefone}?text=${mensagem}`
+}
+
+function noop() {}
+
 function formatDate(dateString: string): string {
   const date = new Date(dateString)
   return new Intl.DateTimeFormat('pt-BR', {
@@ -688,6 +769,13 @@ function handleVisitedMarkerClick(marker: any) {
     selectedClient.value = cliente
     isSidePanelOpen.value = true
   }
+}
+
+function selectClientById(clientId: string) {
+  const cliente = clientes.value.find((c) => c.id === clientId)
+  if (!cliente) return
+  selectedClient.value = cliente
+  isSidePanelOpen.value = true
 }
 
 function handleAddVisit() {

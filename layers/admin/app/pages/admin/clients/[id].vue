@@ -179,6 +179,55 @@
       </form>
     </NLayer>
 
+    <!-- Plano de ação (orientação do vendedor) -->
+    <NLayer v-if="!isNew && client && task" variant="paper" size="base" radius="soft" class="p-5">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div class="min-w-0">
+          <NTypo as="h3" size="sm" weight="bold">Plano de ação</NTypo>
+
+          <div class="mt-2 flex flex-wrap items-center gap-2">
+            <span
+              class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold"
+              :class="statusMeta.chipClass"
+            >
+              <span class="h-2 w-2 rounded-full" :class="statusMeta.dotClass" />
+              {{ statusMeta.emoji }} {{ statusMeta.label }}
+            </span>
+            <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-700">
+              {{ task.priority }}
+            </span>
+            <span v-if="task.valueMetric > 0" class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-700">
+              {{ task.valueMetricLabel }}
+            </span>
+          </div>
+
+          <NTypo size="sm" weight="bold" class="mt-3">
+            {{ task.suggestedActionLabel }}
+          </NTypo>
+          <NTypo v-if="task.reasons.length" size="xs" tone="muted" class="mt-1">
+            {{ task.reasons.join(' · ') }}
+          </NTypo>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <NButton
+            v-if="client.telefone"
+            variant="success"
+            size="zs"
+            leading-icon="mdi:whatsapp"
+            :href="whatsAppUrl(client.telefone, client.nome || '')"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            WhatsApp
+          </NButton>
+          <NButton variant="outline" size="zs" :leading-icon="task.suggestedIcon" @click="refreshHistorico()">
+            Atualizar
+          </NButton>
+        </div>
+      </div>
+    </NLayer>
+
     <!-- Histórico (apenas para edição) -->
     <NLayer v-if="!isNew && client" variant="paper" size="base" radius="soft" class="p-5">
       <div class="flex items-center justify-between">
@@ -290,6 +339,12 @@ const {
   }
 )
 
+const { metaForClient } = useClientEngagementStatus()
+const statusMeta = computed(() => metaForClient(client.value))
+
+const { taskForClient } = useSellerActionPlan()
+const task = computed(() => (client.value ? taskForClient(client.value) : null))
+
 // Validação básica
 function validateForm(): boolean {
   errors.value = {}
@@ -379,5 +434,12 @@ function formatDate(iso: string) {
 }
 function formatCurrency(v: number) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
+}
+
+function whatsAppUrl(telefoneRaw: string, nome: string) {
+  const telefone = String(telefoneRaw || '').replace(/\D/g, '')
+  if (!telefone) return '#'
+  const mensagem = encodeURIComponent(`Olá ${nome}! Sou representante comercial e gostaria de falar com você.`)
+  return `https://wa.me/55${telefone}?text=${mensagem}`
 }
 </script>
