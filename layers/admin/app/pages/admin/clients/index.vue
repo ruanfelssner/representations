@@ -36,6 +36,15 @@
             <div class="min-w-0">
               <NTypo weight="bold" class="truncate">{{ c.nome }}</NTypo>
               <NTypo size="xs" tone="muted" class="truncate">{{ c.cidade || c.endereco?.cidade || '' }}</NTypo>
+              <div class="mt-1 flex items-center gap-2">
+                <span
+                  class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold"
+                  :class="statusMeta(c).chipClass"
+                >
+                  <span class="h-2 w-2 rounded-full" :class="statusMeta(c).dotClass" />
+                  {{ statusMeta(c).emoji }} {{ statusMeta(c).label }}
+                </span>
+              </div>
             </div>
             <NTypo size="xs" tone="muted" class="tabular-nums">{{ c.id }}</NTypo>
           </div>
@@ -64,6 +73,11 @@ const { data, pending, error, refresh } = await useFetch('/api/v1/clients', {
   transform: (res) => ClientsResponseSchema.parse(res).data.clients,
 })
 
+const { metaForClient } = useClientEngagementStatus()
+function statusMeta(c: any) {
+  return metaForClient(c)
+}
+
 const filtered = computed(() => {
   const clients = data.value || []
   const query = q.value.trim().toLowerCase()
@@ -82,4 +96,3 @@ const filtered = computed(() => {
     .slice(0, 200)
 })
 </script>
-

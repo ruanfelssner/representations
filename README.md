@@ -10,16 +10,18 @@ Sistema desenvolvido para representantes comerciais gerenciarem suas visitas, cl
 
 #### 📍 **Gestão Visual de Clientes**
 - Mapa interativo com todos os clientes
-- Cores inteligentes baseadas em status:
-  - 🔵 **Azul**: Visita dentro do prazo
-  - 🟡 **Amarelo**: Visita próxima (≤3 dias)
-  - 🔴 **Vermelho**: Visita atrasada
+- Cores inteligentes baseadas no **status da carteira** (calculado por venda/contato):
+  - ✅ **Ativo (Verde)**: teve venda **ou** contato nos últimos **90 dias**
+  - ⚠️ **Em atenção (Amarelo)**: teve venda **ou** contato entre **91 e 180 dias**
+  - 🚨 **Crítico / Reativar (Vermelho)**: sem venda e sem contato há **mais de 180 dias**
+  - 🎯 **Potencial (Azul)**: prospect (ainda não virou cliente) **ou** sem histórico registrado
+  - ⏸️ **Inativo (Cinza)**: marcado manualmente como inativo (fora da carteira)
 - Geocodificação automática de endereços
 
 #### 👥 **Cadastro Completo de Clientes**
 - Dados básicos: nome, telefone, email, endereço
 - Classificação:
-  - **Tipo**: Prospecto, Cliente, Inativo
+  - **Status (cadastro)**: Potencial, Ativo, Inativo
   - **Segmento**: 👓 Ótica, ⌚ Relojoaria, 💍 Semi-joias, 🏪 Multimarcas
   - **Porte**: Pequeno, Médio, Grande
   - **Potencial**: Baixo, Médio, Alto
@@ -36,7 +38,7 @@ Sistema desenvolvido para representantes comerciais gerenciarem suas visitas, cl
 
 #### 📊 **Dashboard Analítico**
 - **Total de Clientes**
-- **Clientes Ativos** (vendas nos últimos 90 dias)
+- **Clientes por status** (ativo / atenção / crítico / potencial)
 - **Faturamento Mensal**
 - **Faturamento Anual**
 - **Produto Mais Consumido**
@@ -45,7 +47,7 @@ Sistema desenvolvido para representantes comerciais gerenciarem suas visitas, cl
 #### 🔍 **Filtros e Busca**
 - Busca por nome, cidade ou endereço
 - Filtro por segmento
-- Filtro por tipo de cliente
+- Filtro por **status da carteira**
 - Contador de resultados
 
 #### 💬 **Integração WhatsApp**
@@ -128,8 +130,8 @@ Acesse `http://localhost:3000` e navegue para a aba "Locais Visitados".
 
 MIT
 
-<<<<<<< Updated upstream
-=======
+## Preview
+
 ```bash
 # npm
 npm run preview
@@ -144,8 +146,6 @@ yarn preview
 bun run preview
 ```
 
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
-
 ## Normalização da planilha (aco-e-ouro.xlsx)
 
 Para analisar/importar no app (e depois plotar no Google Maps), você pode “flatten” a planilha removendo linhas de **Total** e preenchendo valores mesclados.
@@ -159,4 +159,3 @@ Saídas geradas:
 - `public/data/aco-e-ouro.normalized.csv`
 - `public/data/aco-e-ouro.summary.json` (agregados)
 - `public/data/aco-e-ouro.issues.json` (linhas que pareciam “item” mas faltou algo)
->>>>>>> Stashed changes

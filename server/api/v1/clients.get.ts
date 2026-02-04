@@ -17,6 +17,7 @@ type SalesTotals = { month: number; quarter: number; year: number }
 type HistoricoSummaryResult = {
   byClientId: Map<string, HistoricoSummary>
   salesTotals: SalesTotals
+  contactsThisMonth: number
 }
 
 declare global {
@@ -102,6 +103,20 @@ async function getHistoricoSummary(db: any): Promise<HistoricoSummaryResult> {
           {
             $group: {
               _id: null,
+              contactsThisMonth: {
+                $sum: {
+                  $cond: [
+                    {
+                      $and: [
+                        { $gte: ['$dataDate', monthStart] },
+                        { $not: [{ $in: ['$tipo', SALES_TYPES] }] },
+                      ],
+                    },
+                    1,
+                    0,
+                  ],
+                },
+              },
               month: {
                 $sum: {
                   $cond: [
@@ -171,14 +186,16 @@ async function getHistoricoSummary(db: any): Promise<HistoricoSummaryResult> {
     year: Number(totalsRow?.year) || 0,
   }
 
-  const value: HistoricoSummaryResult = { byClientId, salesTotals }
+  const contactsThisMonth = Number(totalsRow?.contactsThisMonth) || 0
+
+  const value: HistoricoSummaryResult = { byClientId, salesTotals, contactsThisMonth }
   globalThis.__clientsHistoricoSummaryCache = { at: Date.now(), value }
   return value
 }
 
 export default defineEventHandler(async (event) => {
   const db = await getMongoDb()
-  const { byClientId: summaryByClientId, salesTotals } = await getHistoricoSummary(db)
+  const { byClientId: summaryByClientId, salesTotals, contactsThisMonth } = await getHistoricoSummary(db)
   const clients = await db
     .collection('clients')
     .find({}, { projection: { rawOrders: 0 } })
@@ -222,5 +239,5 @@ export default defineEventHandler(async (event) => {
       ? { center: { lat: center.lat / center.n, lng: center.lng / center.n }, zoom: 7 }
       : { center: { lat: -27.5954, lng: -48.548 }, zoom: 7 }
 
-  return { success: true, data: { clients: mapped, mapSettings, salesTotals } }
+  return { success: true, data: { clients: mapped, mapSettings, salesTotals, contactsThisMonth } }
 })

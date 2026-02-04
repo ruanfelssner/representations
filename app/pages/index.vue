@@ -64,8 +64,10 @@
                 class="w-full px-3 py-2 rounded-lg border bg-white border-gray-200 focus:ring-2 focus:ring-sky-400 focus:border-sky-400 transition-colors"
               >
                 <option value="">Todos</option>
-                <option value="ativo">✅ Ativo</option>
-                <option value="potencial">🔍 Potencial</option>
+                <option value="ativo">✅ Ativo (≤90d)</option>
+                <option value="atencao">⚠️ Em atenção (91–180d)</option>
+                <option value="critico">🚨 Crítico / Reativar (&gt;180d)</option>
+                <option value="potencial">🎯 Potencial</option>
                 <option value="inativo">⏸️ Inativo</option>
               </select>
             </div>
@@ -73,16 +75,10 @@
         </div>
 
         <div class="mt-4 grid grid-cols-2 lg:grid-cols-5 gap-2 lg:gap-3">
-          <div class="bg-sky-50 border border-sky-100 rounded-lg p-3 lg:p-4">
-            <NTypo size="xs" tone="muted" class="mb-1">Total</NTypo>
-            <NTypo size="xl" weight="bold" class="tabular-nums text-sky-500 lg:text-2xl">
-              {{ visitedStats.total }}
-            </NTypo>
-          </div>
           <div class="bg-emerald-50 border border-emerald-100 rounded-lg p-3 lg:p-4">
-            <NTypo size="xs" tone="muted" class="mb-1">Ativos</NTypo>
+            <NTypo size="xs" tone="muted" class="mb-1">Clientes</NTypo>
             <NTypo size="xl" weight="bold" class="tabular-nums text-emerald-500 lg:text-2xl">
-              {{ visitedStats.ativos }}
+              {{ visitedStats.total }}
             </NTypo>
             <div class="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-semibold">
               <span class="inline-flex items-center gap-1 text-emerald-700">
@@ -91,17 +87,27 @@
               </span>
               <span class="inline-flex items-center gap-1 text-yellow-700">
                 <span class="h-2 w-2 rounded-full bg-yellow-500" />
-                {{ visitedStats.ativosAmarelo }} ≤180d
+                {{ visitedStats.ativosAmarelo }} 91–180d
               </span>
               <span class="inline-flex items-center gap-1 text-red-700">
                 <span class="h-2 w-2 rounded-full bg-red-500" />
                 {{ visitedStats.ativosVermelho }} &gt;180d
               </span>
-              <span v-if="visitedStats.ativosSemContato" class="inline-flex items-center gap-1 text-sky-700">
-                <span class="h-2 w-2 rounded-full bg-sky-500" />
-                {{ visitedStats.ativosSemContato }} sem contato
+              <span v-if="visitedStats.potenciais" class="inline-flex items-center gap-1 text-blue-700">
+                <span class="h-2 w-2 rounded-full bg-blue-500" />
+                {{ visitedStats.potenciais }} potencial
+              </span>
+              <span v-if="visitedStats.inativos" class="inline-flex items-center gap-1 text-gray-700">
+                <span class="h-2 w-2 rounded-full bg-gray-400" />
+                {{ visitedStats.inativos }} inativo
               </span>
             </div>
+          </div>          
+          <div class="bg-sky-50 border border-sky-100 rounded-lg p-3 lg:p-4">
+            <NTypo size="xs" tone="muted" class="mb-1">Contatos nesse mês</NTypo>
+            <NTypo size="xl" weight="bold" class="tabular-nums text-sky-500 lg:text-2xl">
+              {{ visitedStats.contatosNoMes }}
+            </NTypo>
           </div>
           <div class="bg-violet-50 border border-violet-100 rounded-lg p-3 lg:p-4">
             <NTypo size="xs" tone="muted" class="mb-1">Mensal</NTypo>
@@ -321,6 +327,7 @@ const visitedMapData = ref<MapData | null>(null)
 const scGeoJson = ref<any>(null)
 const clientes = ref<Cliente[]>([])
 const salesTotals = ref<{ month: number; quarter: number; year: number }>({ month: 0, quarter: 0, year: 0 })
+const contactsThisMonth = ref(0)
 const loadClientsError = ref('')
 const isGeocoding = ref(false)
 const geocodeError = ref('')
@@ -337,6 +344,7 @@ const isSidePanelOpenMobile = ref(false)
 
 const { fetchClients, createClient, patchClient, deleteClient } = useClientsApi()
 const { createEvento } = useHistoricoClienteApi()
+const { keyForClient, metaForClient } = useClientEngagementStatus()
 const currentUserId = 'user-app'
 
 const newPlace = ref({
@@ -426,6 +434,7 @@ async function loadClients() {
     const data = await fetchClients()
     clientes.value = (data.clients || []) as Cliente[]
     if (data.salesTotals) salesTotals.value = data.salesTotals
+    if (typeof data.contactsThisMonth === 'number') contactsThisMonth.value = data.contactsThisMonth
 
     if (visitedMapData.value?.mapSettings && data.mapSettings) {
       visitedMapData.value.mapSettings = data.mapSettings
@@ -502,7 +511,7 @@ const filteredClientes = computed(() => {
 
   // Filtro por tipo
   if (filterTipo.value) {
-    result = result.filter((cliente: any) => cliente.status === filterTipo.value)
+    result = result.filter((cliente) => keyForClient(cliente) === (filterTipo.value as any))
   }
 
   return result
@@ -518,34 +527,7 @@ const clientesParaPins = computed(() => {
 })
 
 function markerColor(cliente: any) {
-  if (cliente?.status === 'inativo') return '#9ca3af'
-
-  const last = cliente?.sales?.lastContactAt ? new Date(cliente.sales.lastContactAt) : null
-  if (last && !Number.isNaN(last.getTime())) {
-    const hoje = new Date()
-    hoje.setHours(0, 0, 0, 0)
-    const lastDay = new Date(last)
-    lastDay.setHours(0, 0, 0, 0)
-    const dias = Math.ceil((hoje.getTime() - lastDay.getTime()) / (1000 * 60 * 60 * 24))
-    // Regra (carteira): <=90 verde | 91–180 amarelo | >180 vermelho
-    if (dias > 180) return '#ef4444'
-    if (dias > 90) return '#eab308'
-    return '#22c55e'
-  }
-
-  const next = cliente?.sales?.nextActionAt ? new Date(cliente.sales.nextActionAt) : null
-  if (next && !Number.isNaN(next.getTime())) {
-    const hoje = new Date()
-    hoje.setHours(0, 0, 0, 0)
-    const dataProxima = new Date(next)
-    dataProxima.setHours(0, 0, 0, 0)
-    const diasRestantes = Math.ceil((dataProxima.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24))
-    if (diasRestantes < 0) return '#ef4444'
-    if (diasRestantes <= 3) return '#eab308'
-    return '#22c55e'
-  }
-
-  return '#3b82f6'
+  return metaForClient(cliente).colorHex
 }
 
 function safeNumber(v: any) {
@@ -624,50 +606,41 @@ const stats = computed(() => {
 })
 
 const carteiraBuckets = computed(() => {
-  const hoje = new Date()
-  hoje.setHours(0, 0, 0, 0)
-  const msPerDay = 1000 * 60 * 60 * 24
-
   let verde = 0
   let amarelo = 0
   let vermelho = 0
-  let semContato = 0
+  let potencial = 0
+  let inativo = 0
 
   for (const c of clientes.value as any[]) {
-    if (c?.status === 'inativo') continue
-
-    const lastIso = c?.sales?.lastContactAt
-    if (typeof lastIso !== 'string' || !lastIso) {
-      semContato++
-      continue
-    }
-
-    const last = new Date(lastIso)
-    if (Number.isNaN(last.getTime())) {
-      semContato++
-      continue
-    }
-
-    last.setHours(0, 0, 0, 0)
-    const dias = Math.ceil((hoje.getTime() - last.getTime()) / msPerDay)
-
-    if (dias > 180) vermelho++
-    else if (dias > 90) amarelo++
+    const k = keyForClient(c)
+    if (k === 'inativo') inativo++
+    else if (k === 'potencial') potencial++
+    else if (k === 'critico') vermelho++
+    else if (k === 'atencao') amarelo++
     else verde++
   }
 
-  return { verde, amarelo, vermelho, semContato, total: verde + amarelo + vermelho + semContato }
+  return {
+    verde,
+    amarelo,
+    vermelho,
+    potencial,
+    inativo,
+    total: verde + amarelo + vermelho + potencial + inativo,
+  }
 })
 
 const visitedStats = computed(() => {
   const carteira = carteiraBuckets.value
   return {
-    total: clientes.value.length,
-    ativos: carteira.total,
+    total: carteira.total,
     ativosVerde: carteira.verde,
     ativosAmarelo: carteira.amarelo,
     ativosVermelho: carteira.vermelho,
-    ativosSemContato: carteira.semContato,
+    potenciais: carteira.potencial,
+    inativos: carteira.inativo,
+    contatosNoMes: contactsThisMonth.value,
     faturamentoMensal: salesTotals.value.month,
     faturamentoTrimestral: salesTotals.value.quarter,
     faturamentoAnual: salesTotals.value.year,

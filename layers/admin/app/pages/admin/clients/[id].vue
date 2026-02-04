@@ -18,7 +18,17 @@
         <NTypo size="sm" tone="danger">Cliente não encontrado.</NTypo>
       </div>
       <div v-else class="space-y-3">
-        <NTypo as="h2" size="base" weight="bold">{{ client?.nome }}</NTypo>
+        <div class="flex flex-wrap items-center gap-2">
+          <NTypo as="h2" size="base" weight="bold">{{ client?.nome }}</NTypo>
+          <span
+            v-if="client"
+            class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold"
+            :class="statusMeta.chipClass"
+          >
+            <span class="h-2 w-2 rounded-full" :class="statusMeta.dotClass" />
+            {{ statusMeta.emoji }} {{ statusMeta.label }}
+          </span>
+        </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div class="rounded-xl border bg-white p-3">
             <NTypo size="xs" tone="muted">Contato</NTypo>
@@ -82,6 +92,9 @@ const { data: client, pending: pendingClient, error: clientError } = await useFe
   { transform: (res) => ClientResponseSchema.parse(res).data }
 )
 
+const { metaForClient } = useClientEngagementStatus()
+const statusMeta = computed(() => metaForClient(client.value))
+
 const {
   data: historico,
   pending: pendingHistorico,
@@ -98,4 +111,3 @@ function formatCurrency(v: number) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
 }
 </script>
-

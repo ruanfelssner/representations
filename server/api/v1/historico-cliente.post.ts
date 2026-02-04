@@ -54,6 +54,7 @@ export default defineEventHandler(async (event) => {
   }
 
   await db.collection('historicoCliente').insertOne(evento)
+  ;(globalThis as any).__clientsHistoricoSummaryCache = undefined
 
   const client = await db.collection('clients').findOne({ _id: validated.clientId })
   if (!client) throw createError({ statusCode: 404, statusMessage: 'Cliente não encontrado.' })

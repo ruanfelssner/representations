@@ -20,6 +20,15 @@
                   {{ clientData.cnpj }}
                 </NTypo>
               </NTypo>
+              <div v-if="clientData" class="mt-1 flex items-center gap-2">
+                <span
+                  class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold"
+                  :class="statusMeta.chipClass"
+                >
+                  <span class="h-2 w-2 rounded-full" :class="statusMeta.dotClass" />
+                  {{ statusMeta.emoji }} {{ statusMeta.label }}
+                </span>
+              </div>
               <NTypo v-if="clientData?.endereco" size="xs" class="text-white/90 truncate mt-1">
                 {{ clientData.endereco }}
               </NTypo>
@@ -160,9 +169,12 @@ const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
 const { fetchHistorico } = useHistoricoClienteApi()
+const { metaForClient } = useClientEngagementStatus()
 const historico = ref<any[]>([])
 const isLoadingHistorico = ref(false)
 const historicoErrorMessage = ref('')
+
+const statusMeta = computed(() => metaForClient(props.clientData))
 
 watch(
   () => [props.clientData?.id, props.clientData?.updatedAt],

@@ -12,15 +12,23 @@ const SalesTotalsSchema = z.object({
 
 export function useClientsApi() {
   const fetchClients = async () => {
-    const res = await $fetch<ApiResponse<{ clients: unknown; mapSettings: any; salesTotals?: unknown }>>('/api/v1/clients')
+    const res = await $fetch<ApiResponse<{ clients: unknown; mapSettings: any; salesTotals?: unknown; contactsThisMonth?: unknown }>>(
+      '/api/v1/clients'
+    )
     const parsed = z
       .object({
         clients: z.array(ClientDtoSchema),
         mapSettings: z.any(),
         salesTotals: SalesTotalsSchema.optional(),
+        contactsThisMonth: z.number().optional(),
       })
       .parse(res.data)
-    return parsed as { clients: Cliente[]; mapSettings: any; salesTotals?: { month: number; quarter: number; year: number } }
+    return parsed as {
+      clients: Cliente[]
+      mapSettings: any
+      salesTotals?: { month: number; quarter: number; year: number }
+      contactsThisMonth?: number
+    }
   }
 
   const createClient = async (payload: {
