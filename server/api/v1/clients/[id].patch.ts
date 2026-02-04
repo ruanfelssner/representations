@@ -1,5 +1,5 @@
 import { createError } from 'h3'
-import { geocodeWithCache } from '../../../utils/geocode'
+import { geocodeAddress } from '../../../utils/geocode'
 import { getMongoDb } from '../../../utils/mongo'
 
 export default defineEventHandler(async (event) => {
@@ -37,7 +37,7 @@ export default defineEventHandler(async (event) => {
         statusMessage: 'Google Maps API key não configurada (NUXT_GOOGLE_MAPS_API_KEY).',
       })
     }
-    const geo = await geocodeWithCache(db, body.endereco_completo.trim(), apiKey)
+    const geo = await geocodeAddress(body.endereco_completo.trim(), apiKey)
     updates.endereco_completo = geo.endereco_completo
     updates.endereco = geo.formatted_address || geo.endereco_completo
     updates.lat = geo.lat
@@ -46,10 +46,10 @@ export default defineEventHandler(async (event) => {
 
   updates.updatedAt = new Date().toISOString()
 
-  await db.collection('clients').updateOne({ _id: id }, { $set: updates })
+  await db.collection('clients').updateOne({ _id: id }, { $set: updates, $unset: { color: '' } })
   const client = await db.collection('clients').findOne({ _id: id })
   if (!client) throw createError({ statusCode: 404, statusMessage: 'Cliente não encontrado.' })
 
-  const { _id, ...rest } = client as any
+  const { _id, color: _color, ...rest } = client as any
   return { success: true, data: { ...rest, id: _id } }
 })

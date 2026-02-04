@@ -1,37 +1,16 @@
-import type { Db } from 'mongodb'
-
-export type GeocodeDoc = {
+export type GeocodeResult = {
   endereco_completo: string
   lat: number
   lng: number
   place_id?: string
   formatted_address?: string
   raw?: unknown
-  updatedAt: string
 }
 
-declare global {
-  // eslint-disable-next-line no-var
-  var __geocodeIndexesReady: boolean | undefined
-}
-
-export async function ensureGeocodeIndexes(db: Db) {
-  if (globalThis.__geocodeIndexesReady) return
-  await db.collection<GeocodeDoc>('geocodes').createIndex({ endereco_completo: 1 }, { unique: true })
-  globalThis.__geocodeIndexesReady = true
-}
-
-export async function geocodeWithCache(
-  db: Db,
-  endereco_completo: string,
-  apiKey: string
-): Promise<GeocodeDoc> {
-  await ensureGeocodeIndexes(db)
-
-  const col = db.collection<GeocodeDoc>('geocodes')
+export async function geocodeAddress(endereco_completo: string, apiKey: string): Promise<GeocodeResult> {
   const address = endereco_completo.trim()
-  const cached = await col.findOne({ endereco_completo: address })
-  if (cached) return cached
+  if (!address) throw new Error('endereco_completo vazio.')
+  if (!apiKey) throw new Error('Google Maps API key não configurada.')
 
   const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
     address
@@ -51,17 +30,13 @@ export async function geocodeWithCache(
     throw new Error('Resposta inválida do Geocoding.')
   }
 
-  const doc: GeocodeDoc = {
+  return {
     endereco_completo: address,
     lat: loc.lat,
     lng: loc.lng,
     place_id: result.place_id,
     formatted_address: result.formatted_address,
-    raw: { status: data.status, result: result },
-    updatedAt: new Date().toISOString(),
+    raw: { status: data.status, result },
   }
-
-  await col.insertOne(doc)
-  return doc
 }
 

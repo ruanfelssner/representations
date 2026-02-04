@@ -28,6 +28,7 @@ export interface Recorrencia {
 
 export interface Cliente {
   id: string
+  cnpj?: string
   nome: string
   lat: number
   lng: number
@@ -40,7 +41,7 @@ export interface Cliente {
   proximaVisita?: string // ISO date
   createdAt: string
   updatedAt: string
-  color: string
+  color?: string
   tipo: 'cliente' | 'prospecto' | 'inativo'
   segmento: SegmentoCliente
   porte?: PorteCliente

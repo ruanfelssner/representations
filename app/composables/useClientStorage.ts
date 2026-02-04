@@ -64,6 +64,34 @@ export function useClientStorage() {
     }
   }
 
+  // Cor baseada na última visita (quando não existe proximaVisita)
+  const getClientColorByLastVisit = (cliente: Cliente): string => {
+    if (!cliente.visitas?.length) return '#3b82f6'
+
+    const ultima = [...cliente.visitas].sort(
+      (a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()
+    )[0]
+    if (!ultima?.data) return '#3b82f6'
+
+    const hoje = new Date()
+    hoje.setHours(0, 0, 0, 0)
+    const dataUltima = new Date(ultima.data)
+    dataUltima.setHours(0, 0, 0, 0)
+
+    const diasDesdeUltima = Math.floor(
+      (hoje.getTime() - dataUltima.getTime()) / (1000 * 60 * 60 * 24)
+    )
+
+    // Regra por última visita/venda:
+    // - azul: <= 90 dias
+    // - amarelo: 91-180 dias
+    // - vermelho: > 180 dias
+    const dias = Math.max(0, diasDesdeUltima)
+    if (dias > 180) return '#ef4444'
+    if (dias > 90) return '#eab308'
+    return '#3b82f6'
+  }
+
   const getClients = (): Cliente[] => {
     if (import.meta.client) {
       const stored = localStorage.getItem(STORAGE_KEY)
@@ -75,7 +103,7 @@ export function useClientStorage() {
           return {
             ...client,
             proximaVisita,
-            color: getClientColor(proximaVisita)
+            color: proximaVisita ? getClientColor(proximaVisita) : getClientColorByLastVisit(client)
           }
         })
       }
@@ -222,6 +250,7 @@ export function useClientStorage() {
     addVisita,
     getClientStats,
     getClientColor,
+    getClientColorByLastVisit,
   }
 }
 

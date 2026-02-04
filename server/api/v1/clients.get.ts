@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
     .toArray()
 
   const mapped = clients.map((c: any) => {
-    const { _id, ...rest } = c
+    const { _id, color: _color, ...rest } = c
     return { ...rest, id: _id }
   })
 

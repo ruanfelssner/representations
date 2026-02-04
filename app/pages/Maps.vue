@@ -282,7 +282,7 @@
             <input
               v-model="searchQuery"
               type="text"
-              placeholder="Nome, cidade ou endereço..."
+              placeholder="Nome, cidade, endereço ou CNPJ..."
               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -441,7 +441,7 @@ const searchQuery = ref('')
 const filterSegmento = ref('')
 const filterTipo = ref('')
 
-const { getClientStats, getClientColor } = useClientStorage()
+const { getClientStats, getClientColor, getClientColorByLastVisit } = useClientStorage()
 const { fetchClients, createClient, patchClient, deleteClient, addVisitaApi } = useClientsApi()
 
 const newPlace = ref({
@@ -528,7 +528,13 @@ async function loadClients() {
   const mapped = (data.clients || []).map((c) => ({
     ...c,
     visitas: Array.isArray(c.visitas) ? c.visitas : [],
-    color: c.color || getClientColor(c.proximaVisita),
+    // Sempre recalcula no client (campo `color` no Mongo pode estar desatualizado)
+    color: c.proximaVisita
+      ? getClientColor(c.proximaVisita)
+      : getClientColorByLastVisit({
+          ...(c as any),
+          visitas: Array.isArray(c.visitas) ? c.visitas : [],
+        }),
   }))
   clientes.value = mapped
 
@@ -580,10 +586,14 @@ const filteredClientes = computed(() => {
   // Filtro por busca
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
+    const queryDigits = searchQuery.value.replace(/\D/g, '')
     result = result.filter((cliente) =>
       cliente.nome.toLowerCase().includes(query) ||
       cliente.cidade?.toLowerCase().includes(query) ||
-      cliente.endereco?.toLowerCase().includes(query)
+      cliente.endereco?.toLowerCase().includes(query) ||
+      (queryDigits.length > 0 &&
+        ((cliente.cnpj || '').replace(/\D/g, '').includes(queryDigits) ||
+          String(cliente.id || '').replace(/\D/g, '').includes(queryDigits)))
     )
   }
 
@@ -609,7 +619,7 @@ const createVisitedMarkers = computed(() => {
       title: cliente.nome,
       value: cliente.visitas.length,
       color: cliente.color,
-      size: 30 + cliente.visitas.length * 3,
+      size: Math.min(26, 16 + Math.min(cliente.visitas.length, 12) * 0.8),
       clientId: cliente.id,
     }))
 })

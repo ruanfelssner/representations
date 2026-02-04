@@ -26,6 +26,6 @@ export default defineEventHandler(async (event) => {
   const client = await db.collection('clients').findOne({ _id: id })
   if (!client) throw createError({ statusCode: 404, statusMessage: 'Cliente não encontrado.' })
 
-  const { _id, ...rest } = client as any
+  const { _id, color: _color, ...rest } = client as any
   return { success: true, data: { ...rest, id: _id } }
 })

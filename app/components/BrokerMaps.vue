@@ -211,11 +211,13 @@ const mapStyles = [
 ]
 
 function markerStyle(marker: MapMarker) {
+  const rawSize = typeof marker.size === 'number' ? marker.size : 20
+  const size = Math.max(14, Math.min(rawSize, 28))
   return {
-    width: `${marker.size || 20}px`,
-    height: `${marker.size || 20}px`,
+    width: `${size}px`,
+    height: `${size}px`,
     background: marker.color || '#6B7280',
-    fontSize: marker.size && marker.size > 35 ? '12px' : '10px',
+    fontSize: size >= 24 ? '11px' : '10px',
   }
 }
 
@@ -285,12 +287,28 @@ function fitBoundsToData() {
   }
 }
 
+const fitBoundsKey = computed(() => {
+  const markersKey = props.markers
+    .map((m) => `${Number(m.lat).toFixed(6)},${Number(m.lng).toFixed(6)}`)
+    .join('|')
+
+  const polygonsKey = props.polygons
+    .map((p) => {
+      const first = p.paths?.[0]
+      const firstKey = first ? `${Number(first.lat).toFixed(6)},${Number(first.lng).toFixed(6)}` : ''
+      return `${p.id || ''}:${p.paths?.length || 0}:${firstKey}`
+    })
+    .join('|')
+
+  return `${markersKey}||${polygonsKey}`
+})
+
 watch(
-  () => [props.markers, props.polygons],
+  () => fitBoundsKey.value,
   () => {
     nextTick(() => fitBoundsToData())
   },
-  { deep: true }
+  { flush: 'post' }
 )
 
 watch(

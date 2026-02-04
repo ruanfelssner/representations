@@ -1,6 +1,5 @@
 import { createError } from 'h3'
-import { geocodeWithCache } from '../../utils/geocode'
-import { getMongoDb } from '../../utils/mongo'
+import { geocodeAddress } from '../../utils/geocode'
 
 export default defineEventHandler(async (event) => {
   const body = (await readBody(event).catch(() => ({}))) as Record<string, unknown>
@@ -13,8 +12,6 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'endereco_completo é obrigatório.' })
   }
 
-  const db = await getMongoDb()
-
   const config = useRuntimeConfig()
   const apiKey = config.googleMapsServerApiKey
   if (!apiKey) {
@@ -25,8 +22,8 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const doc = await geocodeWithCache(db, endereco.trim(), apiKey)
-    return { success: true, data: doc }
+    const data = await geocodeAddress(endereco.trim(), apiKey)
+    return { success: true, data }
   } catch (err: any) {
     throw createError({ statusCode: 422, statusMessage: err?.message || 'Falha ao geocodificar.' })
   }

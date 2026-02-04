@@ -2,6 +2,10 @@
   "name": "nuxt-app",
   "type": "module",
   "private": true,
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0",
+    "pnpm": ">=10"
+  },
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev",
@@ -9,6 +13,7 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "import:aco-e-ouro": "tsx scripts/import_aco_e_ouro.ts",
+    "mongo:unset-color": "tsx scripts/mongo_unset_color.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.{js,ts,vue,json,md}\""

@@ -1,5 +1,5 @@
 import { createError } from 'h3'
-import { geocodeWithCache } from '../../utils/geocode'
+import { geocodeAddress } from '../../utils/geocode'
 import { getMongoDb } from '../../utils/mongo'
 
 export default defineEventHandler(async (event) => {
@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const geo = await geocodeWithCache(db, endereco_completo, apiKey)
+  const geo = await geocodeAddress(endereco_completo, apiKey)
 
   const now = new Date().toISOString()
   const id = cnpj && cnpj.length >= 11 ? cnpj : `cliente-${Date.now()}`
@@ -42,7 +42,6 @@ export default defineEventHandler(async (event) => {
     lat: geo.lat,
     lng: geo.lng,
     visitas: [],
-    color: '#3b82f6',
     tipo: (body.tipo as string | undefined) || 'prospecto',
     segmento: (body.segmento as string | undefined) || 'otica',
     createdAt: now,

@@ -6,7 +6,7 @@ export default defineEventHandler(async (event) => {
     const clients = await db.collection('clients').find({}).toArray()
 
     const mapped = clients.map((c: any) => {
-      const { _id, ...rest } = c
+      const { _id, color: _color, ...rest } = c
       return { ...rest, id: _id }
     })
 
