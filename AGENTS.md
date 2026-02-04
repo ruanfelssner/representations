@@ -38,6 +38,13 @@ Regra: **layers mais “genéricas” primeiro, mais “específicas” depois**
   - Página: orquestra fluxo e layout
   - Componentes: render e interação
   - Composables: estado, fetch e regras reutilizáveis
+- **Padrão CRUD (sempre que aplicável):**
+  - Para um recurso (ex.: `produtos`), crie uma pasta com:
+    - `index.vue` → listagem + filtros + ações
+    - `[id].vue` → **novo/editar** (mesma página; `id === 'new'` para criação, senão editar)
+  - Onde criar:
+    - Gestão/admin: `layers/admin/app/pages/admin/<recurso>/index.vue` e `layers/admin/app/pages/admin/<recurso>/[id].vue`
+    - Público/geral: `app/pages/<recurso>/index.vue` e `app/pages/<recurso>/[id].vue`
 
 ### 1.2 SSR, fetch e cache
 

@@ -2651,6 +2651,64 @@ onMounted(() => {
 
 ## 🎨 FASE 5: Componentes de Usuários e Produtos
 
+### 5.0 Páginas de Gestão (CRUD padrão)
+
+Nesta fase, além dos componentes, a UI precisa de **páginas/rotas** para “gestão das collections”.  
+Padrão adotado (consistente e repetível):
+
+- Para cada recurso CRUD (ex.: `produtos`), criar **uma pasta de rotas** com:
+  - `index.vue` → listagem + busca/filtros + ações (criar/editar/excluir)
+  - `[id].vue` → **novo/editar** (mesma página; `id === 'new'` cria, senão edita)
+- Como a gestão é administrativa, as páginas ficam no **layer admin**:
+  - `layers/admin/app/pages/admin/<recurso>/index.vue`
+  - `layers/admin/app/pages/admin/<recurso>/[id].vue`
+
+#### 5.0.1 Mapa de páginas necessárias (gestão das collections)
+
+**Coleções CRUD “clássicas”**
+
+- **Users (`users`)**
+  - `layers/admin/app/pages/admin/users/index.vue` (lista, filtro por role, status ativo/inativo)
+  - `layers/admin/app/pages/admin/users/[id].vue` (novo/editar; role; metas; ativo)
+- **Produtos (`produtos`)**
+  - `layers/admin/app/pages/admin/produtos/index.vue` (lista, busca por código/nome, status ativo)
+  - `layers/admin/app/pages/admin/produtos/[id].vue` (novo/editar; valor atual; categoria; ativo)
+- **Clients (`clients`)**
+  - `layers/admin/app/pages/admin/clients/index.vue` (lista, busca CNPJ/nome, filtro segmento/status/stage)
+  - `layers/admin/app/pages/admin/clients/[id].vue` (detalhe do cliente: dados + geo + aba histórico/timeline + ações)
+
+**Coleções “append-only” (não são CRUD completo)**
+
+- **Histórico do cliente (`historicoCliente`)**
+  - Não expor “editar/deletar” (imutável/auditoria).
+  - Entrada de dados via:
+    - `layers/admin/app/pages/admin/clients/[id].vue` (form/modal “Novo evento” → POST em `historicoCliente`)
+    - `app/components/ClientTimeline.vue` (somente leitura, paginação/limit)
+- **Histórico de valores (`historicoValores`)**
+  - Criado ao criar produto e ao alterar preço.
+  - UI recomendada:
+    - `layers/admin/app/pages/admin/produtos/[id].vue` mostra histórico e permite “registrar novo preço” (cria novo doc)
+
+#### 5.0.2 Requisitos de navegação/layout (mínimo)
+
+- Criar/usar layout de admin (ex.: `layers/admin/app/layouts/admin.vue`) com menu:
+  - Clientes, Usuários, Produtos, Agenda (próximas ações), Dashboard (gerente)
+- Proteger rotas via middleware (ex.: `layers/admin/app/middleware/admin.ts`):
+  - `admin/supervisor/gerente` acessam gestão
+  - vendedor acessa `clients` + registrar eventos
+
+#### 5.0.3 Padrão de implementação (Nuxt 4)
+
+- Páginas orquestram; lógica de dados em composables:
+  - `app/composables/useUsers.ts`
+  - `app/composables/useProdutos.ts`
+  - `app/composables/useClients.ts`
+  - `app/composables/useHistoricoCliente.ts`
+- Validação:
+  - Request/response tipados via schemas Zod (`app/types/schemas.ts`)
+- UX mínima:
+  - Ações sempre com `NButton`, inputs `NInput/NSelect`, feedback via `useToast()`
+
 ### 5.1 Gerenciador de Usuários (vendedores/gerentes/admin)
 
 **Arquivo:** `app/components/UsersManager.vue`
@@ -3048,6 +3106,12 @@ Ritual recomendado: reunião semanal de 30 min com **top 10 riscos + top 10 opor
 
 - [ ] Criar `UsersManager.vue` (vendedores, gerentes, admins, supervisores)
 - [ ] Criar `ProdutosManager.vue`
+- [ ] Criar páginas CRUD de usuários: `layers/admin/app/pages/admin/users/index.vue`
+- [ ] Criar páginas CRUD de usuários: `layers/admin/app/pages/admin/users/[id].vue`
+- [ ] Criar páginas CRUD de produtos: `layers/admin/app/pages/admin/produtos/index.vue`
+- [ ] Criar páginas CRUD de produtos: `layers/admin/app/pages/admin/produtos/[id].vue`
+- [ ] Criar páginas de clientes: `layers/admin/app/pages/admin/clients/index.vue`
+- [ ] Criar páginas de clientes: `layers/admin/app/pages/admin/clients/[id].vue`
 - [ ] Integrar na navegação principal
 
 ### FASE 6 - Maps
