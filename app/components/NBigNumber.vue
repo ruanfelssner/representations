@@ -1,5 +1,5 @@
 <template>
-  <NLayer variant="solid" size="base">
+  <NLayer variant="solid" size="sm">
     <div class="flex items-center justify-between">
       <NTypo size="xs" caps tracking="wide" tone="soft">
         {{ label }}
@@ -11,7 +11,7 @@
         <NIcon :name="icon" class="h-4 w-4" aria-hidden="true" />
       </span>
     </div>
-    <NTypo class="mt-2" size="3xl" weight="semibold">
+    <NTypo size="xl" weight="semibold">
       {{ value }}
     </NTypo>
     <NTypo class="mt-1" size="xs" tone="soft">

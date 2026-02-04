@@ -8,9 +8,7 @@
   >
     <NIcon v-if="loading" name="mdi:loading" :size="iconSize" class="animate-spin" />
     <NIcon v-else-if="leadingIcon" :name="leadingIcon" :size="iconSize" />
-    <NTypo v-if="label" :as="resolvedAs === 'button' ? 'span' : undefined" :size="labelSize">{{
-      label
-    }}</NTypo>
+    <NTypo v-if="label" :as="resolvedAs === 'button' ? 'span' : undefined" :size="labelSize" :tone="variant">{{ label }}</NTypo>
     <slot />
     <NIcon v-if="trailingIcon" :name="trailingIcon" :size="iconSize" />
   </component>
@@ -30,7 +28,7 @@ type ButtonVariant =
   | 'danger'
   | 'success'
   | 'warning'
-type ButtonSize = 'link' | 'xs' | 'sm' | 'md' | 'lg'
+type ButtonSize = 'link' | 'zs' | 'xs' | 'sm' | 'md' | 'lg' 
 type ButtonRadius = 'full' | 'soft'
 type IconSize = 'xs' | 'sm' | 'base' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl'
 
@@ -78,6 +76,8 @@ const labelSize = computed<TypoSize | undefined>(() => {
   switch (resolvedSize.value) {
     case 'link':
       return 'link'
+    case 'zs':
+      return 'zs'
     case 'xs':
       return 'xs'
     case 'sm':
@@ -93,6 +93,8 @@ const labelSize = computed<TypoSize | undefined>(() => {
 
 const iconSize = computed<IconSize>(() => {
   switch (resolvedSize.value) {
+    case 'zs':
+      return 'xs'
     case 'xs':
       return 'sm'
     case 'sm':
@@ -110,18 +112,19 @@ const baseClasses =
   'inline-flex items-center justify-center gap-2 font-semibold transition cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 pointer'
 
 const variantClasses: Record<ButtonVariant, string> = {
-  primary: 'bg-stone-900 text-white shadow-sm hover:bg-stone-800',
+  primary: 'bg-gradient-to-r to-sky-600 from-violet-600 text-white shadow-sm hover:shadow-md',
   secondary: 'border border-stone-200 bg-white text-stone-400 shadow-sm hover:border-stone-400',
   outline: 'border border-stone-200 text-stone-400 hover:border-stone-400 hover:text-stone-400',
   soft: 'border border-stone-200 bg-white/20 text-stone-400 shadow-sm hover:border-stone-400',
   ghost: 'text-stone-400 hover:text-stone-600',
-  danger: 'border border-rose-200 text-rose-700 hover:bg-rose-50',
-  success: 'border border-emerald-200 text-emerald-700 hover:bg-emerald-50',
-  warning: 'border border-amber-200 text-amber-700 hover:bg-amber-50',
+  danger: 'border border-rose-200 text-rose-700 bg-rose-50 hover:bg-rose-100',
+  success: 'border border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100',
+  warning: 'border border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100',
 }
 
 const sizeClasses: Record<ButtonSize, string> = {
   link: 'px-1 py-2 text-sm',
+  zs: 'px-2 py-1 text-xs',
   xs: 'px-2 py-2 text-xs',
   sm: 'px-4 py-2 text-sm',
   md: 'px-4 py-2 text-sm',

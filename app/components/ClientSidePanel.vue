@@ -2,199 +2,133 @@
   <Transition name="slide">
     <aside
       v-if="isOpen"
-      class="w-full max-w-[400px] bg-white p-4 overflow-auto rounded-lg shadow"
+      class="h-full w-full overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-lg"
     >
-      <!-- Botão Fechar -->
-      <button
-        @click="$emit('close')"
-        class="absolute top-2 right-2 z-10 p-2 hover:bg-white/80 rounded-lg transition-colors flex items-center justify-center bg-white/50 backdrop-blur"
-      >
-        <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
-
       <!-- Header -->
-      <div class="bg-gradient-to-r from-blue-600 to-purple-600 -mx-4 -mt-4 px-4 py-2 text-white mb-3">
-        <h2 class="text-base font-bold mb-0.5">{{ clientData?.nome }}</h2>
-        <p class="text-blue-100 text-[10px]">{{ clientData?.endereco }}</p>
-        <p class="text-blue-100 text-[10px]">
-          {{ clientData?.cidade }} - {{ clientData?.estado }}
-        </p>
-        <div v-if="clientData?.telefone" class="mt-1 flex items-center gap-1 text-[10px]">
-          <span class="text-xs">📞</span>
-          <span>{{ clientData.telefone }}</span>
-        </div>
-      </div>
-
-      <!-- Conteúdo -->
-      <div class="p-3 space-y-2 text-xs compact-numbers">
-            <!-- BigNumbers Grid - 2 colunas -->
-            <div class="grid grid-cols-2 gap-2">
-              <NBigNumber
-                :value="ultimaVisitaFormatted"
-                label="Última Visita"
-                description=""
-                icon="📅"
-                color="blue"
-              />
-              <NBigNumber
-                :value="proximaVisitaFormatted"
-                label="Próxima Visita"
-                description=""
-                icon="🗓️"
-                color="purple"
-              />
-              <NBigNumber
-                :value="diasAteProximaFormatted"
-                label="Dias até Próxima"
-                description=""
-                icon="⏰"
-                color="cyan"
-              />
-              <NBigNumber
-                :value="formatCurrency(totalVendidoMes)"
-                label="Vendido Último Mês"
-                description=""
-                icon="💰"
-                color="green"
-              />
-              <NBigNumber
-                :value="formatCurrency(totalVendido90Dias)"
-                label="Vendido 90 Dias"
-                description=""
-                icon="💵"
-                color="emerald"
-              />
-              <NBigNumber
-                :value="formatCurrency(totalVendidoAno)"
-                label="Vendido no Ano"
-                description=""
-                icon="📊"
-                color="teal"
-              />
-            </div>
-
-            <!-- Produto Mais Consumido -->
-            <div
-              v-if="produtoMaisConsumido"
-              class="bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg p-2 border border-amber-200"
-            >
-              <div class="flex items-center gap-2">
-                <span class="text-xl">🏆</span>
-                <div>
-                  <div class="text-[10px] font-medium text-amber-800">Produto Mais Consumido</div>
-                  <div class="text-xs font-bold text-amber-900">{{ produtoMaisConsumido }}</div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Botões de Ação -->
-            <div class="grid grid-cols-2 gap-2">
-              <button
-                @click="$emit('edit-client')"
-                class="bg-gradient-to-r from-indigo-600 to-blue-600 text-white px-3 py-1.5 rounded-lg hover:from-indigo-700 hover:to-blue-700 transition-all font-semibold shadow-md hover:shadow-lg flex items-center justify-center gap-1 text-[10px]"
+      <div class="flex h-full flex-col">
+        <div class="bg-gradient-to-r from-sky-400 to-violet-400 px-4 py-3 space-y-2">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <NTypo as="h2" size="base" weight="bold" class="text-white leading-tight truncate">
+                {{ clientData?.nome || 'Selecione um cliente' }} 
+                <NTypo v-if="clientData?.cnpj" as="span" size="xs" weight="semibold" class="tabular-nums">
+                  {{ clientData.cnpj }}
+                </NTypo>
+              </NTypo>
+              <NTypo
+                v-if="clientData?.endereco"
+                size="xs"
+                class="text-white/90 truncate mt-1"
               >
-                <span class="text-sm">✏️</span>
-                <span>Editar</span>
-              </button>
-              
-              <button
-                @click="$emit('add-visit')"
-                class="bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-3 py-1.5 rounded-lg hover:from-emerald-700 hover:to-teal-700 transition-all font-semibold shadow-md hover:shadow-lg flex items-center justify-center gap-1 text-[10px]"
-              >
-                <span class="text-sm">➕</span>
-                <span>Nova Visita</span>
-              </button>
+                {{ clientData.endereco }}
+              </NTypo>
             </div>
-
-            <button
+          </div>
+          <div class="flex gap-2">
+            
+            <NButton
               v-if="clientData?.telefone"
               @click="abrirWhatsApp"
-              class="w-full bg-gradient-to-r from-green-500 to-green-600 text-white px-3 py-1.5 rounded-lg hover:from-green-600 hover:to-green-700 transition-all font-semibold shadow-md hover:shadow-lg flex items-center justify-center gap-1 text-[10px]"
-            >
-              <span class="text-sm">📱</span>
-              <span>Enviar WhatsApp</span>
-            </button>
-
-            <button
+              variant="success"
+              leading-icon="mdi:whatsapp">
+               {{ clientData.telefone }}
+            </NButton>
+            
+            <NButton
               @click="removerCliente"
-              class="w-full bg-gradient-to-r from-red-500 to-red-600 text-white px-3 py-1.5 rounded-lg hover:from-red-600 hover:to-red-700 transition-all font-semibold shadow-md hover:shadow-lg flex items-center justify-center gap-1 text-[10px]"
-            >
-              <span class="text-sm">🗑️</span>
-              <span>Remover Cliente</span>
-            </button>
+              variant="danger"
+              leading-icon="mdi:trash-can-outline"/>
+              <NButton
+                @click="$emit('edit-client')" 
+                leading-icon="mdi:pencil"
+                variant="secondary" />
 
-        <!-- Timeline de Visitas -->
-        <div class="space-y-2">
-          <h3 class="text-sm font-bold text-gray-900 flex items-center gap-2">
-            <span>📋</span>
-            <span>Histórico de Visitas</span>
-          </h3>
+              <NButton
+              variant="primary"
+                @click="$emit('add-visit')" leading-icon="mdi:plus" label="Visita"/>
+          </div>
+        </div>
 
-          <div v-if="!sortedVisitas.length" class="text-center py-8 text-gray-500">
-            Nenhuma visita registrada ainda
+        <div v-if="!clientData" class="flex-1 flex items-center justify-center p-6">
+          <NTypo size="sm" tone="muted">Clique em um pin no mapa para ver detalhes.</NTypo>
+        </div>
+
+        <div v-else class="flex-1 min-h-0 flex flex-col">
+          <div class="p-4 space-y-3">
+            <div class="grid grid-cols-2 gap-2">
+              <NBigNumber :value="ultimaVisitaFormatted" label="Última visita" description="" icon="mdi:calendar" />
+              <NBigNumber :value="proximaVisitaFormatted" label="Próxima" description="" icon="mdi:calendar" />
+              <NBigNumber :value="produtoMaisConsumido" label="Produto mais vendido" description="" icon="mdi:shopping" />
+              <NBigNumber :value="formatCurrency(totalVendido90Dias)" label="90 dias" description="" icon="mdi:currency-usd" />
+            </div>
           </div>
 
-          <div v-else class="space-y-3">
+          <div class="border-t border-gray-100 px-4 py-2 flex items-center justify-between">
+            <NTypo as="h3" size="sm" weight="bold">Histórico</NTypo>
+            <NTypo as="div" size="xs" tone="muted" class="tabular-nums">{{ sortedVisitas.length }}</NTypo>
+          </div>
+
+          <div class="flex-1 min-h-0 overflow-auto px-4 pb-4 space-y-3">
+            <div v-if="!sortedVisitas.length" class="text-center py-10">
+              <NTypo size="sm" tone="muted">Nenhuma visita registrada ainda</NTypo>
+            </div>
+
             <div
               v-for="visita in sortedVisitas"
               :key="visita.id"
-              class="bg-white rounded-lg shadow-md border hover:shadow-lg transition-shadow p-4"
+              class="rounded-xl border bg-white p-3 hover:shadow-sm transition-shadow"
             >
-              <div class="flex items-start justify-between mb-2">
-                <div class="flex items-center gap-2">
-                  <span class="text-2xl">
-                    {{ visita.vendeuAlgo ? '✅' : '📝' }}
-                  </span>
-                  <div>
-                    <div class="font-semibold text-gray-900">
-                      {{ formatDate(visita.data) }}
-                    </div>
-                    <div v-if="visita.duracao" class="text-xs text-gray-500">
-                      Duração: {{ visita.duracao }} min
-                    </div>
-                  </div>
+              <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0">
+                  <NTypo size="sm" weight="semibold" class="tabular-nums">
+                    {{ formatDate(visita.data) }}
+                  </NTypo>
+                  <NTypo v-if="visita.descricao" size="xs" tone="muted" class="mt-1 clamp-2">
+                    {{ visita.descricao }}
+                  </NTypo>
+                  <NTypo v-if="visita.duracao" size="xs" tone="muted" class="mt-1">
+                    ⏱️ {{ visita.duracao }} min
+                  </NTypo>
                 </div>
-                <span
+
+                <NTypo
+                  as="span"
+                  size="xs"
+                  weight="semibold"
                   :class="[
-                    'px-3 py-1 rounded-full text-xs font-semibold',
-                    visita.vendeuAlgo
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-gray-100 text-gray-800',
+                    'shrink-0 px-2 py-1 rounded-full text-[11px]',
+                    visita.vendeuAlgo ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800',
                   ]"
                 >
-                  {{ visita.vendeuAlgo ? 'Venda Realizada' : 'Sem Venda' }}
-                </span>
+                  {{ visita.vendeuAlgo ? 'Venda' : 'Sem venda' }}
+                </NTypo>
               </div>
 
-              <p class="text-sm text-gray-700 mb-2">{{ visita.descricao }}</p>
+              <div v-if="visita.vendeuAlgo" class="mt-2 space-y-2">
+                <NTypo v-if="visita.valorVenda" size="sm" weight="semibold" class="text-green-700 tabular-nums">
+                  💵 {{ formatCurrency(visita.valorVenda) }}
+                </NTypo>
 
-              <div v-if="visita.vendeuAlgo" class="space-y-2">
-                <div
-                  v-if="visita.valorVenda"
-                  class="flex items-center gap-2 text-sm font-semibold text-green-700"
-                >
-                  <span>💵</span>
-                  <span>{{ formatCurrency(visita.valorVenda) }}</span>
-                </div>
-
-                <div
+                <NTypo
                   v-else-if="visita.produtos && visita.produtos.length"
-                  class="flex items-center gap-2 text-sm font-semibold text-green-700"
+                  size="xs"
+                  weight="semibold"
+                  class="text-green-700"
                 >
-                  <span>🧾</span>
-                  <span>{{ getTotalItens(visita) }} itens (sem valor)</span>
-                </div>
+                  🧾 {{ getTotalItens(visita) }} itens (sem valor)
+                </NTypo>
 
-                <div v-if="visita.produtos && visita.produtos.length" class="flex flex-wrap gap-2">
-                  <span
+                <div v-if="visita.produtos && visita.produtos.length" class="flex flex-wrap gap-1.5">
+                  <NTypo
                     v-for="(produto, idx) in visita.produtos"
                     :key="idx"
-                    class="bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs font-medium"
+                    as="span"
+                    size="xs"
+                    weight="medium"
+                    class="rounded bg-blue-50 px-2 py-1 text-[11px] text-blue-700"
                   >
                     {{ produto.quantidade }}x {{ produto.nome }}
-                  </span>
+                  </NTypo>
                 </div>
               </div>
             </div>
@@ -211,6 +145,7 @@ import type { Cliente } from '~/types/client'
 interface Props {
   isOpen: boolean
   clientData: Cliente | null
+  showClose?: boolean
 }
 
 interface Emits {
@@ -222,6 +157,8 @@ interface Emits {
 
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
+
+const showClose = computed(() => Boolean(props.showClose))
 
 function getTotalItens(visita: any) {
   const produtos = Array.isArray(visita?.produtos) ? visita.produtos : []
@@ -343,7 +280,7 @@ function formatCurrency(value: number): string {
 <style scoped>
 .slide-enter-active,
 .slide-leave-active {
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
 .slide-enter-from,
@@ -351,27 +288,10 @@ function formatCurrency(value: number): string {
   opacity: 0;
 }
 
-.slide-enter-from > div:last-child,
-.slide-leave-to > div:last-child {
-  transform: translateX(100%);
-}
-
-/* Reduzir tamanhos no NBigNumber */
-.compact-numbers :deep(.text-3xl),
-.compact-numbers :deep(.text-2xl),
-.compact-numbers :deep(.text-xl) {
-  font-size: 0.75rem !important;
-  line-height: 1rem !important;
-}
-
-.compact-numbers :deep(.text-lg) {
-  font-size: 0.65rem !important;
-  line-height: 0.9rem !important;
-}
-
-.compact-numbers :deep(.text-base),
-.compact-numbers :deep(.text-sm) {
-  font-size: 0.625rem !important;
-  line-height: 0.875rem !important;
+.clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 </style>

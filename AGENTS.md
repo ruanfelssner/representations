@@ -194,9 +194,24 @@ export const ClientSchema = z.object({
 export type Client = z.infer<typeof ClientSchema>
 ```
 
+### 6.2 Tailwind (nunca inline styles)
+
+- **NUNCA use `style=""` inline**. Sempre use classes Tailwind.
+- Se precisar de valor dinâmico, use variáveis CSS customizadas e referencia via classes Tailwind arbitrary values: `bg-[var(--my-color)]`
+- Mantenha classes próximas ao template; se ficar grande, extraia para componentes.
+
+### 6.3 Ícones (sempre NIcon)
+
+- **Sempre use o componente `NIcon`** ao invés de SVG inline ou emojis quando precisar de ícones de UI.
+- Emojis são ok para ilustrações/decoração, mas para ações (fechar, editar, adicionar), use `NIcon`.
+- Exemplo: `<NIcon name="x" class="w-5 h-5" />`, `<NIcon name="plus" />`, `<NIcon name="chevron-up" />`
+
+### 6.4 Layout responsivo (mobile-first)
+
+- Sempre pense mobile-first: estrutura base para mobile, depois breakpoints `sm:`, `md:`, `lg:`.
+- **Evite `position: fixed` ou `position: absolute` para painéis/drawers mobile** - eles causam problemas com bounce/scroll. Prefira manter no fluxo do documento com `Transition` e max-height.
 - Mantenha tipagem em `app/types/` para entidades do domínio.
 - Prefira `runtimeConfig` ao invés de constantes soltas para dados de ambiente.
-- Tailwind: mantenha classes próximas ao template; se ficar grande, extraia para componentes.
 - Evite “mega componentes”: se um `.vue` passar de ~250–300 linhas, normalmente vale refatorar.
 
 ---

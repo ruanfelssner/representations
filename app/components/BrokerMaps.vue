@@ -22,10 +22,13 @@
                 position: { lat: marker.lat, lng: marker.lng },
                 title: marker.title || `${marker.value} seguros`,
               }"
-              @click="handleMarkerClick(marker)"
+              @click.stop="handleMarkerClick(marker)"
             >
               <div
                 :style="markerStyle(marker)"
+                @pointerdown.stop
+                @mousedown.stop
+                @touchstart.stop
                 class="flex items-center justify-center font-bold text-neutral-white border-2 border-white shadow-md hover:scale-110 transition-transform duration-200 ease-in-out rounded-full"
               >
                 {{ marker.value }}

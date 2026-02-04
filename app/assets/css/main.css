@@ -1,5 +1,148 @@
 @import 'tailwindcss';
+@source "../../**/*.vue";
+@source "../../**/*.ts";
+@source "../../../layers/**/*.vue";
+@source "../../../layers/**/*.ts";
 
-@theme {
-  --font-family-sans: 'Inter', system-ui, sans-serif;
+:root {
+  /* Base palette (light) */
+  --c-white: #ffffff;
+  --c-slate-900: #334155;
+  --c-slate-700: #475569;
+  --c-slate-600: #64748b;
+  --c-slate-500: #94a3b8;
+  --c-slate-400: #cbd5e1;
+  --c-slate-200: #e2e8f0;
+  --c-slate-100: #f1f5f9;
+  --c-slate-50: #f8fafc;
+
+  --c-brand: #60a5fa;
+  --c-accent: #a78bfa;
+  --c-info: #38bdf8;
+  --c-success: #34d399;
+  --c-warning: #fbbf24;
+  --c-danger: #fb7185;
+
+  /* App background */
+  --app-bg: var(--c-slate-50);
+  --app-bg-gradient: radial-gradient(
+      900px circle at 10% 10%,
+      color-mix(in oklab, var(--c-brand) 8%, transparent),
+      transparent 65%
+    ),
+    radial-gradient(
+      900px circle at 90% 15%,
+      color-mix(in oklab, var(--c-accent) 6%, transparent),
+      transparent 68%
+    ),
+    linear-gradient(135deg, var(--c-slate-50), var(--c-slate-50));
+
+  /* Design system tokens */
+  --ntypo-default: var(--c-slate-900);
+  --ntypo-muted: var(--c-slate-600);
+  --ntypo-soft: var(--c-slate-500);
+  --ntypo-subtle: var(--c-slate-400);
+  --ntypo-brand: var(--c-brand);
+  --ntypo-accent: var(--c-accent);
+  --ntypo-info: var(--c-info);
+  --ntypo-success: var(--c-success);
+  --ntypo-warning: var(--c-warning);
+  --ntypo-danger: var(--c-danger);
+
+  --layer-default: color-mix(in oklab, var(--c-white) 88%, transparent);
+  --layer-paper: var(--c-white);
+  --layer-solid: var(--c-white);
+  --layer-muted: var(--c-slate-100);
+  --layer-active: var(--c-brand);
+  --layer-border: var(--c-slate-200);
+
+  --toggle-on: var(--c-brand);
+  --toggle-on-hover: color-mix(in oklab, var(--c-brand) 88%, black);
+  --toggle-off: var(--c-slate-200);
+  --toggle-off-hover: var(--c-slate-100);
+  --toggle-knob: var(--c-white);
+
+  /* Maps page tokens */
+  --maps-field-bg: var(--layer-paper);
+  --maps-field-border: var(--layer-border);
+  --maps-field-ring: var(--c-brand);
+
+  --maps-stat-total-bg: color-mix(in oklab, var(--c-brand) 10%, var(--layer-paper));
+  --maps-stat-total-border: color-mix(in oklab, var(--c-brand) 22%, var(--layer-border));
+  --maps-stat-total-text: var(--c-brand);
+
+  --maps-stat-active-bg: color-mix(in oklab, var(--c-success) 10%, var(--layer-paper));
+  --maps-stat-active-border: color-mix(in oklab, var(--c-success) 22%, var(--layer-border));
+  --maps-stat-active-text: var(--c-success);
+
+  --maps-stat-month-bg: color-mix(in oklab, var(--c-accent) 10%, var(--layer-paper));
+  --maps-stat-month-border: color-mix(in oklab, var(--c-accent) 22%, var(--layer-border));
+  --maps-stat-month-text: var(--c-accent);
+
+  --maps-stat-year-bg: color-mix(in oklab, var(--c-warning) 12%, var(--layer-paper));
+  --maps-stat-year-border: color-mix(in oklab, var(--c-warning) 22%, var(--layer-border));
+  --maps-stat-year-text: var(--c-warning);
+
+  --maps-primary-bg: var(--c-brand);
+  --maps-primary-bg-hover: color-mix(in oklab, var(--c-brand) 86%, black);
+  --maps-primary-bg-disabled: var(--c-slate-200);
+  --maps-primary-text: var(--c-white);
+
+  --maps-alert-danger-bg: color-mix(in oklab, var(--c-danger) 10%, var(--layer-paper));
+  --maps-alert-danger-border: color-mix(in oklab, var(--c-danger) 55%, var(--layer-border));
+  --maps-alert-success-bg: color-mix(in oklab, var(--c-success) 10%, var(--layer-paper));
+  --maps-alert-success-border: color-mix(in oklab, var(--c-success) 55%, var(--layer-border));
+
+  --maps-polygon-stroke: var(--c-brand);
+  --maps-polygon-fill: var(--c-brand);
+
+  /* Landing tokens (keep using design tokens) */
+  --landing-bg: var(--app-bg);
+  --landing-header-bg: color-mix(in oklab, var(--layer-paper) 92%, transparent);
+  --landing-border: var(--layer-border);
+  --landing-nav: var(--ntypo-muted);
+  --landing-hero-bg: var(--layer-muted);
+  --landing-benefits-bg: color-mix(in oklab, var(--c-brand) 8%, transparent);
+  --landing-flow-bg: color-mix(in oklab, var(--c-accent) 8%, transparent);
+  --landing-integrations-bg: color-mix(in oklab, var(--c-info) 8%, transparent);
+  --landing-dashboard-bg: var(--layer-paper);
+  --landing-footer-bg: var(--c-slate-900);
+  --landing-chip-bg: color-mix(in oklab, var(--layer-paper) 85%, transparent);
+  --landing-chip-border: var(--layer-border);
+  --landing-chip-text: var(--ntypo-default);
+  --landing-outline-border: var(--layer-border);
+  --landing-outline-text: var(--ntypo-default);
+  --landing-outline-hover: var(--ntypo-brand);
+  --landing-cta-bg: var(--c-brand);
+  --landing-cta-text: var(--c-white);
+  --landing-cta-hover: var(--maps-primary-bg-hover);
+}
+
+body {
+  background-color: var(--app-bg);
+  background-image: var(--app-bg-gradient);
+  background-attachment: fixed;
+  color: var(--ntypo-default);
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
+}
+
+/* Animations for mobile transitions */
+.slide-down-enter-active,
+.slide-down-leave-active {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.slide-down-enter-from,
+.slide-down-leave-to {
+  max-height: 0;
+  opacity: 0;
+}
+
+.slide-down-enter-to,
+.slide-down-leave-from {
+  max-height: 1000px;
+  opacity: 1;
 }
