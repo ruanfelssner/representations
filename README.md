@@ -128,3 +128,35 @@ Acesse `http://localhost:3000` e navegue para a aba "Locais Visitados".
 
 MIT
 
+<<<<<<< Updated upstream
+=======
+```bash
+# npm
+npm run preview
+
+# pnpm
+pnpm preview
+
+# yarn
+yarn preview
+
+# bun
+bun run preview
+```
+
+Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+
+## Normalização da planilha (aco-e-ouro.xlsx)
+
+Para analisar/importar no app (e depois plotar no Google Maps), você pode “flatten” a planilha removendo linhas de **Total** e preenchendo valores mesclados.
+
+```bash
+python3 scripts/normalize_aco_e_ouro.py --pretty
+```
+
+Saídas geradas:
+- `public/data/aco-e-ouro.normalized.json` (uma linha por item: cliente + mês/ano + produto + quantidade)
+- `public/data/aco-e-ouro.normalized.csv`
+- `public/data/aco-e-ouro.summary.json` (agregados)
+- `public/data/aco-e-ouro.issues.json` (linhas que pareciam “item” mas faltou algo)
+>>>>>>> Stashed changes

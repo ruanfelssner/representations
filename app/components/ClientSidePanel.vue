@@ -179,6 +179,14 @@
                   <span>{{ formatCurrency(visita.valorVenda) }}</span>
                 </div>
 
+                <div
+                  v-else-if="visita.produtos && visita.produtos.length"
+                  class="flex items-center gap-2 text-sm font-semibold text-green-700"
+                >
+                  <span>🧾</span>
+                  <span>{{ getTotalItens(visita) }} itens (sem valor)</span>
+                </div>
+
                 <div v-if="visita.produtos && visita.produtos.length" class="flex flex-wrap gap-2">
                   <span
                     v-for="(produto, idx) in visita.produtos"
@@ -214,6 +222,11 @@ interface Emits {
 
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
+
+function getTotalItens(visita: any) {
+  const produtos = Array.isArray(visita?.produtos) ? visita.produtos : []
+  return produtos.reduce((sum: number, p: any) => sum + (Number(p?.quantidade) || 0), 0)
+}
 
 function abrirWhatsApp() {
   if (!props.clientData?.telefone) return

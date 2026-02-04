@@ -394,13 +394,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import BrokerMaps from '../components/BrokerMaps.vue'
 import ClientSidePanel from '../components/ClientSidePanel.vue'
 import ModalNovaVisita from '../components/ModalNovaVisita.vue'
 import ModalEditarCliente from '../components/ModalEditarCliente.vue'
 import type { Cliente, Visita } from '~/types/client'
 import { useClientStorage } from '~/composables/useClientStorage'
+import { useClientsApi } from '~/composables/useClientsApi'
 
 interface MarkerData {
   lat: number
@@ -440,7 +441,8 @@ const searchQuery = ref('')
 const filterSegmento = ref('')
 const filterTipo = ref('')
 
-const { getClients, saveClient, getClientStats, getClientColor, updateClient, addVisita, removeClient } = useClientStorage()
+const { getClientStats, getClientColor } = useClientStorage()
+const { fetchClients, createClient, patchClient, deleteClient, addVisitaApi } = useClientsApi()
 
 const newPlace = ref({
   address: '',
@@ -457,7 +459,6 @@ const filters = ref({
 onMounted(async () => {
   try {
     const commercialData = await $fetch('/api/v1/commercial-points')
-    const visitedData = await $fetch('/api/v1/visited-places')
     const geoJsonData = await $fetch('/santa-catarina.json')
 
     scGeoJson.value = geoJsonData
@@ -490,14 +491,13 @@ onMounted(async () => {
     visitedMapData.value = {
       markers: [],
       polygons: [scPolygon],
-      mapSettings: visitedData.data.mapSettings || {
+      mapSettings: {
         center: { lat: -27.5954, lng: -48.548 },
         zoom: 7,
       },
     }
 
-    // Carregar clientes do localStorage
-    clientes.value = getClients()
+    await loadClients()
   } catch (error) {
     console.error('Erro ao carregar dados do mapa:', error)
   }
@@ -506,13 +506,13 @@ onMounted(async () => {
 // Atualizar cores dos clientes periodicamente e quando a página ganha foco
 onMounted(() => {
   // Atualizar cores a cada minuto
-  const intervalId = setInterval(() => {
-    clientes.value = getClients()
+  const intervalId = setInterval(async () => {
+    await loadClients()
   }, 60000)
 
   // Atualizar quando a página ganha foco
-  const handleFocus = () => {
-    clientes.value = getClients()
+  const handleFocus = async () => {
+    await loadClients()
   }
   window.addEventListener('focus', handleFocus)
 
@@ -522,6 +522,24 @@ onMounted(() => {
     window.removeEventListener('focus', handleFocus)
   })
 })
+
+async function loadClients() {
+  const data = await fetchClients()
+  const mapped = (data.clients || []).map((c) => ({
+    ...c,
+    visitas: Array.isArray(c.visitas) ? c.visitas : [],
+    color: c.color || getClientColor(c.proximaVisita),
+  }))
+  clientes.value = mapped
+
+  if (visitedMapData.value?.mapSettings && data.mapSettings) {
+    visitedMapData.value.mapSettings = data.mapSettings
+  }
+
+  if (selectedClient.value) {
+    selectedClient.value = mapped.find((c) => c.id === selectedClient.value?.id) || null
+  }
+}
 
 function processGeoJsonCoordinates(coordinates: any[]): { lat: number; lng: number }[] {
   const paths: { lat: number; lng: number }[] = []
@@ -583,15 +601,17 @@ const filteredClientes = computed(() => {
 })
 
 const createVisitedMarkers = computed(() => {
-  return filteredClientes.value.map((cliente) => ({
-    lat: cliente.lat,
-    lng: cliente.lng,
-    title: cliente.nome,
-    value: cliente.visitas.length,
-    color: cliente.color,
-    size: 30 + cliente.visitas.length * 3,
-    clientId: cliente.id,
-  }))
+  return filteredClientes.value
+    .filter((cliente) => typeof cliente.lat === 'number' && typeof cliente.lng === 'number')
+    .map((cliente) => ({
+      lat: cliente.lat,
+      lng: cliente.lng,
+      title: cliente.nome,
+      value: cliente.visitas.length,
+      color: cliente.color,
+      size: 30 + cliente.visitas.length * 3,
+      clientId: cliente.id,
+    }))
 })
 
 const stats = computed(() => {
@@ -661,55 +681,23 @@ async function addNewPlace() {
   isGeocoding.value = true
 
   try {
-    const apiKey = useRuntimeConfig().public.googleMapsApiKey
-    const encodedAddress = encodeURIComponent(newPlace.value.address)
-    const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&key=${apiKey}&language=pt-BR`
-
-    const response = await fetch(geocodeUrl)
-    const data = await response.json()
-
-    if (data.status !== 'OK' || !data.results || data.results.length === 0) {
-      geocodeError.value = 'Não foi possível encontrar este local. Tente outro endereço.'
-      isGeocoding.value = false
-      return
-    }
-
-    const result = data.results[0]
-    const location = result.geometry.location
-    const addressComponents = result.address_components || []
-    const cidadeComponent = addressComponents.find((c: any) => c.types.includes('locality'))
-    const estadoComponent = addressComponents.find((c: any) =>
-      c.types.includes('administrative_area_level_1')
-    )
-
-    const novoCliente: Cliente = {
-      id: `cliente-${Date.now()}`,
+    const novoCliente = await createClient({
       nome: newPlace.value.nome,
-      lat: location.lat,
-      lng: location.lng,
-      endereco: result.formatted_address || '',
-      cidade: cidadeComponent?.long_name || '',
-      estado: estadoComponent?.short_name || 'SC',
-      visitas: [],
-      color: getClientColor(), // Azul padrão (sem próxima visita)
+      endereco_completo: newPlace.value.address,
       tipo: 'prospecto',
-      segmento: 'otica', // Padrão, usuário pode editar depois
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }
-
-    saveClient(novoCliente)
-    clientes.value.push(novoCliente)
+      segmento: 'otica',
+    })
 
     geocodeSuccess.value = `Cliente "${novoCliente.nome}" adicionado com sucesso!`
     resetForm()
+    await loadClients()
 
     setTimeout(() => {
       geocodeSuccess.value = ''
     }, 3000)
   } catch (error) {
     console.error('Erro ao adicionar cliente:', error)
-    geocodeError.value = 'Erro ao buscar localização. Verifique sua conexão e tente novamente.'
+    geocodeError.value = 'Erro ao salvar/geocodificar. Verifique sua conexão e tente novamente.'
   } finally {
     isGeocoding.value = false
   }
@@ -730,22 +718,10 @@ function handleAddVisit() {
 function handleSubmitNovaVisita(visitaData: Omit<Visita, 'id'>) {
   if (!selectedClient.value) return
 
-  const novaVisita: Visita = {
-    ...visitaData,
-    id: `visita-${Date.now()}`,
-  }
-
-  addVisita(selectedClient.value.id, novaVisita)
-  
-  // Atualizar lista local
-  const clienteIndex = clientes.value.findIndex(c => c.id === selectedClient.value?.id)
-  if (clienteIndex >= 0) {
-    clientes.value[clienteIndex].visitas.push(novaVisita)
-    // Recarregar para atualizar cores
-    clientes.value = getClients()
-    // Atualizar cliente selecionado
-    selectedClient.value = clientes.value[clienteIndex]
-  }
+  addVisitaApi(selectedClient.value.id, visitaData).then(async (updated) => {
+    selectedClient.value = updated
+    await loadClients()
+  })
 
   isModalNovaVisitaOpen.value = false
 }
@@ -757,14 +733,10 @@ function handleOpenEditarCliente() {
 function handleSubmitEditarCliente(updates: Partial<Cliente>) {
   if (!selectedClient.value) return
 
-  updateClient(selectedClient.value.id, updates)
-  
-  // Atualizar lista local
-  const clienteIndex = clientes.value.findIndex(c => c.id === selectedClient.value?.id)
-  if (clienteIndex >= 0) {
-    clientes.value = getClients() // Recarregar para atualizar cores
-    selectedClient.value = clientes.value[clienteIndex]
-  }
+  patchClient(selectedClient.value.id, updates).then(async (updated) => {
+    selectedClient.value = updated
+    await loadClients()
+  })
 
   isModalEditarClienteOpen.value = false
 }
@@ -772,32 +744,10 @@ function handleSubmitEditarCliente(updates: Partial<Cliente>) {
 function handleRemoveCliente() {
   if (!selectedClient.value) return
 
-  removeClient(selectedClient.value.id)
-  
-  // Fechar o painel e limpar seleção
-  isSidePanelOpen.value = false
-  selectedClient.value = null
-  
-  // Atualizar lista de clientes
-  clientes.value = getClients()
+  deleteClient(selectedClient.value.id).then(async () => {
+    isSidePanelOpen.value = false
+    selectedClient.value = null
+    await loadClients()
+  })
 }
-
-function removePlace(index: number) {
-  visitedPlaces.value.splice(index, 1)
-}
-
-function getTypeLabel(type: string): string {
-  const labels: Record<string, string> = {
-    praia: '🏖️ Praia',
-    natureza: '🌿 Natureza',
-    evento: '🎉 Evento',
-    museu: '🏛️ Museu',
-    'ponto-turistico': '📍 Turístico',
-    mercado: '🛒 Comércio',
-    religioso: '⛪ Religioso',
-  }
-  return labels[type] || '📍 Local'
-}
-
-
 </script>

@@ -8,6 +8,7 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
+    "import:aco-e-ouro": "tsx scripts/import_aco_e_ouro.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.{js,ts,vue,json,md}\""
@@ -41,5 +42,17 @@
     "prettier": "^3.8.1",
     "tailwindcss": "^4.1.18",
     "tsx": "^4.21.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "unicorn-magic": "0.4.0"
+    },
+    "onlyBuiltDependencies": [
+      "@parcel/watcher",
+      "esbuild",
+      "lightningcss",
+      "msgpackr-extract",
+      "unrs-resolver"
+    ]
   }
 }
