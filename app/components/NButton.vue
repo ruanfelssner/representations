@@ -6,11 +6,17 @@
     :type="resolvedType"
     :disabled="loading || attrs.disabled"
   >
-    <NIcon v-if="loading" name="mdi:loading" :size="iconSize" class="animate-spin" />
-    <NIcon v-else-if="leadingIcon" :name="leadingIcon" :size="iconSize" />
-    <NTypo v-if="label" :as="resolvedAs === 'button' ? 'span' : undefined" :size="labelSize" :tone="variant">{{ label }}</NTypo>
-    <slot />
-    <NIcon v-if="trailingIcon" :name="trailingIcon" :size="iconSize" />
+    <template v-if="iconButton">
+      <NIcon v-if="loading" name="mdi:loading" :size="iconSize" class="animate-spin" />
+      <NIcon v-else :name="icon || leadingIcon || trailingIcon || ''" :size="iconSize" />
+    </template>
+    <template v-else>
+      <NIcon v-if="loading" name="mdi:loading" :size="iconSize" class="animate-spin" />
+      <NIcon v-else-if="leadingIcon" :name="leadingIcon" :size="iconSize" />
+      <NTypo v-if="label" :as="resolvedAs === 'button' ? 'span' : undefined" :size="labelSize" :tone="variant">{{ label }}</NTypo>
+      <slot />
+      <NIcon v-if="trailingIcon" :name="trailingIcon" :size="iconSize" />
+    </template>
   </component>
 </template>
 
@@ -40,8 +46,10 @@ const props = withDefaults(
     radius?: ButtonRadius
     caps?: boolean
     label?: string
+    icon?: string
     leadingIcon?: string
     trailingIcon?: string
+    iconButton?: boolean
     loading?: boolean
   }>(),
   {
@@ -50,6 +58,7 @@ const props = withDefaults(
     size: 'sm',
     radius: 'full',
     caps: false,
+    iconButton: false,
   }
 )
 

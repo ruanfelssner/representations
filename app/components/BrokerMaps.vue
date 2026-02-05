@@ -50,21 +50,21 @@
       <div
         class="absolute top-2 right-3 flex flex-col gap-2 bg-main-primary rounded-md shadow-sm py-1 px-1"
       >
-        <FButton
+        <NButton
           :icon="showPins ? 'mdi:map-marker-off' : 'mdi:map-marker'"
           trailing
           icon-button
           @click="showPins = !showPins"
         />
-        <FButton
+        <NButton
           :icon="showPolygons ? 'tabler:map-off' : 'tabler:map'"
           trailing
           icon-button
           @click="showPolygons = !showPolygons"
         />
-        <FButton icon="mdi:plus" trailing icon-button @click="zoomIn" />
-        <FButton icon="mdi:minus" trailing icon-button @click="zoomOut" />
-        <FButton
+        <NButton icon="mdi:plus" trailing icon-button @click="zoomIn" />
+        <NButton icon="mdi:minus" trailing icon-button @click="zoomOut" />
+        <NButton
           :icon="isFullscreen ? 'mdi:fullscreen-exit' : 'mdi:fullscreen'"
           trailing
           icon-button
