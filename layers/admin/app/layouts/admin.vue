@@ -7,21 +7,21 @@
       @toggle-menu="toggleMenu"
     >
       <template #actions>
-        <NButton as="NuxtLink" to="/" variant="outline" size="xs" leading-icon="mdi:map">
+        <NButton as="NuxtLink" to="/admin" variant="outline" size="xs" leading-icon="mdi:map">
           Mapa
         </NButton>
       </template>
       <template #mobileActions>
-        <NButton as="NuxtLink" to="/" variant="ghost" size="xs">
+        <NButton as="NuxtLink" to="/admin" variant="ghost" size="xs">
           <NIcon name="mdi:map" class="w-5 h-5" />
         </NButton>
       </template>
     </NAppHeader>
 
     <NContainer class="py-4 lg:py-6">
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6">
+      <div class="grid !grid-cols-1 md:!grid-cols-12 lg:!grid-cols-12 gap-4 lg:gap-6">
         <!-- Navigation Sidebar/Drawer -->
-        <div class="lg:col-span-3">
+        <div class="md:!col-span-3 lg:!col-span-3">
           <NNavMenu :is-open="isMenuOpen" @close="closeMenu">
             <div class="space-y-1">
               <NNavItem 
@@ -52,7 +52,7 @@
           </NNavMenu>
         </div>
 
-        <main class="lg:col-span-9">
+        <main class="md:!col-span-9 lg:!col-span-9">
           <slot />
         </main>
       </div>

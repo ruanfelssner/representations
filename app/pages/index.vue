@@ -1,818 +1,426 @@
 <template>
-  <div class="min-h-screen">
-
-    <div class="w-full px-3 py-4 lg:px-4 lg:py-6 space-y-3">
-      <!-- Filtros + Stats -->
-      <NLayer variant="paper" size="base" radius="soft" class="shadow-sm lg:shadow-lg relative">
-        <div class="flex flex-col gap-3 lg:gap-4">
-          <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <div class="col-span-2 lg:col-span-1">
-              <NTypo as="label" size="xs" weight="semibold" tone="muted" class="block mb-1">
-                Buscar
-              </NTypo>
-              
-            <NButton
-              v-if="searchQuery || filterSegmento || filterTipo"
-              @click="searchQuery = ''; filterSegmento = ''; filterTipo = ''"
-              variant="outline"
-              size="zs"
-              class="absolute right-2 top-2"
-              >
-              Limpar filtros
-            </NButton>
-              <div class="relative">
-                <NTypo
-                  as="span"
-                  size="sm"
-                  tone="muted"
-                  class="absolute left-3 top-1/2 -translate-y-1/2"
-                >
-                  🔎
-                </NTypo>
-                <input
-                  v-model="searchQuery"
-                  type="text"
-                  placeholder="Nome, cidade, endereço ou CNPJ..."
-                  class="w-full pl-10 pr-3 py-2 rounded-lg border bg-white border-gray-200 focus:ring-2 focus:ring-sky-400 focus:border-sky-400 transition-colors"
-                />
-              </div>
-            </div>
-
-            <div>
-              <NTypo as="label" size="xs" weight="semibold" tone="muted" class="block mb-1">
-                Segmento
-              </NTypo>
-              <select
-                v-model="filterSegmento"
-                class="w-full px-3 py-2 rounded-lg border bg-white border-gray-200 focus:ring-2 focus:ring-sky-400 focus:border-sky-400 transition-colors"
-              >
-                <option value="">Todos</option>
-                <option value="otica">👓 Ótica</option>
-                <option value="relojoaria">⌚ Relojoaria</option>
-                <option value="semijoia">💍 Semi-joias</option>
-                <option value="multimarcas">🏪 Multimarcas</option>
-              </select>
-            </div>
-
-            <div>
-              <NTypo as="label" size="xs" weight="semibold" tone="muted" class="block mb-1">
-                Status
-              </NTypo>
-              <select
-                v-model="filterTipo"
-                class="w-full px-3 py-2 rounded-lg border bg-white border-gray-200 focus:ring-2 focus:ring-sky-400 focus:border-sky-400 transition-colors"
-              >
-                <option value="">Todos</option>
-                <option value="ativo">✅ Ativo (≤90d)</option>
-                <option value="atencao">⚠️ Em atenção (91–180d)</option>
-                <option value="critico">🚨 Crítico / Reativar (&gt;180d)</option>
-                <option value="potencial">🎯 Potencial</option>
-                <option value="inativo">⏸️ Inativo</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <div class="mt-4 grid grid-cols-2 lg:grid-cols-5 gap-2 lg:gap-3">
-          <div class="bg-emerald-50 border border-emerald-100 rounded-lg p-3 lg:p-4">
-            <NTypo size="xs" tone="muted" class="mb-1">Clientes</NTypo>
-            <NTypo size="xl" weight="bold" class="tabular-nums text-emerald-500 lg:text-2xl">
-              {{ visitedStats.total }}
-            </NTypo>
-            <div class="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-semibold">
-              <span class="inline-flex items-center gap-1 text-emerald-700">
-                <span class="h-2 w-2 rounded-full bg-emerald-500" />
-                {{ visitedStats.ativosVerde }} ≤90d
-              </span>
-              <span class="inline-flex items-center gap-1 text-yellow-700">
-                <span class="h-2 w-2 rounded-full bg-yellow-500" />
-                {{ visitedStats.ativosAmarelo }} 91–180d
-              </span>
-              <span class="inline-flex items-center gap-1 text-red-700">
-                <span class="h-2 w-2 rounded-full bg-red-500" />
-                {{ visitedStats.ativosVermelho }} &gt;180d
-              </span>
-              <span v-if="visitedStats.potenciais" class="inline-flex items-center gap-1 text-blue-700">
-                <span class="h-2 w-2 rounded-full bg-blue-500" />
-                {{ visitedStats.potenciais }} potencial
-              </span>
-              <span v-if="visitedStats.inativos" class="inline-flex items-center gap-1 text-gray-700">
-                <span class="h-2 w-2 rounded-full bg-gray-400" />
-                {{ visitedStats.inativos }} inativo
-              </span>
-            </div>
-          </div>          
-          <div class="bg-sky-50 border border-sky-100 rounded-lg p-3 lg:p-4">
-            <NTypo size="xs" tone="muted" class="mb-1">Contatos nesse mês</NTypo>
-            <NTypo size="xl" weight="bold" class="tabular-nums text-sky-500 lg:text-2xl">
-              {{ visitedStats.contatosNoMes }}
-            </NTypo>
-            <div class="mt-2 flex items-center gap-1 text-[11px] font-semibold" :class="contatosVsMesAnterior.class">
-              <NIcon :name="contatosVsMesAnterior.icon" class="w-4 h-4" />
-              <span class="tabular-nums">{{ contatosVsMesAnterior.text }}</span>
-              <span class="font-medium text-slate-500">vs mês anterior</span>
-            </div>
-          </div>
-          <div class="bg-violet-50 border border-violet-100 rounded-lg p-3 lg:p-4">
-            <NTypo size="xs" tone="muted" class="mb-1">Mensal</NTypo>
-            <NTypo size="xl" weight="bold" class="tabular-nums text-violet-500 lg:text-2xl">
-              {{ formatCurrency(visitedStats.faturamentoMensal) }}
-            </NTypo>
-            <div class="mt-2 space-y-1 text-[11px] font-semibold">
-              <div class="flex items-center gap-1" :class="mensalVsMesAnterior.class">
-                <NIcon :name="mensalVsMesAnterior.icon" class="w-4 h-4" />
-                <span class="tabular-nums">{{ mensalVsMesAnterior.text }}</span>
-                <span class="font-medium text-slate-500">vs mês anterior</span>
-              </div>
-              <div class="flex items-center gap-1" :class="mensalVsMesmoMesAnoAnterior.class">
-                <NIcon :name="mensalVsMesmoMesAnoAnterior.icon" class="w-4 h-4" />
-                <span class="tabular-nums">{{ mensalVsMesmoMesAnoAnterior.text }}</span>
-                <span class="font-medium text-slate-500">vs mesmo mês (ano anterior)</span>
-              </div>
-            </div>
-          </div>
-          <div class="bg-amber-50 border border-amber-100 rounded-lg p-3 lg:p-4">
-            <NTypo size="xs" tone="muted" class="mb-1">Trimestral</NTypo>
-            <NTypo size="xl" weight="bold" class="tabular-nums text-amber-600 lg:text-2xl">
-              {{ formatCurrency(visitedStats.faturamentoTrimestral) }}
-            </NTypo>
-            <div class="mt-2 space-y-1 text-[11px] font-semibold">
-              <div class="flex items-center gap-1" :class="trimestralVsTrimestreAnterior.class">
-                <NIcon :name="trimestralVsTrimestreAnterior.icon" class="w-4 h-4" />
-                <span class="tabular-nums">{{ trimestralVsTrimestreAnterior.text }}</span>
-                <span class="font-medium text-slate-500">vs trimestre anterior</span>
-              </div>
-              <div class="flex items-center gap-1" :class="trimestralVsMesmoTrimestreAnoAnterior.class">
-                <NIcon :name="trimestralVsMesmoTrimestreAnoAnterior.icon" class="w-4 h-4" />
-                <span class="tabular-nums">{{ trimestralVsMesmoTrimestreAnoAnterior.text }}</span>
-                <span class="font-medium text-slate-500">vs mesmo trimestre (ano anterior)</span>
-              </div>
-            </div>
-          </div>
-          <div class="bg-orange-50 border border-orange-100 rounded-lg p-3 lg:p-4">
-            <NTypo size="xs" tone="muted" class="mb-1">Anual</NTypo>
-            <NTypo size="xl" weight="bold" class="tabular-nums text-orange-500 lg:text-2xl">
-              {{ formatCurrency(visitedStats.faturamentoAnual) }}
-            </NTypo>
-            <div class="mt-2 flex items-center gap-1 text-[11px] font-semibold" :class="anualVsAnoAnterior.class">
-              <NIcon :name="anualVsAnoAnterior.icon" class="w-4 h-4" />
-              <span class="tabular-nums">{{ anualVsAnoAnterior.text }}</span>
-              <span class="font-medium text-slate-500">vs mesmo período (ano anterior)</span>
-            </div>
-          </div>
-        </div>
-      </NLayer>
-
-
-      <!-- Mapa + painel -->
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6">
-        <div class="lg:col-span-9 rounded-xl lg:rounded-2xl shadow-lg lg:shadow-2xl overflow-hidden border border-gray-200 bg-white h-[450px] sm:h-[550px] lg:h-[700px]">
-          <BrokerMaps
-            v-if="visitedMapData"
-            :markers="createVisitedMarkers"
-            :polygons="visitedMapData.polygons"
-            :center-lat="visitedMapData.mapSettings.center.lat"
-            :center-lng="visitedMapData.mapSettings.center.lng"
-            :zoom="visitedMapData.mapSettings.zoom"
-            class="h-full"
-            @marker-click="handleVisitedMarkerClick"
-          />
-          <div v-else class="h-full flex items-center justify-center">
-            <div class="text-center">
-              <div class="text-6xl mb-4">🗺️</div>
-              <NTypo size="sm" tone="muted" weight="medium">Carregando mapa...</NTypo>
-            </div>
-          </div>
-        </div>
-
-        <!-- Painel desktop (sidebar) -->
-        <div class="hidden lg:block lg:col-span-3 h-[700px]">
-          <ClientSidePanel
-            :is-open="true"
-            :client-data="selectedClient"
-            :show-close="false"
-            @add-visit="handleAddVisit"
-            @edit-client="handleOpenEditarCliente"
-            @remove-client="handleRemoveCliente"
-          />
-        </div>
-
-        <!-- Painel mobile (drawer no fluxo do documento) -->
-        <Transition name="slide-down">
-                <ClientSidePanel
-                 class="lg:hidden"
-                 v-if="selectedClient && isSidePanelOpen"
-                  :is-open="true"
-                  :client-data="selectedClient"
-                  :show-close="false"
-                  @add-visit="handleAddVisit"
-                  @edit-client="handleOpenEditarCliente"
-                  @remove-client="handleRemoveCliente"
-                />
-        </Transition>
-      </div>
-
-    <!-- Mensagem quando não há clientes -->
+  <div
+    class="relative min-h-screen overflow-x-hidden bg-[color:var(--layer-paper)] text-[color:var(--ntypo-default)]"
+  >
     <div
-      v-if="!clientes.length"
-      class="text-center py-12 lg:py-16 rounded-xl shadow-sm border border-gray-200 bg-white mx-4"
-    >
-      <div class="text-5xl lg:text-6xl mb-3 lg:mb-4">👥</div>
-      <NTypo as="h3" size="lg" weight="bold" class="mb-2 lg:text-xl">Nenhum cliente cadastrado ainda</NTypo>
-      <NTypo size="sm" tone="muted" class="lg:text-base">
-        Comece adicionando seus clientes usando o formulário acima!
-      </NTypo>
-    </div>
+      class="pointer-events-none absolute -top-32 left-1/2 h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-amber-500/10 blur-[140px]"
+    ></div>
+    <div
+      class="pointer-events-none absolute -left-40 top-24 h-72 w-72 rounded-full bg-emerald-500/10 blur-[120px]"
+    ></div>
+    <div
+      class="pointer-events-none absolute -right-40 top-40 h-72 w-72 rounded-full bg-rose-500/10 blur-[120px]"
+    ></div>
 
-    
-      <NLayer v-if="actionPlanTop.length" variant="paper" size="base" radius="soft" class="shadow-sm lg:shadow-lg">
-        <div class="flex items-start justify-between gap-3">
-          <div>
-            <NTypo as="h2" size="sm" weight="bold">Plano de ação</NTypo>
-            <NTypo size="xs" tone="muted" class="mt-0.5">
-              Comece pelos críticos com maior impacto e follow-ups atrasados.
-            </NTypo>
-          </div>
-          <NButton variant="outline" size="zs" leading-icon="mdi:refresh" @click="loadClients()">
-            Atualizar
-          </NButton>
-        </div>
 
-        <div class="mt-3 divide-y rounded-lg border border-gray-100 bg-white overflow-hidden">
-          <NuxtLink
-            v-for="task in actionPlanTop"
-            :key="task.clientId"
-            :to="`/admin/clients/${task.clientId}`"
-            class="block w-full px-3 py-3 hover:bg-slate-50 transition-colors"
-          >
-            <div class="flex items-start justify-between gap-3">
-              <div class="min-w-0 flex-1">
-                <div class="flex flex-wrap items-center gap-2">
-                  <NTypo weight="bold" class="truncate">{{ task.nome }}</NTypo>
-                  <span
-                    class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold"
-                    :class="metaForKey(task.statusKey).chipClass"
-                  >
-                    <span class="h-2 w-2 rounded-full" :class="metaForKey(task.statusKey).dotClass" />
-                    {{ metaForKey(task.statusKey).emoji }} {{ metaForKey(task.statusKey).label }}
-                  </span>
-                  <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-700">
-                    {{ task.priority }}
-                  </span>
-                </div>
-
-                <NTypo size="xs" tone="muted" class="mt-1 truncate">
-                  <span v-if="task.cidade">{{ task.cidade }}</span>
-                  <span v-if="task.cidade && task.segmento"> • </span>
-                  <span v-if="task.segmento">{{ task.segmento }}</span>
-                  <span v-if="task.valueMetricLabel && task.valueMetric > 0"> • {{ task.valueMetricLabel }}</span>
-                </NTypo>
-
-                <NTypo v-if="task.reasons.length" size="xs" class="mt-1 text-slate-700">
-                  {{ task.suggestedActionLabel }} • {{ task.reasons.join(' · ') }}
+    <main class="relative">
+      <section class="py-14 sm:py-20">
+        <NContainer>
+          <div class="grid gap-10 lg:grid-cols-[1.1fr_0.9fr]">
+            <div class="space-y-6">
+              <div
+                class="inline-flex items-center gap-2 rounded-full border border-[color:var(--layer-border)] bg-[color:var(--layer-solid)] px-4 py-2"
+              >
+                <NIcon name="mdi:diamond-stone" class="h-4 w-4 text-[color:var(--ntypo-brand)]" />
+                <NTypo size="xs" tone="soft" caps tracking="wide">
+                  Representação comercial especializada
                 </NTypo>
               </div>
 
-              <div class="shrink-0 flex items-center gap-2" @click.prevent>
-                <NButton
-                  v-if="task.telefone"
-                  variant="success"
-                  size="zs"
-                  leading-icon="mdi:whatsapp"
-                  :href="whatsAppUrl(task.telefone, task.nome)"
-                  target="_blank"
-                  rel="noopener noreferrer"
+              <NTypo as="h1" size="5xl" weight="semibold" family="serif" class="leading-[1.05]">
+                Artigos de Joalheria e Relojoaria para o seu negócio.
+              </NTypo>
+              <NTypo size="lg" tone="muted" class="max-w-xl">
+                Representação comercial especializada em joias, relógios, alianças, pulseiras e acessórios. 
+                Atendimento personalizado em Santa Catarina com mais de 15 anos de experiência.
+              </NTypo>
+
+              <div class="grid gap-3 grid-cols-3">
+                <div
+                  class="rounded-2xl border border-[color:var(--layer-border)] bg-[color:var(--layer-default)] px-4 py-3"
                 >
-                  WhatsApp
-                </NButton>
+                  <NTypo size="xs" tone="soft" caps tracking="tight" class="line-clamp-1"
+                    >clientes</NTypo
+                  >
+                  <NTypo as="div" size="lg" weight="semibold">
+                    280+
+                  </NTypo>
+                </div>
+                <div
+                  class="rounded-2xl border border-[color:var(--layer-border)] bg-[color:var(--layer-default)] px-4 py-3"
+                >
+                  <NTypo size="xs" tone="soft" caps tracking="tight" class="line-clamp-1"
+                    >linhas representadas</NTypo
+                  >
+                  <NTypo as="div" size="lg" weight="semibold">
+                    12
+                  </NTypo>
+                </div>
+                <div
+                  class="rounded-2xl border border-[color:var(--layer-border)] bg-[color:var(--layer-default)] px-4 py-3"
+                >
+                  <NTypo size="xs" tone="soft" caps tracking="tight" class="line-clamp-1"
+                    >experiência</NTypo
+                  >
+                  <NTypo as="div" size="lg" weight="semibold">
+                    15+ anos
+                  </NTypo>
+                </div>
               </div>
             </div>
-          </NuxtLink>
+
+            <div class="space-y-4">
+              <NLayer radius="hero" variant="paper" size="lg" class="space-y-4">
+                <NTypo size="xs" tone="soft" caps tracking="wide">como funciona</NTypo>
+                <div class="space-y-3">
+                  <div
+                    class="flex items-center gap-3 rounded-2xl border border-[color:var(--layer-border)] bg-[color:var(--layer-solid)] px-4 py-3"
+                  >
+                    <NTypo
+                      as="span"
+                      size="xs"
+                      weight="semibold"
+                      class="flex h-9 w-9 items-center justify-center rounded-full bg-amber-500 text-xs font-semibold text-white"
+                    >
+                      1
+                    </NTypo>
+                    <div>
+                      <NTypo size="sm" weight="semibold">Conheça nosso catálogo</NTypo>
+                      <NTypo size="xs" tone="muted">Produtos selecionados e tendências.</NTypo>
+                    </div>
+                  </div>
+                  <div
+                    class="flex items-center gap-3 rounded-2xl border border-[color:var(--layer-border)] bg-[color:var(--layer-solid)] px-4 py-3"
+                  >
+                    <NTypo
+                      as="span"
+                      size="xs"
+                      weight="semibold"
+                      class="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-600 text-xs font-semibold text-white"
+                    >
+                      2
+                    </NTypo>
+                    <div>
+                      <NTypo size="sm" weight="semibold">Atendimento personalizado</NTypo>
+                      <NTypo size="xs" tone="muted">Visitas regulares e suporte contínuo.</NTypo>
+                    </div>
+                  </div>
+                  <div
+                    class="flex items-center gap-3 rounded-2xl border border-[color:var(--layer-border)] bg-[color:var(--layer-solid)] px-4 py-3"
+                  >
+                    <NTypo
+                      as="span"
+                      size="xs"
+                      weight="semibold"
+                      class="flex h-9 w-9 items-center justify-center rounded-full bg-slate-800 text-xs font-semibold text-white"
+                    >
+                      3
+                    </NTypo>
+                    <div>
+                      <NTypo size="sm" weight="semibold">Entrega e acompanhamento</NTypo>
+                      <NTypo size="xs" tone="muted">Logística eficiente e pós-venda.</NTypo>
+                    </div>
+                  </div>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                  <NButton size="sm" variant="primary" @click="scrollToSection('catalogo')">
+                    Ver catálogo
+                  </NButton>
+                  <NButton size="sm" variant="outline" @click="scrollToSection('contato')">
+                    Entrar em contato
+                  </NButton>
+                </div>
+              </NLayer>
+            </div>
+          </div>
+        </NContainer>
+      </section>
+
+      <section id="catalogo" class="py-14 bg-amber-50">
+        <NContainer>
+          <div class="flex flex-wrap items-end justify-between gap-2">
+            <div class="space-y-2">
+              <NTypo size="xs" tone="soft" caps tracking="wide">nosso catálogo</NTypo>
+              <NTypo as="h2" size="3xl" weight="semibold" family="serif" tone="info">
+                Produtos selecionados para sua relojoaria.
+              </NTypo>
+            </div>
+          </div>
+
+          <div class="mt-8 grid gap-6 sm:grid-cols-1 lg:grid-cols-4">
+            <NLayer
+              v-for="(category, index) in productCategories"
+              :key="category.id"
+              radius="card"
+              variant="solid"
+              size="lg"
+              class="group flex flex-col overflow-hidden border border-[color:var(--layer-border)] bg-[color:var(--layer-solid)]"
+            >
+              <div class="relative block overflow-hidden">
+                <div
+                  class="absolute inset-0 bg-gradient-to-br from-amber-500/20 via-transparent to-emerald-500/20"
+                ></div>
+                <div class="aspect-[4/3] overflow-hidden flex items-center justify-center bg-gradient-to-br from-amber-100 to-amber-50">
+                  <NIcon :name="category.icon" class="h-20 w-20 text-amber-600" />
+                </div>
+              </div>
+              <div class="flex flex-1 flex-col gap-3 pt-5">
+                <div class="flex items-start justify-between gap-2">
+                  <NTypo size="lg" weight="semibold" class="leading-tight">
+                    {{ category.name }}
+                  </NTypo>
+                </div>
+                <NTypo size="sm" tone="muted" class="line-clamp-2">
+                  {{ category.description }}
+                </NTypo>
+                <div class="mt-auto">
+                  <NButton
+                    size="sm"
+                    variant="primary"
+                    class="w-full"
+                    @click="scrollToSection('contato')"
+                  >
+                    Solicitar catálogo
+                  </NButton>
+                </div>
+              </div>
+            </NLayer>
+          </div>
+        </NContainer>
+      </section>
+
+      <section id="diferenciais" class="py-14">
+        <NContainer>
+          <div class="space-y-2 text-center mb-10">
+            <NTypo size="xs" tone="soft" caps tracking="wide">por que trabalhar conosco</NTypo>
+            <NTypo as="h2" size="3xl" weight="semibold" family="serif">
+              Diferenciais da nossa representação.
+            </NTypo>
+            <NTypo size="sm" tone="muted" class="max-w-2xl mx-auto">
+              Mais de 15 anos atendendo relojoarias em Santa Catarina com profissionalismo e dedicação.
+            </NTypo>
+          </div>
+
+          <div class="grid gap-6 sm:grid-cols-1 lg:grid-cols-3">
+            <NLayer
+              radius="card"
+              variant="solid"
+              size="lg"
+              class="flex flex-col gap-4 border border-[color:var(--layer-border)] bg-[color:var(--layer-solid)]"
+            >
+              <div class="flex h-12 w-12 items-center justify-center rounded-full bg-amber-100">
+                <NIcon name="mdi:handshake" class="h-6 w-6 text-amber-600" />
+              </div>
+              <div>
+                <NTypo size="lg" weight="semibold" class="mb-2">Atendimento personalizado</NTypo>
+                <NTypo size="sm" tone="muted">
+                  Visitas regulares, suporte direto e relacionamento próximo com cada cliente.
+                </NTypo>
+              </div>
+            </NLayer>
+
+            <NLayer
+              radius="card"
+              variant="solid"
+              size="lg"
+              class="flex flex-col gap-4 border border-[color:var(--layer-border)] bg-[color:var(--layer-solid)]"
+            >
+              <div class="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100">
+                <NIcon name="mdi:package-variant" class="h-6 w-6 text-emerald-600" />
+              </div>
+              <div>
+                <NTypo size="lg" weight="semibold" class="mb-2">Logística eficiente</NTypo>
+                <NTypo size="sm" tone="muted">
+                  Entregas pontuais, gestão de estoque e acompanhamento de pedidos em tempo real.
+                </NTypo>
+              </div>
+            </NLayer>
+
+            <NLayer
+              radius="card"
+              variant="solid"
+              size="lg"
+              class="flex flex-col gap-4 border border-[color:var(--layer-border)] bg-[color:var(--layer-solid)]"
+            >
+              <div class="flex h-12 w-12 items-center justify-center rounded-full bg-sky-100">
+                <NIcon name="mdi:star-circle" class="h-6 w-6 text-sky-600" />
+              </div>
+              <div>
+                <NTypo size="lg" weight="semibold" class="mb-2">Produtos de qualidade</NTypo>
+                <NTypo size="sm" tone="muted">
+                  Marcas consolidadas, tendências do mercado e produtos com alto giro.
+                </NTypo>
+              </div>
+            </NLayer>
+          </div>
+        </NContainer>
+      </section>
+
+      <section id="contato" class="py-14">
+        <NContainer>
+          <NLayer
+            radius="hero"
+            variant="paper"
+            size="lg"
+            class="flex flex-col gap-6 sm:flex-row sm:items-center"
+          >
+            <div class="space-y-2">
+              <NTypo size="xs" tone="soft" caps tracking="wide">fale conosco</NTypo>
+              <NTypo as="h2" size="2xl" weight="semibold" family="serif">
+                Quer conhecer nossos produtos? Entre em contato.
+              </NTypo>
+              <NTypo size="sm" tone="muted">
+                Agende uma visita, solicite catálogos ou tire suas dúvidas. Estamos à disposição.
+              </NTypo>
+            </div>
+            <div class="flex flex-wrap gap-3 sm:ml-auto">
+              <NButton
+                as="a"
+                href="https://wa.me/5548999999999?text=Olá,%20gostaria%20de%20conhecer%20os%20produtos"
+                target="_blank"
+                variant="primary"
+                size="sm"
+                leading-icon="mdi:whatsapp"
+              >
+                WhatsApp
+              </NButton>
+              <NButton
+                as="NuxtLink"
+                to="/admin"
+                variant="outline"
+                size="sm"
+              >
+                Área do cliente
+              </NButton>
+            </div>
+          </NLayer>
+        </NContainer>
+      </section>
+    </main>
+
+    <footer class="border-t border-[color:var(--layer-border)] bg-[color:var(--layer-solid)] py-12">
+      <NContainer>
+        <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+          <div class="space-y-3">
+            <NTypo size="xs" tone="soft" caps tracking="wide">Representação Comercial</NTypo>
+            <NTypo size="sm" tone="muted">
+              Artigos de joalheria e relojoaria para Santa Catarina. Atendimento especializado há mais de 15 anos.
+            </NTypo>
+          </div>
+          <div class="space-y-2">
+            <NTypo size="xs" tone="soft" caps tracking="wide">Explorar</NTypo>
+            <a
+              href="#catalogo"
+              class="block text-sm text-[color:var(--ntypo-muted)] hover:text-[color:var(--ntypo-default)]"
+              @click.prevent="scrollToSection('catalogo')"
+            >
+              Catálogo
+            </a>
+            <a
+              href="#diferenciais"
+              class="block text-sm text-[color:var(--ntypo-muted)] hover:text-[color:var(--ntypo-default)]"
+              @click.prevent="scrollToSection('diferenciais')"
+            >
+              Diferenciais
+            </a>
+          </div>
+          <div class="space-y-2">
+            <NTypo size="xs" tone="soft" caps tracking="wide">Área do cliente</NTypo>
+            <NuxtLink
+              to="/admin"
+              class="block text-sm text-[color:var(--ntypo-muted)] hover:text-[color:var(--ntypo-default)]"
+            >
+              Acessar sistema
+            </NuxtLink>
+          </div>
+          <div class="space-y-2">
+            <NTypo size="xs" tone="soft" caps tracking="wide">Contato</NTypo>
+            <a
+              href="mailto:contato@representacao.com.br"
+              class="block text-sm text-[color:var(--ntypo-muted)] hover:text-[color:var(--ntypo-default)]"
+            >
+              contato@representacao.com.br
+            </a>
+            <a
+              href="https://wa.me/5548999999999"
+              target="_blank"
+              class="block text-sm text-[color:var(--ntypo-muted)] hover:text-[color:var(--ntypo-default)]"
+            >
+              WhatsApp: (48) 99999-9999
+            </a>
+          </div>
         </div>
-      </NLayer>
-
-      <div v-if="loadClientsError" class="rounded-xl border border-red-200 bg-red-50 p-3 lg:p-4">
-        <NTypo size="sm" weight="semibold" class="text-red-700">
-          Falha ao carregar clientes: {{ loadClientsError }}
-        </NTypo>
-        <NTypo size="xs" tone="muted" class="mt-1">
-          Verifique se o Mongo está rodando e se `NUXT_MONGO_URI` / `NUXT_MONGO_DB_NAME` estão configurados.
-        </NTypo>
-      </div>
-
-    </div>
-    <!-- Modais -->
-    <ModalNovaVisita
-      :is-open="isModalNovaVisitaOpen"
-      :cliente-nome="selectedClient?.nome || ''"
-      @close="isModalNovaVisitaOpen = false"
-      @submit="handleSubmitNovaVisita"
-    />
-
-    <ModalEditarCliente
-      :is-open="isModalEditarClienteOpen"
-      :cliente="selectedClient"
-      @close="isModalEditarClienteOpen = false"
-      @submit="handleSubmitEditarCliente"
-    />
+        <div class="mt-10 text-xs text-[color:var(--ntypo-muted)]">2025 · Representação Comercial</div>
+      </NContainer>
+    </footer>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
-import BrokerMaps from '../components/BrokerMaps.vue'
-import ClientSidePanel from '../components/ClientSidePanel.vue'
-import ModalNovaVisita from '../components/ModalNovaVisita.vue'
-import ModalEditarCliente from '../components/ModalEditarCliente.vue'
-import type { Cliente } from '~/types/client'
-import { useClientsApi } from '~/composables/useClientsApi'
-import { useHistoricoClienteApi } from '~/composables/useHistoricoClienteApi'
-
-interface MarkerData {
-  lat: number
-  lng: number
-  title: string
-  value: number
-  color: string
-  size: number
-  type: 'sede' | 'filial' | 'distribuidor' | 'parceiro'
-  address: string
-  phone: string
-  city: string
-}
-
-interface MapData {
-  markers: any[]
-  polygons: any[]
-  mapSettings: {
-    center: { lat: number; lng: number }
-    zoom: number
-  }
-}
-
-const commercialMapData = ref<MapData | null>(null)
-const visitedMapData = ref<MapData | null>(null)
-const scGeoJson = ref<any>(null)
-const clientes = ref<Cliente[]>([])
-const salesTotals = ref<{
-  month: number
-  monthPrev: number
-  monthPrevYear: number
-  quarter: number
-  quarterPrev: number
-  quarterPrevYear: number
-  year: number
-  yearPrevYear: number
-}>({
-  month: 0,
-  monthPrev: 0,
-  monthPrevYear: 0,
-  quarter: 0,
-  quarterPrev: 0,
-  quarterPrevYear: 0,
-  year: 0,
-  yearPrevYear: 0,
-})
-const contactsThisMonth = ref(0)
-const contactsPrevMonth = ref(0)
-const loadClientsError = ref('')
-const isSidePanelOpen = ref(false)
-const selectedClient = ref<Cliente | null>(null)
-const isModalNovaVisitaOpen = ref(false)
-const isModalEditarClienteOpen = ref(false)
-const searchQuery = ref('')
-const filterSegmento = ref('')
-const filterTipo = ref('')
-
-const { fetchClients, patchClient, deleteClient } = useClientsApi()
-const { createEvento } = useHistoricoClienteApi()
-const { keyForClient, metaForClient, metaForKey } = useClientEngagementStatus()
-const { topTasks } = useSellerActionPlan()
-const currentUserId = 'user-app'
-
-const filters = ref({
-  sede: true,
-  filial: true,
-  distribuidor: true,
-  parceiro: true,
-})
-
-onMounted(async () => {
-  try {
-    const commercialData = await $fetch('/api/v1/commercial-points')
-    const geoJsonData = await $fetch('/santa-catarina.json')
-
-    scGeoJson.value = geoJsonData
-
-    const scPolygon = {
-      id: 'santa-catarina',
-      paths: processGeoJsonCoordinates(scGeoJson.value.geometry.coordinates),
-      strokeColor: '#2563eb',
-      strokeOpacity: 1,
-      strokeWeight: 3,
-      fillColor: '#2563eb',
-      fillOpacity: 0,
-      label: 'Santa Catarina',
-      metrics: {
-        seguros: 280,
-        clientes: 1850,
-        corretores: 45,
-      },
-    }
-
-    if (commercialData && 'data' in commercialData) {
-      commercialMapData.value = {
-        markers: commercialData.data.markers,
-        polygons: [scPolygon],
-        mapSettings: commercialData.data.mapSettings || {
-          center: { lat: -27.5954, lng: -48.548 },
-          zoom: 7,
-        },
-      }
-    }
-
-    visitedMapData.value = {
-      markers: [],
-      polygons: [scPolygon],
-      mapSettings: {
-        center: { lat: -27.5954, lng: -48.548 },
-        zoom: 7,
-      },
-    }
-
-    await loadClients()
-  } catch (error) {
-    console.error('Erro ao carregar dados do mapa:', error)
-  }
-})
-
-// Atualizar cores dos clientes periodicamente e quando a página ganha foco
-onMounted(() => {
-  // Atualizar cores a cada minuto
-  const intervalId = setInterval(async () => {
-    await loadClients()
-  }, 60000)
-
-  // Atualizar quando a página ganha foco
-  const handleFocus = async () => {
-    await loadClients()
-  }
-  window.addEventListener('focus', handleFocus)
-
-  // Cleanup
-  onUnmounted(() => {
-    clearInterval(intervalId)
-    window.removeEventListener('focus', handleFocus)
-  })
-})
-
-async function loadClients() {
-  try {
-    loadClientsError.value = ''
-    const data = await fetchClients({ scope: 'portfolio', exclude: ['inativo'] })
-    clientes.value = (data.clients || []) as Cliente[]
-    if (data.salesTotals) {
-      salesTotals.value = {
-        month: data.salesTotals.month,
-        monthPrev: data.salesTotals.monthPrev || 0,
-        monthPrevYear: data.salesTotals.monthPrevYear || 0,
-        quarter: data.salesTotals.quarter,
-        quarterPrev: data.salesTotals.quarterPrev || 0,
-        quarterPrevYear: data.salesTotals.quarterPrevYear || 0,
-        year: data.salesTotals.year,
-        yearPrevYear: data.salesTotals.yearPrevYear || 0,
-      }
-    }
-    if (typeof data.contactsThisMonth === 'number') contactsThisMonth.value = data.contactsThisMonth
-    if (typeof data.contactsPrevMonth === 'number') contactsPrevMonth.value = data.contactsPrevMonth
-
-    if (visitedMapData.value?.mapSettings && data.mapSettings) {
-      visitedMapData.value.mapSettings = data.mapSettings
-    }
-
-    if (selectedClient.value) {
-      selectedClient.value = clientes.value.find((c) => c.id === selectedClient.value?.id) || null
-    }
-  } catch (err: any) {
-    console.error('Erro ao carregar clientes:', err)
-    clientes.value = []
-    loadClientsError.value =
-      err?.data?.statusMessage ||
-      err?.data?.message ||
-      err?.message ||
-      'Erro desconhecido'
-  }
-}
-
-function processGeoJsonCoordinates(coordinates: any[]): { lat: number; lng: number }[] {
-  const paths: { lat: number; lng: number }[] = []
-
-  function processCoords(coords: any) {
-    if (Array.isArray(coords[0]) && Array.isArray(coords[0][0])) {
-      coords.forEach((polygon: any) => {
-        polygon.forEach((ring: any) => {
-          ring.forEach((coord: any) => {
-            paths.push({ lat: coord[1], lng: coord[0] })
-          })
-        })
-      })
-    } else if (Array.isArray(coords[0])) {
-      coords.forEach((ring: any) => {
-        ring.forEach((coord: any) => {
-          paths.push({ lat: coord[1], lng: coord[0] })
-        })
-      })
-    }
-  }
-
-  processCoords(coordinates)
-  return paths
-}
-
-const filteredMarkers = computed(() => {
-  if (!commercialMapData.value) return []
-
-  return commercialMapData.value.markers.filter((marker: MarkerData) => {
-    return filters.value[marker.type as keyof typeof filters.value]
-  })
-})
-
-const portfolioClientes = computed(() => {
-  if (filterTipo.value === 'inativo') {
-    return clientes.value.filter((c) => (c as any)?.status === 'inativo')
-  }
-  return clientes.value.filter((c) => (c as any)?.status !== 'inativo')
-})
-
-const filteredClientes = computed(() => {
-  let result = portfolioClientes.value
-
-  // Filtro por busca
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase()
-    const queryDigits = searchQuery.value.replace(/\D/g, '')
-    result = result.filter((cliente) =>
-      cliente.nome.toLowerCase().includes(query) ||
-      cliente.cidade?.toLowerCase().includes(query) ||
-      cliente.endereco?.toLowerCase().includes(query) ||
-      (queryDigits.length > 0 &&
-        ((cliente.cnpj || '').replace(/\D/g, '').includes(queryDigits) ||
-          String(cliente.id || '').replace(/\D/g, '').includes(queryDigits)))
-    )
-  }
-
-  // Filtro por segmento
-  if (filterSegmento.value) {
-    result = result.filter((cliente) => cliente.segmento === filterSegmento.value)
-  }
-
-  // Filtro por tipo
-  if (filterTipo.value) {
-    result = result.filter((cliente) => keyForClient(cliente) === (filterTipo.value as any))
-  }
-
-  return result
-})
-
-const MAX_PINS = 2500
-const clientesParaPins = computed(() => {
-  const geocoded = filteredClientes.value.filter(
-    (c) => Number.isFinite((c as any).lat) && Number.isFinite((c as any).lng)
-  )
-  if (geocoded.length <= MAX_PINS) return geocoded
-  return geocoded.slice(0, MAX_PINS)
-})
-
-function markerColor(cliente: any) {
-  return metaForClient(cliente).colorHex
-}
-
-function safeNumber(v: any) {
-  const n = typeof v === 'number' ? v : Number(v)
-  return Number.isFinite(n) ? n : 0
-}
-
-function formatCompactMoney(v: number) {
-  const n = Math.round(v)
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n >= 10_000_000 ? 0 : 1)}M`
-  if (n >= 1_000) return `${(n / 1_000).toFixed(n >= 10_000 ? 0 : 1)}k`
-  return String(n)
-}
-
-const pinMetricByClientId = computed(() => {
-  const list = clientesParaPins.value
-  const pairs = list.map((c: any) => {
-    const totalAllTime = safeNumber(c?.sales?.totalAllTime)
-    const total12m = safeNumber(c?.sales?.total12m)
-    const total90d = safeNumber(c?.sales?.total90d)
-    const mesAberto = safeNumber(c?.objectives?.mesAberto)
-    const metric = total90d || total12m || mesAberto || totalAllTime || safeNumber(c?.sales?.priorityScore)
-    return { id: c.id, metric, totalAllTime, total12m, total90d, mesAberto }
-  })
-
-  pairs.sort((a, b) => b.metric - a.metric)
-
-  const rank = new Map<string, number>()
-  const metric = new Map<string, number>()
-  const totals = new Map<string, { totalAllTime: number; total12m: number; total90d: number; mesAberto: number }>()
-  pairs.forEach((p, idx) => {
-    rank.set(p.id, idx + 1)
-    metric.set(p.id, p.metric)
-    totals.set(p.id, { totalAllTime: p.totalAllTime, total12m: p.total12m, total90d: p.total90d, mesAberto: p.mesAberto })
-  })
-
-  const maxMetric = pairs.length ? Math.max(1, pairs[0].metric) : 1
-  return { rank, metric, totals, maxMetric }
-})
-
-const createVisitedMarkers = computed(() => {
-  const meta = pinMetricByClientId.value
-  return clientesParaPins.value
-    .map((cliente) => ({
-      lat: cliente.lat,
-      lng: cliente.lng,
-      title: (() => {
-        const id = (cliente as any).id
-        const m = meta.metric.get(id) || 0
-        const r = meta.rank.get(id) || 1
-        return m > 0 ? `${cliente.nome} (#${r} · R$ ${formatCompactMoney(m)})` : `${cliente.nome} (#${r})`
-      })(),
-      // Número do pin: ranking (sempre varia). O "peso" fica no tamanho.
-      value: meta.rank.get((cliente as any).id) || 1,
-      color: markerColor(cliente),
-      size: (() => {
-        const m = meta.metric.get((cliente as any).id) || 0
-        if (m <= 0) return 18
-        const ratio = Math.max(0, Math.min(1, m / meta.maxMetric))
-        return 16 + Math.round(ratio * 12)
-      })(),
-      clientId: cliente.id,
-    }))
-})
-
-const stats = computed(() => {
-  if (!commercialMapData.value) return { total: 0, filiais: 0, distribuidores: 0, parceiros: 0 }
-
-  const markers = commercialMapData.value.markers
-  return {
-    total: markers.length,
-    filiais: markers.filter((m: MarkerData) => m.type === 'filial' || m.type === 'sede').length,
-    distribuidores: markers.filter((m: MarkerData) => m.type === 'distribuidor').length,
-    parceiros: markers.filter((m: MarkerData) => m.type === 'parceiro').length,
-  }
-})
-
-const carteiraBuckets = computed(() => {
-  let verde = 0
-  let amarelo = 0
-  let vermelho = 0
-  let potencial = 0
-  let inativo = 0
-
-  for (const c of portfolioClientes.value as any[]) {
-    const k = keyForClient(c)
-    if (k === 'inativo') inativo++
-    else if (k === 'potencial') potencial++
-    else if (k === 'critico') vermelho++
-    else if (k === 'atencao') amarelo++
-    else verde++
-  }
-
-  return {
-    verde,
-    amarelo,
-    vermelho,
-    potencial,
-    inativo,
-    total: verde + amarelo + vermelho + potencial + inativo,
-  }
-})
-
-const visitedStats = computed(() => {
-  const carteira = carteiraBuckets.value
-  return {
-    total: carteira.total,
-    ativosVerde: carteira.verde,
-    ativosAmarelo: carteira.amarelo,
-    ativosVermelho: carteira.vermelho,
-    potenciais: carteira.potencial,
-    inativos: carteira.inativo,
-    contatosNoMes: contactsThisMonth.value,
-    faturamentoMensal: salesTotals.value.month,
-    faturamentoTrimestral: salesTotals.value.quarter,
-    faturamentoAnual: salesTotals.value.year,
-  }
-})
-
-function deltaMeta(current: number, previous: number) {
-  const c = Number.isFinite(current) ? current : 0
-  const p = Number.isFinite(previous) ? previous : 0
-
-  if (p <= 0) {
-    if (c <= 0) return { text: '0%', class: 'text-slate-600', icon: 'mdi:minus' }
-    return { text: 'novo', class: 'text-emerald-700', icon: 'mdi:trending-up' }
-  }
-
-  const pct = Math.round(((c - p) / p) * 100)
-  if (pct > 0) return { text: `+${pct}%`, class: 'text-emerald-700', icon: 'mdi:trending-up' }
-  if (pct < 0) return { text: `${pct}%`, class: 'text-red-700', icon: 'mdi:trending-down' }
-  return { text: '0%', class: 'text-slate-600', icon: 'mdi:minus' }
-}
-
-const contatosVsMesAnterior = computed(() => deltaMeta(contactsThisMonth.value, contactsPrevMonth.value))
-const mensalVsMesAnterior = computed(() => deltaMeta(salesTotals.value.month, salesTotals.value.monthPrev))
-const mensalVsMesmoMesAnoAnterior = computed(() =>
-  deltaMeta(salesTotals.value.month, salesTotals.value.monthPrevYear)
-)
-const trimestralVsTrimestreAnterior = computed(() =>
-  deltaMeta(salesTotals.value.quarter, salesTotals.value.quarterPrev)
-)
-const trimestralVsMesmoTrimestreAnoAnterior = computed(() =>
-  deltaMeta(salesTotals.value.quarter, salesTotals.value.quarterPrevYear)
-)
-const anualVsAnoAnterior = computed(() => deltaMeta(salesTotals.value.year, salesTotals.value.yearPrevYear))
-
-const actionPlanTop = computed(() => topTasks(portfolioClientes.value, { limit: 8 }))
-
-function whatsAppUrl(telefoneRaw: string, nome: string) {
-  const telefone = String(telefoneRaw || '').replace(/\D/g, '')
-  if (!telefone) return '#'
-  const mensagem = encodeURIComponent(`Olá ${nome}! Sou representante comercial e gostaria de falar com você.`)
-  return `https://wa.me/55${telefone}?text=${mensagem}`
-}
-
-function noop() {}
-
-function formatDate(dateString: string): string {
-  const date = new Date(dateString)
-  return new Intl.DateTimeFormat('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  }).format(date)
-}
-
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value)
-}
-
-function handleVisitedMarkerClick(marker: any) {
-  const cliente = clientes.value.find((c) => c.id === marker.clientId)
-  if (cliente) {
-    selectedClient.value = cliente
-    isSidePanelOpen.value = true
-  }
-}
-
-function handleAddVisit() {
-  isModalNovaVisitaOpen.value = true
-}
-
-function handleSubmitNovaVisita(payload: any) {
-  if (!selectedClient.value) return
-
-  createEvento({
-    clientId: selectedClient.value.id,
-    userId: currentUserId,
-    ...payload,
-  }).then(async () => {
-    await loadClients()
-  })
-
-  isModalNovaVisitaOpen.value = false
-}
-
-function handleOpenEditarCliente() {
-  isModalEditarClienteOpen.value = true
-}
-
-function handleSubmitEditarCliente(updates: Record<string, unknown>) {
-  if (!selectedClient.value) return
-
-  patchClient(selectedClient.value.id, updates as any).then(async (updated) => {
-    selectedClient.value = updated
-    await loadClients()
-  })
-
-  isModalEditarClienteOpen.value = false
-}
-
-function handleRemoveCliente() {
-  if (!selectedClient.value) return
-
-  deleteClient(selectedClient.value.id).then(async () => {
-    isSidePanelOpen.value = false
-    selectedClient.value = null
-    await loadClients()
-  })
-}
-
 definePageMeta({
-  layout: 'default',
+  layout: 'public',
 })
+
+useSeoMeta({
+  title: 'Representação Comercial de Joias e Relógios',
+  description:
+    'Representação especializada em artigos de joalheria e relojoaria para Santa Catarina. Atendimento personalizado há mais de 15 anos.',
+})
+
+const productCategories = [
+  {
+    id: 'joias',
+    name: 'Joias',
+    icon: 'mdi:diamond',
+    description: 'Anéis, brincos, colares e pingentes em ouro, prata e pedras preciosas.',
+  },
+  {
+    id: 'relogios',
+    name: 'Relógios',
+    icon: 'mdi:watch',
+    description: 'Relógios de pulso masculinos e femininos das principais marcas do mercado.',
+  },
+  {
+    id: 'aliancas',
+    name: 'Alianças',
+    icon: 'mdi:ring',
+    description: 'Alianças de casamento e noivado em ouro, prata e materiais especiais.',
+  },
+  {
+    id: 'pulseiras',
+    name: 'Pulseiras',
+    icon: 'mdi:link-variant',
+    description: 'Pulseiras, braceletes e correntes em diversos estilos e materiais.',
+  },
+  {
+    id: 'semijoias',
+    name: 'Semi-joias',
+    icon: 'mdi:necklace',
+    description: 'Linha completa de semi-joias folheadas e com acabamento premium.',
+  },
+  {
+    id: 'acessorios',
+    name: 'Acessórios',
+    icon: 'mdi:bag-personal',
+    description: 'Boxes, expositores, embalagens e ferramentas para relojoarias.',
+  },
+  {
+    id: 'infantil',
+    name: 'Linha Infantil',
+    icon: 'mdi:baby-face',
+    description: 'Joias e acessórios especialmente desenvolvidos para o público infantil.',
+  },
+  {
+    id: 'presentes',
+    name: 'Presentes',
+    icon: 'mdi:gift',
+    description: 'Kits e conjuntos prontos para datas especiais e ocasiões comemorativas.',
+  },
+]
+
+const scrollToSection = (id: string) => {
+  if (typeof document === 'undefined') return
+  const target = document.getElementById(id)
+  target?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
 </script>

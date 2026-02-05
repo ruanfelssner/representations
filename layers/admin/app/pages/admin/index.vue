@@ -1,472 +1,671 @@
 <template>
-  <div class="space-y-4 lg:space-y-6">
-    <!-- Header -->
-    <NLayer variant="paper" size="base" radius="soft" class="shadow-sm">
-      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <NTypo as="h1" size="2xl" weight="bold" class="lg:text-3xl">Dashboard</NTypo>
-          <NTypo size="sm" tone="muted" class="mt-1">
-            Visão geral do negócio • {{ currentDate }}
-          </NTypo>
+  <div class="min-h-screen">
+
+    <div class="w-full px-3 py-4 lg:px-4 lg:py-6 space-y-3">
+      <!-- Filtros + Stats -->
+      <NLayer variant="paper" size="base" radius="soft" class="shadow-sm lg:shadow-lg relative">
+        <div class="flex flex-col gap-3 lg:gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div class="col-span-1 sm:col-span-2 lg:col-span-1">
+              <NTypo as="label" size="xs" weight="semibold" tone="muted" class="block mb-1">
+                Buscar
+              </NTypo>
+              
+              <NButton
+                v-if="searchQuery || filterSegmento || filterTipo"
+                @click="searchQuery = ''; filterSegmento = ''; filterTipo = ''"
+                variant="outline"
+                size="zs"
+                class="absolute right-2 top-2"
+                >
+                Limpar filtros
+              </NButton>
+              <div class="relative">
+                <NTypo
+                  as="span"
+                  size="sm"
+                  tone="muted"
+                  class="absolute left-3 top-1/2 -translate-y-1/2"
+                >
+                  🔎
+                </NTypo>
+                <input
+                  v-model="searchQuery"
+                  type="text"
+                  placeholder="Nome, cidade, endereço ou CNPJ..."
+                  class="w-full pl-10 pr-3 py-2 rounded-lg border bg-white border-gray-200 focus:ring-2 focus:ring-sky-400 focus:border-sky-400 transition-colors"
+                />
+              </div>
+            </div>
+
+            <div>
+              <NTypo as="label" size="xs" weight="semibold" tone="muted" class="block mb-1">
+                Segmento
+              </NTypo>
+              <select
+                v-model="filterSegmento"
+                class="w-full px-3 py-2 rounded-lg border bg-white border-gray-200 focus:ring-2 focus:ring-sky-400 focus:border-sky-400 transition-colors"
+              >
+                <option value="">Todos</option>
+                <option value="otica">👓 Ótica</option>
+                <option value="relojoaria">⌚ Relojoaria</option>
+                <option value="semijoia">💍 Semi-joias</option>
+                <option value="multimarcas">🏪 Multimarcas</option>
+              </select>
+            </div>
+
+            <div>
+              <NTypo as="label" size="xs" weight="semibold" tone="muted" class="block mb-1">
+                Status
+              </NTypo>
+              <select
+                v-model="filterTipo"
+                class="w-full px-3 py-2 rounded-lg border bg-white border-gray-200 focus:ring-2 focus:ring-sky-400 focus:border-sky-400 transition-colors"
+              >
+                <option value="">Todos</option>
+                <option value="ativo">✅ Ativo (≤90d)</option>
+                <option value="atencao">⚠️ Em atenção (91–180d)</option>
+                <option value="critico">🚨 Crítico / Reativar (&gt;180d)</option>
+                <option value="potencial">🎯 Potencial</option>
+                <option value="inativo">⏸️ Inativo</option>
+              </select>
+            </div>
+          </div>
         </div>
-        <div class="flex items-center gap-2">
-          <NButton
-            variant="outline"
-            size="sm"
-            leading-icon="mdi:refresh"
-            :disabled="pending"
-            @click="refresh()"
-          >
+
+        <div class="mt-4 grid !grid-cols-1 sm:!grid-cols-2 md:!grid-cols-3 lg:!grid-cols-5 gap-2 sm:gap-2 md:gap-3 lg:gap-3">
+          <div class="bg-emerald-50 border border-emerald-100 rounded-lg p-3 lg:p-4">
+            <NTypo size="xs" tone="muted" class="mb-1">Clientes</NTypo>
+            <NTypo size="xl" weight="bold" class="tabular-nums text-emerald-500 lg:text-2xl">
+              {{ visitedStats.total }}
+            </NTypo>
+            <div class="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-semibold">
+              <span class="inline-flex items-center gap-1 text-emerald-700">
+                <span class="h-2 w-2 rounded-full bg-emerald-500" />
+                {{ visitedStats.ativosVerde }} ≤90d
+              </span>
+              <span class="inline-flex items-center gap-1 text-yellow-700">
+                <span class="h-2 w-2 rounded-full bg-yellow-500" />
+                {{ visitedStats.ativosAmarelo }} 91–180d
+              </span>
+              <span class="inline-flex items-center gap-1 text-red-700">
+                <span class="h-2 w-2 rounded-full bg-red-500" />
+                {{ visitedStats.ativosVermelho }} &gt;180d
+              </span>
+              <span v-if="visitedStats.potenciais" class="inline-flex items-center gap-1 text-blue-700">
+                <span class="h-2 w-2 rounded-full bg-blue-500" />
+                {{ visitedStats.potenciais }} potencial
+              </span>
+              <span v-if="visitedStats.inativos" class="inline-flex items-center gap-1 text-gray-700">
+                <span class="h-2 w-2 rounded-full bg-gray-400" />
+                {{ visitedStats.inativos }} inativo
+              </span>
+            </div>
+          </div>          
+          <div class="bg-sky-50 border border-sky-100 rounded-lg p-3 lg:p-4">
+            <NTypo size="xs" tone="muted" class="mb-1">Contatos nesse mês</NTypo>
+            <NTypo size="xl" weight="bold" class="tabular-nums text-sky-500 lg:text-2xl">
+              {{ visitedStats.contatosNoMes }}
+            </NTypo>
+            <div class="mt-2 flex items-center gap-1 text-[11px] font-semibold" :class="contatosVsMesAnterior.class">
+              <NIcon :name="contatosVsMesAnterior.icon" class="w-4 h-4" />
+              <span class="tabular-nums">{{ contatosVsMesAnterior.text }}</span>
+              <span class="font-medium text-slate-500">vs mês anterior</span>
+            </div>
+          </div>
+          <div class="bg-violet-50 border border-violet-100 rounded-lg p-3 lg:p-4">
+            <NTypo size="xs" tone="muted" class="mb-1">Mensal</NTypo>
+            <NTypo size="xl" weight="bold" class="tabular-nums text-violet-500 lg:text-2xl">
+              {{ formatCurrency(visitedStats.faturamentoMensal) }}
+            </NTypo>
+            <div class="mt-2 space-y-1 text-[11px] font-semibold">
+              <div class="flex items-center gap-1" :class="mensalVsMesAnterior.class">
+                <NIcon :name="mensalVsMesAnterior.icon" class="w-4 h-4" />
+                <span class="tabular-nums">{{ mensalVsMesAnterior.text }}</span>
+                <span class="font-medium text-slate-500">vs mês anterior</span>
+              </div>
+              <div class="flex items-center gap-1" :class="mensalVsMesmoMesAnoAnterior.class">
+                <NIcon :name="mensalVsMesmoMesAnoAnterior.icon" class="w-4 h-4" />
+                <span class="tabular-nums">{{ mensalVsMesmoMesAnoAnterior.text }}</span>
+                <span class="font-medium text-slate-500">vs mesmo mês (ano anterior)</span>
+              </div>
+            </div>
+          </div>
+          <div class="bg-amber-50 border border-amber-100 rounded-lg p-3 lg:p-4">
+            <NTypo size="xs" tone="muted" class="mb-1">Trimestral</NTypo>
+            <NTypo size="xl" weight="bold" class="tabular-nums text-amber-600 lg:text-2xl">
+              {{ formatCurrency(visitedStats.faturamentoTrimestral) }}
+            </NTypo>
+            <div class="mt-2 space-y-1 text-[11px] font-semibold">
+              <div class="flex items-center gap-1" :class="trimestralVsTrimestreAnterior.class">
+                <NIcon :name="trimestralVsTrimestreAnterior.icon" class="w-4 h-4" />
+                <span class="tabular-nums">{{ trimestralVsTrimestreAnterior.text }}</span>
+                <span class="font-medium text-slate-500">vs trimestre anterior</span>
+              </div>
+              <div class="flex items-center gap-1" :class="trimestralVsMesmoTrimestreAnoAnterior.class">
+                <NIcon :name="trimestralVsMesmoTrimestreAnoAnterior.icon" class="w-4 h-4" />
+                <span class="tabular-nums">{{ trimestralVsMesmoTrimestreAnoAnterior.text }}</span>
+                <span class="font-medium text-slate-500">vs mesmo trimestre (ano anterior)</span>
+              </div>
+            </div>
+          </div>
+          <div class="bg-orange-50 border border-orange-100 rounded-lg p-3 lg:p-4">
+            <NTypo size="xs" tone="muted" class="mb-1">Anual</NTypo>
+            <NTypo size="xl" weight="bold" class="tabular-nums text-orange-500 lg:text-2xl">
+              {{ formatCurrency(visitedStats.faturamentoAnual) }}
+            </NTypo>
+            <div class="mt-2 flex items-center gap-1 text-[11px] font-semibold" :class="anualVsAnoAnterior.class">
+              <NIcon :name="anualVsAnoAnterior.icon" class="w-4 h-4" />
+              <span class="tabular-nums">{{ anualVsAnoAnterior.text }}</span>
+              <span class="font-medium text-slate-500">vs mesmo período (ano anterior)</span>
+            </div>
+          </div>
+        </div>
+      </NLayer>
+
+
+      <!-- Mapa + painel -->
+      <div class="grid !grid-cols-1 md:!grid-cols-12 lg:!grid-cols-12 gap-4 lg:gap-6">
+        <div class="md:!col-span-9 lg:!col-span-9 rounded-xl lg:rounded-2xl shadow-lg lg:shadow-2xl overflow-hidden border border-gray-200 bg-white h-[450px] sm:h-[550px] lg:h-[700px]">
+          <BrokerMaps
+            v-if="visitedMapData"
+            :markers="createVisitedMarkers"
+            :polygons="visitedMapData.polygons"
+            :center-lat="visitedMapData.mapSettings.center.lat"
+            :center-lng="visitedMapData.mapSettings.center.lng"
+            :zoom="visitedMapData.mapSettings.zoom"
+            class="h-full"
+            @marker-click="handleVisitedMarkerClick"
+          />
+          <div v-else class="h-full flex items-center justify-center">
+            <div class="text-center">
+              <div class="text-6xl mb-4">🗺️</div>
+              <NTypo size="sm" tone="muted" weight="medium">Carregando mapa...</NTypo>
+            </div>
+          </div>
+        </div>
+
+        <!-- Painel desktop (sidebar) -->
+        <div class="hidden md:block lg:block md:!col-span-3 lg:!col-span-3 h-[700px]">
+          <ClientSidePanel
+            :is-open="true"
+            :client-data="selectedClient"
+            :show-close="false"
+            @add-visit="handleAddVisit"
+            @edit-client="handleOpenEditarCliente"
+            @remove-client="handleRemoveCliente"
+          />
+        </div>
+
+        <!-- Painel mobile (drawer no fluxo do documento) -->
+        <Transition name="slide-down">
+                <ClientSidePanel
+                 class="lg:hidden"
+                 v-if="selectedClient && isSidePanelOpen"
+                  :is-open="true"
+                  :client-data="selectedClient"
+                  :show-close="false"
+                  @add-visit="handleAddVisit"
+                  @edit-client="handleOpenEditarCliente"
+                  @remove-client="handleRemoveCliente"
+                />
+        </Transition>
+      </div>
+
+    <!-- Mensagem quando não há clientes -->
+    <div
+      v-if="!clientes.length"
+      class="text-center py-12 lg:py-16 rounded-xl shadow-sm border border-gray-200 bg-white mx-4"
+    >
+      <div class="text-5xl lg:text-6xl mb-3 lg:mb-4">👥</div>
+      <NTypo as="h3" size="lg" weight="bold" class="mb-2 lg:text-xl">Nenhum cliente cadastrado ainda</NTypo>
+      <NTypo size="sm" tone="muted" class="lg:text-base">
+        Comece adicionando seus clientes usando o formulário acima!
+      </NTypo>
+    </div>
+
+    
+      <NLayer v-if="actionPlanTop.length" variant="paper" size="base" radius="soft" class="shadow-sm lg:shadow-lg">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <NTypo as="h2" size="sm" weight="bold">Plano de ação</NTypo>
+            <NTypo size="xs" tone="muted" class="mt-0.5">
+              Comece pelos críticos com maior impacto e follow-ups atrasados.
+            </NTypo>
+          </div>
+          <NButton variant="outline" size="zs" leading-icon="mdi:refresh" @click="loadClients()">
             Atualizar
           </NButton>
-          <NButton
-            as="NuxtLink"
-            to="/"
-            variant="outline"
-            size="sm"
-            leading-icon="mdi:map"
-          >
-            Ver Mapa
-          </NButton>
         </div>
+
+        <div class="mt-3 divide-y rounded-lg border border-gray-100 bg-white overflow-hidden">
+          <NuxtLink
+            v-for="task in actionPlanTop"
+            :key="task.clientId"
+            :to="`/admin/clients/${task.clientId}`"
+            class="block w-full px-3 py-3 hover:bg-slate-50 transition-colors"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2">
+                  <NTypo weight="bold" class="truncate">{{ task.nome }}</NTypo>
+                  <span
+                    class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold"
+                    :class="metaForKey(task.statusKey).chipClass"
+                  >
+                    <span class="h-2 w-2 rounded-full" :class="metaForKey(task.statusKey).dotClass" />
+                    {{ metaForKey(task.statusKey).emoji }} {{ metaForKey(task.statusKey).label }}
+                  </span>
+                  <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-700">
+                    {{ task.priority }}
+                  </span>
+                </div>
+
+                <NTypo size="xs" tone="muted" class="mt-1 truncate">
+                  <span v-if="task.cidade">{{ task.cidade }}</span>
+                  <span v-if="task.cidade && task.segmento"> • </span>
+                  <span v-if="task.segmento">{{ task.segmento }}</span>
+                  <span v-if="task.valueMetricLabel && task.valueMetric > 0"> • {{ task.valueMetricLabel }}</span>
+                </NTypo>
+
+                <NTypo v-if="task.reasons.length" size="xs" class="mt-1 text-slate-700">
+                  {{ task.suggestedActionLabel }} • {{ task.reasons.join(' · ') }}
+                </NTypo>
+              </div>
+
+              <div class="shrink-0 flex items-center gap-2" @click.prevent>
+                <NButton
+                  v-if="task.telefone"
+                  variant="success"
+                  size="zs"
+                  leading-icon="mdi:whatsapp"
+                  :href="whatsAppUrl(task.telefone, task.nome)"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  WhatsApp
+                </NButton>
+              </div>
+            </div>
+          </NuxtLink>
+        </div>
+      </NLayer>
+
+      <div v-if="loadClientsError" class="rounded-xl border border-red-200 bg-red-50 p-3 lg:p-4">
+        <NTypo size="sm" weight="semibold" class="text-red-700">
+          Falha ao carregar clientes: {{ loadClientsError }}
+        </NTypo>
+        <NTypo size="xs" tone="muted" class="mt-1">
+          Verifique se o Mongo está rodando e se `NUXT_MONGO_URI` / `NUXT_MONGO_DB_NAME` estão configurados.
+        </NTypo>
       </div>
-    </NLayer>
 
-    <div v-if="error" class="rounded-xl border border-red-200 bg-red-50 p-4">
-      <NTypo size="sm" weight="semibold" class="text-red-700">Falha ao carregar números do dashboard.</NTypo>
-      <NTypo size="xs" tone="muted" class="mt-1">Verifique a API `/api/v1/clients` e o Mongo.</NTypo>
     </div>
+    <!-- Modais -->
+    <ModalNovaVisita
+      :is-open="isModalNovaVisitaOpen"
+      :cliente-nome="selectedClient?.nome || ''"
+      @close="isModalNovaVisitaOpen = false"
+      @submit="handleSubmitNovaVisita"
+    />
 
-    <!-- KPIs Grid -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-      <!-- Total Clientes -->
-      <NLayer variant="paper" size="sm" radius="soft" class="shadow-sm">
-        <div class="flex items-start justify-between">
-          <div class="flex-1">
-            <NTypo size="xs" tone="muted" weight="medium" class="mb-1">Total Clientes</NTypo>
-            <NTypo size="3xl" weight="bold" class="text-sky-600 tabular-nums lg:text-4xl">
-              {{ stats.totalClients }}
-            </NTypo>
-            <div class="mt-2 flex items-center gap-1 text-xs">
-              <NIcon name="mdi:account-plus" class="w-4 h-4 text-sky-600" />
-              <span class="font-semibold text-sky-700 tabular-nums">+{{ stats.createdThisMonth }}</span>
-              <span class="text-gray-500">novos no mês</span>
-            </div>
-          </div>
-          <div class="p-2 bg-sky-50 rounded-lg">
-            <NIcon name="mdi:account-group" class="w-6 h-6 text-sky-600" />
-          </div>
-        </div>
-      </NLayer>
-
-      <!-- Clientes Ativos -->
-      <NLayer variant="paper" size="sm" radius="soft" class="shadow-sm">
-        <div class="flex items-start justify-between">
-          <div class="flex-1">
-            <NTypo size="xs" tone="muted" weight="medium" class="mb-1">Ativos (≤90d)</NTypo>
-            <NTypo size="3xl" weight="bold" class="text-emerald-600 tabular-nums lg:text-4xl">
-              {{ stats.activosVerde }}
-            </NTypo>
-            <div class="mt-2 text-xs text-gray-600">
-              <span class="font-semibold">{{ activePercentage }}%</span> da base
-            </div>
-          </div>
-          <div class="p-2 bg-emerald-50 rounded-lg">
-            <NIcon name="mdi:check-circle" class="w-6 h-6 text-emerald-600" />
-          </div>
-        </div>
-      </NLayer>
-
-      <!-- Críticos -->
-      <NLayer variant="paper" size="sm" radius="soft" class="shadow-sm">
-        <div class="flex items-start justify-between">
-          <div class="flex-1">
-            <NTypo size="xs" tone="muted" weight="medium" class="mb-1">Críticos (>180d)</NTypo>
-            <NTypo size="3xl" weight="bold" class="text-red-600 tabular-nums lg:text-4xl">
-              {{ stats.activosVermelho }}
-            </NTypo>
-            <div class="mt-2 text-xs text-gray-600">
-              <span class="font-semibold">{{ criticalPercentage }}%</span> precisam atenção
-            </div>
-          </div>
-          <div class="p-2 bg-red-50 rounded-lg">
-            <NIcon name="mdi:alert-circle" class="w-6 h-6 text-red-600" />
-          </div>
-        </div>
-      </NLayer>
-
-      <!-- Contatos no Mês -->
-      <NLayer variant="paper" size="sm" radius="soft" class="shadow-sm">
-        <div class="flex items-start justify-between">
-          <div class="flex-1">
-            <NTypo size="xs" tone="muted" weight="medium" class="mb-1">Contatos (mês)</NTypo>
-            <NTypo size="3xl" weight="bold" class="text-violet-600 tabular-nums lg:text-4xl">
-              {{ stats.contatosNoMes }}
-            </NTypo>
-            <div class="mt-2 flex items-center gap-1 text-xs">
-              <NIcon :name="contatosVsMesAnterior.icon" class="w-4 h-4" :class="contatosVsMesAnterior.iconClass" />
-              <span class="font-semibold tabular-nums" :class="contatosVsMesAnterior.textClass">{{ contatosVsMesAnterior.text }}</span>
-              <span class="text-gray-500">vs mês anterior</span>
-            </div>
-          </div>
-          <div class="p-2 bg-violet-50 rounded-lg">
-            <NIcon name="mdi:phone" class="w-6 h-6 text-violet-600" />
-          </div>
-        </div>
-      </NLayer>
-    </div>
-
-    <!-- Faturamento Row -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 lg:gap-4">
-      <!-- Mensal -->
-      <NLayer variant="paper" size="sm" radius="soft" class="shadow-sm">
-        <div>
-          <div class="flex items-center justify-between mb-3">
-            <NTypo size="xs" tone="muted" weight="medium">Faturamento Mensal</NTypo>
-            <div class="p-1.5 bg-violet-50 rounded-lg">
-              <NIcon name="mdi:calendar-month" class="w-4 h-4 text-violet-600" />
-            </div>
-          </div>
-          <NTypo size="2xl" weight="bold" class="text-violet-600 tabular-nums lg:text-3xl">
-            {{ formatCurrency(stats.faturamentoMensal) }}
-          </NTypo>
-          <div class="mt-3 pt-3 border-t space-y-1.5">
-            <div class="flex items-center gap-1.5 text-xs">
-              <NIcon :name="mensalVsMesAnterior.icon" class="w-3.5 h-3.5" :class="mensalVsMesAnterior.iconClass" />
-              <span class="font-semibold tabular-nums" :class="mensalVsMesAnterior.textClass">{{ mensalVsMesAnterior.text }}</span>
-              <span class="text-gray-500">vs mês anterior</span>
-            </div>
-            <div class="flex items-center gap-1.5 text-xs">
-              <NIcon :name="mensalVsMesmoMesAnoAnterior.icon" class="w-3.5 h-3.5" :class="mensalVsMesmoMesAnoAnterior.iconClass" />
-              <span class="font-semibold tabular-nums" :class="mensalVsMesmoMesAnoAnterior.textClass">{{ mensalVsMesmoMesAnoAnterior.text }}</span>
-              <span class="text-gray-500">vs mesmo mês (ano anterior)</span>
-            </div>
-          </div>
-        </div>
-      </NLayer>
-
-      <!-- Trimestral -->
-      <NLayer variant="paper" size="sm" radius="soft" class="shadow-sm">
-        <div>
-          <div class="flex items-center justify-between mb-3">
-            <NTypo size="xs" tone="muted" weight="medium">Faturamento Trimestral</NTypo>
-            <div class="p-1.5 bg-amber-50 rounded-lg">
-              <NIcon name="mdi:calendar-range" class="w-4 h-4 text-amber-600" />
-            </div>
-          </div>
-          <NTypo size="2xl" weight="bold" class="text-amber-600 tabular-nums lg:text-3xl">
-            {{ formatCurrency(stats.faturamentoTrimestral) }}
-          </NTypo>
-          <div class="mt-3 pt-3 border-t space-y-1.5">
-            <div class="flex items-center gap-1.5 text-xs">
-              <NIcon :name="trimestralVsTrimestreAnterior.icon" class="w-3.5 h-3.5" :class="trimestralVsTrimestreAnterior.iconClass" />
-              <span class="font-semibold tabular-nums" :class="trimestralVsTrimestreAnterior.textClass">{{ trimestralVsTrimestreAnterior.text }}</span>
-              <span class="text-gray-500">vs trimestre anterior</span>
-            </div>
-            <div class="flex items-center gap-1.5 text-xs">
-              <NIcon :name="trimestralVsMesmoTrimestreAnoAnterior.icon" class="w-3.5 h-3.5" :class="trimestralVsMesmoTrimestreAnoAnterior.iconClass" />
-              <span class="font-semibold tabular-nums" :class="trimestralVsMesmoTrimestreAnoAnterior.textClass">{{ trimestralVsMesmoTrimestreAnoAnterior.text }}</span>
-              <span class="text-gray-500">vs mesmo trimestre (ano anterior)</span>
-            </div>
-          </div>
-        </div>
-      </NLayer>
-
-      <!-- Anual -->
-      <NLayer variant="paper" size="sm" radius="soft" class="shadow-sm">
-        <div>
-          <div class="flex items-center justify-between mb-3">
-            <NTypo size="xs" tone="muted" weight="medium">Faturamento Anual</NTypo>
-            <div class="p-1.5 bg-orange-50 rounded-lg">
-              <NIcon name="mdi:calendar-year" class="w-4 h-4 text-orange-600" />
-            </div>
-          </div>
-          <NTypo size="2xl" weight="bold" class="text-orange-600 tabular-nums lg:text-3xl">
-            {{ formatCurrency(stats.faturamentoAnual) }}
-          </NTypo>
-          <div class="mt-3 pt-3 border-t">
-            <div class="flex items-center gap-1.5 text-xs">
-              <NIcon :name="anualVsAnoAnterior.icon" class="w-3.5 h-3.5" :class="anualVsAnoAnterior.iconClass" />
-              <span class="font-semibold tabular-nums" :class="anualVsAnoAnterior.textClass">{{ anualVsAnoAnterior.text }}</span>
-              <span class="text-gray-500">vs mesmo período (ano anterior)</span>
-            </div>
-          </div>
-        </div>
-      </NLayer>
-    </div>
-
-    <!-- Status Distribution & Quick Actions -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
-      <!-- Distribuição por Status -->
-      <NLayer variant="paper" size="base" radius="soft" class="shadow-sm">
-        <NTypo as="h2" size="lg" weight="bold" class="mb-4">Distribuição por Status</NTypo>
-        <div class="space-y-3">
-          <div>
-            <div class="flex items-center justify-between mb-1.5">
-              <div class="flex items-center gap-2">
-                <span class="w-3 h-3 rounded-full bg-emerald-500" />
-                <NTypo size="sm" weight="medium">Ativos (≤90d)</NTypo>
-              </div>
-              <NTypo size="sm" weight="bold" class="text-emerald-600">{{ stats.activosVerde }}</NTypo>
-            </div>
-            <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
-              <div 
-                class="h-full bg-emerald-500 rounded-full transition-all bar-active"
-              />
-            </div>
-          </div>
-
-          <div>
-            <div class="flex items-center justify-between mb-1.5">
-              <div class="flex items-center gap-2">
-                <span class="w-3 h-3 rounded-full bg-yellow-500" />
-                <NTypo size="sm" weight="medium">Atenção (91-180d)</NTypo>
-              </div>
-              <NTypo size="sm" weight="bold" class="text-yellow-600">{{ stats.activosAmarelo }}</NTypo>
-            </div>
-            <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
-              <div 
-                class="h-full bg-yellow-500 rounded-full transition-all bar-attention"
-              />
-            </div>
-          </div>
-
-          <div>
-            <div class="flex items-center justify-between mb-1.5">
-              <div class="flex items-center gap-2">
-                <span class="w-3 h-3 rounded-full bg-red-500" />
-                <NTypo size="sm" weight="medium">Críticos (>180d)</NTypo>
-              </div>
-              <NTypo size="sm" weight="bold" class="text-red-600">{{ stats.activosVermelho }}</NTypo>
-            </div>
-            <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
-              <div 
-                class="h-full bg-red-500 rounded-full transition-all bar-critical"
-              />
-            </div>
-          </div>
-
-          <div>
-            <div class="flex items-center justify-between mb-1.5">
-              <div class="flex items-center gap-2">
-                <span class="w-3 h-3 rounded-full bg-blue-500" />
-                <NTypo size="sm" weight="medium">Potenciais</NTypo>
-              </div>
-              <NTypo size="sm" weight="bold" class="text-blue-600">{{ stats.potenciais }}</NTypo>
-            </div>
-            <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
-              <div 
-                class="h-full bg-blue-500 rounded-full transition-all bar-potential"
-              />
-            </div>
-          </div>
-
-          <div>
-            <div class="flex items-center justify-between mb-1.5">
-              <div class="flex items-center gap-2">
-                <span class="w-3 h-3 rounded-full bg-gray-400" />
-                <NTypo size="sm" weight="medium">Inativos</NTypo>
-              </div>
-              <NTypo size="sm" weight="bold" class="text-gray-600">{{ stats.inativos }}</NTypo>
-            </div>
-            <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
-              <div 
-                class="h-full bg-gray-400 rounded-full transition-all bar-inactive"
-              />
-            </div>
-          </div>
-        </div>
-      </NLayer>
-
-      <!-- Ações Rápidas -->
-      <NLayer variant="paper" size="base" radius="soft" class="shadow-sm">
-        <NTypo as="h2" size="lg" weight="bold" class="mb-4">Acesso Rápido</NTypo>
-        <div class="grid grid-cols-1 gap-3">
-          <NuxtLink 
-            to="/admin/clients" 
-            class="flex items-center gap-3 p-4 rounded-lg border-2 border-gray-100 hover:border-sky-200 hover:bg-sky-50 transition-all group"
-          >
-            <div class="p-2 bg-sky-100 rounded-lg group-hover:bg-sky-200 transition-colors">
-              <NIcon name="mdi:account-group" class="w-5 h-5 text-sky-600" />
-            </div>
-            <div class="flex-1">
-              <NTypo weight="semibold" class="group-hover:text-sky-700">Gerenciar Clientes</NTypo>
-              <NTypo size="xs" tone="muted">Visualizar e editar cadastros</NTypo>
-            </div>
-            <NIcon name="mdi:chevron-right" class="w-5 h-5 text-gray-400 group-hover:text-sky-600" />
-          </NuxtLink>
-
-          <NuxtLink 
-            to="/admin/users" 
-            class="flex items-center gap-3 p-4 rounded-lg border-2 border-gray-100 hover:border-violet-200 hover:bg-violet-50 transition-all group"
-          >
-            <div class="p-2 bg-violet-100 rounded-lg group-hover:bg-violet-200 transition-colors">
-              <NIcon name="mdi:account" class="w-5 h-5 text-violet-600" />
-            </div>
-            <div class="flex-1">
-              <NTypo weight="semibold" class="group-hover:text-violet-700">Gerenciar Usuários</NTypo>
-              <NTypo size="xs" tone="muted">Vendedores, gerentes e admins</NTypo>
-            </div>
-            <NIcon name="mdi:chevron-right" class="w-5 h-5 text-gray-400 group-hover:text-violet-600" />
-          </NuxtLink>
-
-          <NuxtLink 
-            to="/admin/produtos" 
-            class="flex items-center gap-3 p-4 rounded-lg border-2 border-gray-100 hover:border-emerald-200 hover:bg-emerald-50 transition-all group"
-          >
-            <div class="p-2 bg-emerald-100 rounded-lg group-hover:bg-emerald-200 transition-colors">
-              <NIcon name="mdi:package-variant" class="w-5 h-5 text-emerald-600" />
-            </div>
-            <div class="flex-1">
-              <NTypo weight="semibold" class="group-hover:text-emerald-700">Catálogo de Produtos</NTypo>
-              <NTypo size="xs" tone="muted">Preços e disponibilidade</NTypo>
-            </div>
-            <NIcon name="mdi:chevron-right" class="w-5 h-5 text-gray-400 group-hover:text-emerald-600" />
-          </NuxtLink>
-
-          <NuxtLink 
-            to="/" 
-            class="flex items-center gap-3 p-4 rounded-lg border-2 border-gray-100 hover:border-blue-200 hover:bg-blue-50 transition-all group"
-          >
-            <div class="p-2 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
-              <NIcon name="mdi:map" class="w-5 h-5 text-blue-600" />
-            </div>
-            <div class="flex-1">
-              <NTypo weight="semibold" class="group-hover:text-blue-700">Visualizar Mapa</NTypo>
-              <NTypo size="xs" tone="muted">Distribuição geográfica</NTypo>
-            </div>
-            <NIcon name="mdi:chevron-right" class="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
-          </NuxtLink>
-        </div>
-      </NLayer>
-    </div>
-
-    <!-- Segmentos -->
-    <NLayer variant="paper" size="base" radius="soft" class="shadow-sm">
-      <NTypo as="h2" size="lg" weight="bold" class="mb-4">Distribuição por Segmento</NTypo>
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div class="p-4 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
-          <div class="flex items-center gap-2 mb-2">
-            <span class="text-2xl">👓</span>
-            <NTypo size="sm" weight="semibold" class="text-blue-900">Ótica</NTypo>
-          </div>
-          <NTypo size="2xl" weight="bold" class="text-blue-600 tabular-nums">
-            {{ stats.segmentos.otica }}
-          </NTypo>
-        </div>
-
-        <div class="p-4 rounded-lg bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200">
-          <div class="flex items-center gap-2 mb-2">
-            <span class="text-2xl">⌚</span>
-            <NTypo size="sm" weight="semibold" class="text-purple-900">Relojoaria</NTypo>
-          </div>
-          <NTypo size="2xl" weight="bold" class="text-purple-600 tabular-nums">
-            {{ stats.segmentos.relojoaria }}
-          </NTypo>
-        </div>
-
-        <div class="p-4 rounded-lg bg-gradient-to-br from-pink-50 to-pink-100 border border-pink-200">
-          <div class="flex items-center gap-2 mb-2">
-            <span class="text-2xl">💍</span>
-            <NTypo size="sm" weight="semibold" class="text-pink-900">Semi-joias</NTypo>
-          </div>
-          <NTypo size="2xl" weight="bold" class="text-pink-600 tabular-nums">
-            {{ stats.segmentos.semijoia }}
-          </NTypo>
-        </div>
-
-        <div class="p-4 rounded-lg bg-gradient-to-br from-amber-50 to-amber-100 border border-amber-200">
-          <div class="flex items-center gap-2 mb-2">
-            <span class="text-2xl">🏪</span>
-            <NTypo size="sm" weight="semibold" class="text-amber-900">Multimarcas</NTypo>
-          </div>
-          <NTypo size="2xl" weight="bold" class="text-amber-600 tabular-nums">
-            {{ stats.segmentos.multimarcas }}
-          </NTypo>
-        </div>
-      </div>
-    </NLayer>
+    <ModalEditarCliente
+      :is-open="isModalEditarClienteOpen"
+      :cliente="selectedClient"
+      @close="isModalEditarClienteOpen = false"
+      @submit="handleSubmitEditarCliente"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { z } from 'zod'
-import { ClientDtoSchema } from '~/types/schemas'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import type { Cliente } from '~/types/client'
+import { useClientsApi } from '~/composables/useClientsApi'
+import { useHistoricoClienteApi } from '~/composables/useHistoricoClienteApi'
 
-definePageMeta({ layout: 'admin' })
+interface MarkerData {
+  lat: number
+  lng: number
+  title: string
+  value: number
+  color: string
+  size: number
+  type: 'sede' | 'filial' | 'distribuidor' | 'parceiro'
+  address: string
+  phone: string
+  city: string
+}
 
-const ClientsResponseSchema = z.object({
-  success: z.boolean(),
-  data: z.object({
-    clients: z.array(ClientDtoSchema),
-    mapSettings: z.any(),
-    salesTotals: z
-      .object({
-        month: z.number(),
-        monthPrev: z.number().optional(),
-        monthPrevYear: z.number().optional(),
-        quarter: z.number(),
-        quarterPrev: z.number().optional(),
-        quarterPrevYear: z.number().optional(),
-        year: z.number(),
-        yearPrevYear: z.number().optional(),
+interface MapData {
+  markers: any[]
+  polygons: any[]
+  mapSettings: {
+    center: { lat: number; lng: number }
+    zoom: number
+  }
+}
+
+const commercialMapData = ref<MapData | null>(null)
+const visitedMapData = ref<MapData | null>(null)
+const scGeoJson = ref<any>(null)
+const clientes = ref<Cliente[]>([])
+const salesTotals = ref<{
+  month: number
+  monthPrev: number
+  monthPrevYear: number
+  quarter: number
+  quarterPrev: number
+  quarterPrevYear: number
+  year: number
+  yearPrevYear: number
+}>({
+  month: 0,
+  monthPrev: 0,
+  monthPrevYear: 0,
+  quarter: 0,
+  quarterPrev: 0,
+  quarterPrevYear: 0,
+  year: 0,
+  yearPrevYear: 0,
+})
+const contactsThisMonth = ref(0)
+const contactsPrevMonth = ref(0)
+const loadClientsError = ref('')
+const isSidePanelOpen = ref(false)
+const selectedClient = ref<Cliente | null>(null)
+const isModalNovaVisitaOpen = ref(false)
+const isModalEditarClienteOpen = ref(false)
+const searchQuery = ref('')
+const filterSegmento = ref('')
+const filterTipo = ref('')
+
+const { fetchClients, patchClient, deleteClient } = useClientsApi()
+const { createEvento } = useHistoricoClienteApi()
+const { keyForClient, metaForClient, metaForKey } = useClientEngagementStatus()
+const { topTasks } = useSellerActionPlan()
+const currentUserId = 'user-app'
+
+const filters = ref({
+  sede: true,
+  filial: true,
+  distribuidor: true,
+  parceiro: true,
+})
+
+onMounted(async () => {
+  try {
+    const commercialData = await $fetch('/api/v1/commercial-points')
+    const geoJsonData = await $fetch('/santa-catarina.json')
+
+    scGeoJson.value = geoJsonData
+
+    const scPolygon = {
+      id: 'santa-catarina',
+      paths: processGeoJsonCoordinates(scGeoJson.value.geometry.coordinates),
+      strokeColor: '#2563eb',
+      strokeOpacity: 1,
+      strokeWeight: 3,
+      fillColor: '#2563eb',
+      fillOpacity: 0,
+      label: 'Santa Catarina',
+      metrics: {
+        seguros: 280,
+        clientes: 1850,
+        corretores: 45,
+      },
+    }
+
+    if (commercialData && 'data' in commercialData) {
+      commercialMapData.value = {
+        markers: commercialData.data.markers,
+        polygons: [scPolygon],
+        mapSettings: commercialData.data.mapSettings || {
+          center: { lat: -27.5954, lng: -48.548 },
+          zoom: 7,
+        },
+      }
+    }
+
+    visitedMapData.value = {
+      markers: [],
+      polygons: [scPolygon],
+      mapSettings: {
+        center: { lat: -27.5954, lng: -48.548 },
+        zoom: 7,
+      },
+    }
+
+    await loadClients()
+  } catch (error) {
+    console.error('Erro ao carregar dados do mapa:', error)
+  }
+})
+
+// Atualizar cores dos clientes periodicamente e quando a página ganha foco
+onMounted(() => {
+  // Atualizar cores a cada minuto
+  const intervalId = setInterval(async () => {
+    await loadClients()
+  }, 60000)
+
+  // Atualizar quando a página ganha foco
+  const handleFocus = async () => {
+    await loadClients()
+  }
+  window.addEventListener('focus', handleFocus)
+
+  // Cleanup
+  onUnmounted(() => {
+    clearInterval(intervalId)
+    window.removeEventListener('focus', handleFocus)
+  })
+})
+
+async function loadClients() {
+  try {
+    loadClientsError.value = ''
+    const data = await fetchClients({ scope: 'portfolio', exclude: ['inativo'] })
+    clientes.value = (data.clients || []) as Cliente[]
+    if (data.salesTotals) {
+      salesTotals.value = {
+        month: data.salesTotals.month,
+        monthPrev: data.salesTotals.monthPrev || 0,
+        monthPrevYear: data.salesTotals.monthPrevYear || 0,
+        quarter: data.salesTotals.quarter,
+        quarterPrev: data.salesTotals.quarterPrev || 0,
+        quarterPrevYear: data.salesTotals.quarterPrevYear || 0,
+        year: data.salesTotals.year,
+        yearPrevYear: data.salesTotals.yearPrevYear || 0,
+      }
+    }
+    if (typeof data.contactsThisMonth === 'number') contactsThisMonth.value = data.contactsThisMonth
+    if (typeof data.contactsPrevMonth === 'number') contactsPrevMonth.value = data.contactsPrevMonth
+
+    if (visitedMapData.value?.mapSettings && data.mapSettings) {
+      visitedMapData.value.mapSettings = data.mapSettings
+    }
+
+    if (selectedClient.value) {
+      selectedClient.value = clientes.value.find((c) => c.id === selectedClient.value?.id) || null
+    }
+  } catch (err: any) {
+    console.error('Erro ao carregar clientes:', err)
+    clientes.value = []
+    loadClientsError.value =
+      err?.data?.statusMessage ||
+      err?.data?.message ||
+      err?.message ||
+      'Erro desconhecido'
+  }
+}
+
+function processGeoJsonCoordinates(coordinates: any[]): { lat: number; lng: number }[] {
+  const paths: { lat: number; lng: number }[] = []
+
+  function processCoords(coords: any) {
+    if (Array.isArray(coords[0]) && Array.isArray(coords[0][0])) {
+      coords.forEach((polygon: any) => {
+        polygon.forEach((ring: any) => {
+          ring.forEach((coord: any) => {
+            paths.push({ lat: coord[1], lng: coord[0] })
+          })
+        })
       })
-      .optional(),
-    contactsThisMonth: z.number().optional(),
-    contactsPrevMonth: z.number().optional(),
-  }),
+    } else if (Array.isArray(coords[0])) {
+      coords.forEach((ring: any) => {
+        ring.forEach((coord: any) => {
+          paths.push({ lat: coord[1], lng: coord[0] })
+        })
+      })
+    }
+  }
+
+  processCoords(coordinates)
+  return paths
+}
+
+const filteredMarkers = computed(() => {
+  if (!commercialMapData.value) return []
+
+  return commercialMapData.value.markers.filter((marker: MarkerData) => {
+    return filters.value[marker.type as keyof typeof filters.value]
+  })
 })
 
-const { data, pending, error, refresh } = await useFetch('/api/v1/clients', {
-  transform: (res) => ClientsResponseSchema.parse(res).data,
+const portfolioClientes = computed(() => {
+  if (filterTipo.value === 'inativo') {
+    return clientes.value.filter((c) => (c as any)?.status === 'inativo')
+  }
+  return clientes.value.filter((c) => (c as any)?.status !== 'inativo')
 })
 
-const clients = computed(() => data.value?.clients || [])
-const salesTotals = computed(() => {
-  const s = data.value?.salesTotals
+const filteredClientes = computed(() => {
+  let result = portfolioClientes.value
+
+  // Filtro por busca
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase()
+    const queryDigits = searchQuery.value.replace(/\D/g, '')
+    result = result.filter((cliente) =>
+      cliente.nome.toLowerCase().includes(query) ||
+      cliente.cidade?.toLowerCase().includes(query) ||
+      cliente.endereco?.toLowerCase().includes(query) ||
+      (queryDigits.length > 0 &&
+        ((cliente.cnpj || '').replace(/\D/g, '').includes(queryDigits) ||
+          String(cliente.id || '').replace(/\D/g, '').includes(queryDigits)))
+    )
+  }
+
+  // Filtro por segmento
+  if (filterSegmento.value) {
+    result = result.filter((cliente) => cliente.segmento === filterSegmento.value)
+  }
+
+  // Filtro por tipo
+  if (filterTipo.value) {
+    result = result.filter((cliente) => keyForClient(cliente) === (filterTipo.value as any))
+  }
+
+  return result
+})
+
+const MAX_PINS = 2500
+const clientesParaPins = computed(() => {
+  const geocoded = filteredClientes.value.filter(
+    (c) => Number.isFinite((c as any).lat) && Number.isFinite((c as any).lng)
+  )
+  if (geocoded.length <= MAX_PINS) return geocoded
+  return geocoded.slice(0, MAX_PINS)
+})
+
+function markerColor(cliente: any) {
+  return metaForClient(cliente).colorHex
+}
+
+function safeNumber(v: any) {
+  const n = typeof v === 'number' ? v : Number(v)
+  return Number.isFinite(n) ? n : 0
+}
+
+function formatCompactMoney(v: number) {
+  const n = Math.round(v)
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n >= 10_000_000 ? 0 : 1)}M`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(n >= 10_000 ? 0 : 1)}k`
+  return String(n)
+}
+
+const pinMetricByClientId = computed(() => {
+  const list = clientesParaPins.value
+  const pairs = list.map((c: any) => {
+    const totalAllTime = safeNumber(c?.sales?.totalAllTime)
+    const total12m = safeNumber(c?.sales?.total12m)
+    const total90d = safeNumber(c?.sales?.total90d)
+    const mesAberto = safeNumber(c?.objectives?.mesAberto)
+    const metric = total90d || total12m || mesAberto || totalAllTime || safeNumber(c?.sales?.priorityScore)
+    return { id: c.id, metric, totalAllTime, total12m, total90d, mesAberto }
+  })
+
+  pairs.sort((a, b) => b.metric - a.metric)
+
+  const rank = new Map<string, number>()
+  const metric = new Map<string, number>()
+  const totals = new Map<string, { totalAllTime: number; total12m: number; total90d: number; mesAberto: number }>()
+  pairs.forEach((p, idx) => {
+    rank.set(p.id, idx + 1)
+    metric.set(p.id, p.metric)
+    totals.set(p.id, { totalAllTime: p.totalAllTime, total12m: p.total12m, total90d: p.total90d, mesAberto: p.mesAberto })
+  })
+
+  const maxMetric = pairs.length ? Math.max(1, pairs[0].metric) : 1
+  return { rank, metric, totals, maxMetric }
+})
+
+const createVisitedMarkers = computed(() => {
+  const meta = pinMetricByClientId.value
+  return clientesParaPins.value
+    .map((cliente) => ({
+      lat: cliente.lat,
+      lng: cliente.lng,
+      title: (() => {
+        const id = (cliente as any).id
+        const m = meta.metric.get(id) || 0
+        const r = meta.rank.get(id) || 1
+        return m > 0 ? `${cliente.nome} (#${r} · R$ ${formatCompactMoney(m)})` : `${cliente.nome} (#${r})`
+      })(),
+      // Número do pin: ranking (sempre varia). O "peso" fica no tamanho.
+      value: meta.rank.get((cliente as any).id) || 1,
+      color: markerColor(cliente),
+      size: (() => {
+        const m = meta.metric.get((cliente as any).id) || 0
+        if (m <= 0) return 18
+        const ratio = Math.max(0, Math.min(1, m / meta.maxMetric))
+        return 16 + Math.round(ratio * 12)
+      })(),
+      clientId: cliente.id,
+    }))
+})
+
+const stats = computed(() => {
+  if (!commercialMapData.value) return { total: 0, filiais: 0, distribuidores: 0, parceiros: 0 }
+
+  const markers = commercialMapData.value.markers
   return {
-    month: s?.month || 0,
-    monthPrev: s?.monthPrev || 0,
-    monthPrevYear: s?.monthPrevYear || 0,
-    quarter: s?.quarter || 0,
-    quarterPrev: s?.quarterPrev || 0,
-    quarterPrevYear: s?.quarterPrevYear || 0,
-    year: s?.year || 0,
-    yearPrevYear: s?.yearPrevYear || 0,
+    total: markers.length,
+    filiais: markers.filter((m: MarkerData) => m.type === 'filial' || m.type === 'sede').length,
+    distribuidores: markers.filter((m: MarkerData) => m.type === 'distribuidor').length,
+    parceiros: markers.filter((m: MarkerData) => m.type === 'parceiro').length,
   }
 })
 
-const contactsThisMonth = computed(() => Number(data.value?.contactsThisMonth) || 0)
-const contactsPrevMonth = computed(() => Number(data.value?.contactsPrevMonth) || 0)
-
-const { keyForClient } = useClientEngagementStatus()
-
-const createdThisMonth = computed(() => {
-  const now = new Date()
-  const start = new Date(now)
-  start.setDate(1)
-  start.setHours(0, 0, 0, 0)
-
-  let count = 0
-  for (const c of clients.value as any[]) {
-    const iso = c?.createdAt
-    if (typeof iso !== 'string' || !iso) continue
-    const d = new Date(iso)
-    if (Number.isNaN(d.getTime())) continue
-    if (d >= start) count++
-  }
-  return count
-})
-
-const statusBuckets = computed(() => {
+const carteiraBuckets = computed(() => {
   let verde = 0
   let amarelo = 0
   let vermelho = 0
   let potencial = 0
   let inativo = 0
 
-  for (const c of clients.value as any[]) {
+  for (const c of portfolioClientes.value as any[]) {
     const k = keyForClient(c)
     if (k === 'inativo') inativo++
     else if (k === 'potencial') potencial++
@@ -475,94 +674,79 @@ const statusBuckets = computed(() => {
     else verde++
   }
 
-  return { verde, amarelo, vermelho, potencial, inativo }
-})
-
-const segmentos = computed(() => {
-  const out = { otica: 0, relojoaria: 0, semijoia: 0, multimarcas: 0 }
-  for (const c of clients.value as any[]) {
-    const seg = String(c?.segmento || '')
-    if (seg === 'otica') out.otica++
-    else if (seg === 'relojoaria') out.relojoaria++
-    else if (seg === 'semijoia') out.semijoia++
-    else if (seg === 'multimarcas') out.multimarcas++
+  return {
+    verde,
+    amarelo,
+    vermelho,
+    potencial,
+    inativo,
+    total: verde + amarelo + vermelho + potencial + inativo,
   }
-  return out
 })
 
-const stats = computed(() => ({
-  totalClients: clients.value.length,
-  createdThisMonth: createdThisMonth.value,
-  activosVerde: statusBuckets.value.verde,
-  activosAmarelo: statusBuckets.value.amarelo,
-  activosVermelho: statusBuckets.value.vermelho,
-  potenciais: statusBuckets.value.potencial,
-  inativos: statusBuckets.value.inativo,
-  contatosNoMes: contactsThisMonth.value,
-  faturamentoMensal: salesTotals.value.month,
-  faturamentoTrimestral: salesTotals.value.quarter,
-  faturamentoAnual: salesTotals.value.year,
-  segmentos: segmentos.value,
-}))
-
-const currentDate = computed(() => {
-  return new Intl.DateTimeFormat('pt-BR', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-  }).format(new Date())
+const visitedStats = computed(() => {
+  const carteira = carteiraBuckets.value
+  return {
+    total: carteira.total,
+    ativosVerde: carteira.verde,
+    ativosAmarelo: carteira.amarelo,
+    ativosVermelho: carteira.vermelho,
+    potenciais: carteira.potencial,
+    inativos: carteira.inativo,
+    contatosNoMes: contactsThisMonth.value,
+    faturamentoMensal: salesTotals.value.month,
+    faturamentoTrimestral: salesTotals.value.quarter,
+    faturamentoAnual: salesTotals.value.year,
+  }
 })
 
-function pct(n: number, d: number) {
-  if (!d) return 0
-  return Math.round((n / d) * 100)
-}
-
-const activePercentage = computed(() => pct(stats.value.activosVerde, stats.value.totalClients))
-const activePercentagePct = computed(() => `${activePercentage.value}%`)
-
-const attentionPercentage = computed(() =>
-  pct(stats.value.activosAmarelo, stats.value.totalClients)
-)
-const attentionPercentagePct = computed(() => `${attentionPercentage.value}%`)
-
-const criticalPercentage = computed(() =>
-  pct(stats.value.activosVermelho, stats.value.totalClients)
-)
-const criticalPercentagePct = computed(() => `${criticalPercentage.value}%`)
-
-const potentialPercentage = computed(() =>
-  pct(stats.value.potenciais, stats.value.totalClients)
-)
-const potentialPercentagePct = computed(() => `${potentialPercentage.value}%`)
-
-const inactivePercentage = computed(() =>
-  pct(stats.value.inativos, stats.value.totalClients)
-)
-const inactivePercentagePct = computed(() => `${inactivePercentage.value}%`)
-
-type DeltaMeta = { text: string; textClass: string; icon: string; iconClass: string }
-function deltaMeta(current: number, previous: number): DeltaMeta {
+function deltaMeta(current: number, previous: number) {
   const c = Number.isFinite(current) ? current : 0
   const p = Number.isFinite(previous) ? previous : 0
 
   if (p <= 0) {
-    if (c <= 0) return { text: '0%', textClass: 'text-slate-600', icon: 'mdi:minus', iconClass: 'text-slate-500' }
-    return { text: 'novo', textClass: 'text-emerald-700', icon: 'mdi:trending-up', iconClass: 'text-emerald-600' }
+    if (c <= 0) return { text: '0%', class: 'text-slate-600', icon: 'mdi:minus' }
+    return { text: 'novo', class: 'text-emerald-700', icon: 'mdi:trending-up' }
   }
 
   const pct = Math.round(((c - p) / p) * 100)
-  if (pct > 0) return { text: `+${pct}%`, textClass: 'text-emerald-700', icon: 'mdi:trending-up', iconClass: 'text-emerald-600' }
-  if (pct < 0) return { text: `${pct}%`, textClass: 'text-red-700', icon: 'mdi:trending-down', iconClass: 'text-red-600' }
-  return { text: '0%', textClass: 'text-slate-600', icon: 'mdi:minus', iconClass: 'text-slate-500' }
+  if (pct > 0) return { text: `+${pct}%`, class: 'text-emerald-700', icon: 'mdi:trending-up' }
+  if (pct < 0) return { text: `${pct}%`, class: 'text-red-700', icon: 'mdi:trending-down' }
+  return { text: '0%', class: 'text-slate-600', icon: 'mdi:minus' }
 }
 
 const contatosVsMesAnterior = computed(() => deltaMeta(contactsThisMonth.value, contactsPrevMonth.value))
 const mensalVsMesAnterior = computed(() => deltaMeta(salesTotals.value.month, salesTotals.value.monthPrev))
-const mensalVsMesmoMesAnoAnterior = computed(() => deltaMeta(salesTotals.value.month, salesTotals.value.monthPrevYear))
-const trimestralVsTrimestreAnterior = computed(() => deltaMeta(salesTotals.value.quarter, salesTotals.value.quarterPrev))
-const trimestralVsMesmoTrimestreAnoAnterior = computed(() => deltaMeta(salesTotals.value.quarter, salesTotals.value.quarterPrevYear))
+const mensalVsMesmoMesAnoAnterior = computed(() =>
+  deltaMeta(salesTotals.value.month, salesTotals.value.monthPrevYear)
+)
+const trimestralVsTrimestreAnterior = computed(() =>
+  deltaMeta(salesTotals.value.quarter, salesTotals.value.quarterPrev)
+)
+const trimestralVsMesmoTrimestreAnoAnterior = computed(() =>
+  deltaMeta(salesTotals.value.quarter, salesTotals.value.quarterPrevYear)
+)
 const anualVsAnoAnterior = computed(() => deltaMeta(salesTotals.value.year, salesTotals.value.yearPrevYear))
+
+const actionPlanTop = computed(() => topTasks(portfolioClientes.value, { limit: 8 }))
+
+function whatsAppUrl(telefoneRaw: string, nome: string) {
+  const telefone = String(telefoneRaw || '').replace(/\D/g, '')
+  if (!telefone) return '#'
+  const mensagem = encodeURIComponent(`Olá ${nome}! Sou representante comercial e gostaria de falar com você.`)
+  return `https://wa.me/55${telefone}?text=${mensagem}`
+}
+
+function noop() {}
+
+function formatDate(dateString: string): string {
+  const date = new Date(dateString)
+  return new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(date)
+}
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat('pt-BR', {
@@ -572,22 +756,59 @@ function formatCurrency(value: number): string {
     maximumFractionDigits: 0,
   }).format(value)
 }
-</script>
 
-<style scoped>
-.bar-active {
-  width: v-bind(activePercentagePct);
+function handleVisitedMarkerClick(marker: any) {
+  const cliente = clientes.value.find((c) => c.id === marker.clientId)
+  if (cliente) {
+    selectedClient.value = cliente
+    isSidePanelOpen.value = true
+  }
 }
-.bar-attention {
-  width: v-bind(attentionPercentagePct);
+
+function handleAddVisit() {
+  isModalNovaVisitaOpen.value = true
 }
-.bar-critical {
-  width: v-bind(criticalPercentagePct);
+
+function handleSubmitNovaVisita(payload: any) {
+  if (!selectedClient.value) return
+
+  createEvento({
+    clientId: selectedClient.value.id,
+    userId: currentUserId,
+    ...payload,
+  }).then(async () => {
+    await loadClients()
+  })
+
+  isModalNovaVisitaOpen.value = false
 }
-.bar-potential {
-  width: v-bind(potentialPercentagePct);
+
+function handleOpenEditarCliente() {
+  isModalEditarClienteOpen.value = true
 }
-.bar-inactive {
-  width: v-bind(inactivePercentagePct);
+
+function handleSubmitEditarCliente(updates: Record<string, unknown>) {
+  if (!selectedClient.value) return
+
+  patchClient(selectedClient.value.id, updates as any).then(async (updated) => {
+    selectedClient.value = updated
+    await loadClients()
+  })
+
+  isModalEditarClienteOpen.value = false
 }
-</style>
+
+function handleRemoveCliente() {
+  if (!selectedClient.value) return
+
+  deleteClient(selectedClient.value.id).then(async () => {
+    isSidePanelOpen.value = false
+    selectedClient.value = null
+    await loadClients()
+  })
+}
+
+definePageMeta({
+  layout: 'default',
+})
+</script>
