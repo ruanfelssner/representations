@@ -469,7 +469,7 @@ onMounted(() => {
 async function loadClients() {
   try {
     loadClientsError.value = ''
-    const data = await fetchClients({ scope: 'portfolio' })
+    const data = await fetchClients({ scope: 'portfolio', exclude: ['inativo'] })
     clientes.value = (data.clients || []) as Cliente[]
     if (data.salesTotals) {
       salesTotals.value = {

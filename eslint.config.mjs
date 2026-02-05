@@ -1,19 +1,10 @@
 // @ts-check
-import fs from 'node:fs'
-import path from 'node:path'
+import withNuxt from './.nuxt/eslint.config.mjs'
 
-const nuxtEslintConfigPath = path.resolve(process.cwd(), '.nuxt/eslint.config.mjs')
-const withNuxt = fs.existsSync(nuxtEslintConfigPath)
-  ? (await import(nuxtEslintConfigPath)).default
-  : (config) => config
-
-const nuxtConfig = withNuxt({
+export default withNuxt({
   rules: {
     'vue/multi-word-component-names': 'off',
     'vue/no-v-html': 'off',
+    '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
   },
 })
-
-const nuxtConfigArray = Array.isArray(nuxtConfig) ? nuxtConfig : [nuxtConfig]
-
-export default [{ ignores: ['.nuxt/**', 'node_modules/**', 'dist/**', '.output/**'] }, ...nuxtConfigArray]

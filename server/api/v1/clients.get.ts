@@ -1,7 +1,33 @@
+import { createError } from 'h3'
 import { getMongoDb } from '../../utils/mongo'
 import { toClientApi } from '../../utils/dto'
+import { z } from 'zod'
 
 const SALES_TYPES = ['venda_fisica', 'venda_ligacao']
+const CLIENT_STATUS = ['ativo', 'potencial', 'inativo'] as const
+
+const ClientsQuerySchema = z.object({
+  exclude: z.union([z.string(), z.array(z.string())]).optional(),
+})
+
+function normalizeExcludeStatuses(input: string | string[] | undefined) {
+  const rawValues = (Array.isArray(input) ? input : input ? [input] : [])
+    .flatMap((v) => String(v).split(','))
+    .map((v) => v.trim().toLowerCase())
+    .filter(Boolean)
+
+  const out: (typeof CLIENT_STATUS)[number][] = []
+  for (const v of rawValues) {
+    if (!(CLIENT_STATUS as readonly string[]).includes(v)) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: `exclude inválido: "${v}". Use: ${CLIENT_STATUS.join(', ')}.`,
+      })
+    }
+    out.push(v as (typeof CLIENT_STATUS)[number])
+  }
+  return out
+}
 
 type HistoricoSummary = {
   lastContactAt?: string
@@ -298,6 +324,16 @@ async function getHistoricoSummary(db: any): Promise<HistoricoSummaryResult> {
 }
 
 export default defineEventHandler(async (event) => {
+  const url = new URL((event as any)?.node?.req?.url || (event as any)?.req?.url || '', 'http://localhost')
+  const queryParsed = ClientsQuerySchema.safeParse({
+    exclude: url.searchParams.getAll('exclude'),
+  })
+  if (!queryParsed.success) {
+    throw createError({ statusCode: 400, statusMessage: 'Query inválida.' })
+  }
+  const exclude = normalizeExcludeStatuses(queryParsed.data.exclude)
+  const excludeInactive = exclude.includes('inativo')
+
   const db = await getMongoDb()
   const { byClientId: summaryByClientId, salesTotals, contactsThisMonth, contactsPrevMonth } = await getHistoricoSummary(db)
   const clients = await db
@@ -326,7 +362,9 @@ export default defineEventHandler(async (event) => {
     return c
   })
 
-  const center = mapped.reduce(
+  const filtered = excludeInactive ? mapped.filter((c: any) => c?.status !== 'inativo') : mapped
+
+  const center = filtered.reduce(
     (acc: { lat: number; lng: number; n: number }, c: any) => {
       if (Number.isFinite(c.lat) && Number.isFinite(c.lng)) {
         acc.lat += c.lat
@@ -343,5 +381,5 @@ export default defineEventHandler(async (event) => {
       ? { center: { lat: center.lat / center.n, lng: center.lng / center.n }, zoom: 7 }
       : { center: { lat: -27.5954, lng: -48.548 }, zoom: 7 }
 
-  return { success: true, data: { clients: mapped, mapSettings, salesTotals, contactsThisMonth, contactsPrevMonth } }
+  return { success: true, data: { clients: filtered, mapSettings, salesTotals, contactsThisMonth, contactsPrevMonth } }
 })

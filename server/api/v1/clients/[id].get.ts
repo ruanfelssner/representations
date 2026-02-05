@@ -1,18 +1,32 @@
 import { createError } from 'h3'
+import { ObjectId } from 'mongodb'
 import { getMongoDb } from '../../../utils/mongo'
 import { toClientApi } from '../../../utils/dto'
 
 const SALES_TYPES = ['venda_fisica', 'venda_ligacao']
+
+async function resolveClientDoc(db: any, id: string) {
+  if (/^[0-9a-fA-F]{24}$/.test(id)) {
+    const byObjectId = await db.collection('clients').findOne({ _id: new ObjectId(id) })
+    if (byObjectId) return byObjectId
+  }
+  const byId = await db.collection('clients').findOne({ _id: id })
+  if (byId) return byId
+  const byCnpj = await db.collection('clients').findOne({ cnpj: id })
+  if (byCnpj) return byCnpj
+  return null
+}
 
 export default defineEventHandler(async (event) => {
   const { id } = getRouterParams(event)
   if (!id) throw createError({ statusCode: 400, statusMessage: 'id é obrigatório.' })
 
   const db = await getMongoDb()
-  const client = await db.collection('clients').findOne({ _id: id })
-  if (!client) throw createError({ statusCode: 404, statusMessage: 'Cliente não encontrado.' })
+  const client = await resolveClientDoc(db, id)
+  if (!client) throw createError({ statusCode: 404, statusMessage: 'Cliente não encontrado. ' })
 
   const dto: any = toClientApi(client)
+  const clientIdKeys = [String(client?._id || ''), id].filter(Boolean)
 
   // Enriquecer com resumo do histórico (para debug/UI)
   const now = new Date()
@@ -34,7 +48,7 @@ export default defineEventHandler(async (event) => {
             totalVendaNum: { $convert: { input: '$totalVenda', to: 'double', onError: 0, onNull: 0 } },
           },
         },
-        { $match: { clientId: id, dataDate: { $ne: null } } },
+        { $match: { clientId: { $in: clientIdKeys }, dataDate: { $ne: null } } },
         {
           $group: {
             _id: '$clientId',

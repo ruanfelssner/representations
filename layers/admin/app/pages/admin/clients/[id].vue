@@ -29,46 +29,29 @@
 
     <!-- Formulário -->
     <NLayer v-else variant="paper" size="base" radius="soft" class="p-5">
-      <form @submit.prevent="handleSubmit" class="space-y-4">
+      <form @submit.prevent="onSubmit" class="space-y-4">
         <!-- Nome -->
-        <div>
+       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+         <div>
           <NTypo as="label" size="xs" weight="semibold" tone="muted" class="block mb-1.5">
             Nome do Cliente *
           </NTypo>
-          <NInput
-            v-model="form.nome"
-            type="text"
-            placeholder="Ex: Ótica Visão Clara"
-            required
-          />
+          <NInput v-model="nome" v-bind="nomeAttrs" type="text" placeholder="Ex: Ótica Visão Clara" required />
           <NTypo v-if="errors.nome" size="xs" class="text-red-600 mt-1">{{ errors.nome }}</NTypo>
         </div>
-
-        <!-- Segmento e Status -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        
           <div>
             <NTypo as="label" size="xs" weight="semibold" tone="muted" class="block mb-1.5">
               Segmento *
             </NTypo>
-            <NSelect v-model="form.segmento" required>
+            <NSelect v-model="segmento" v-bind="segmentoAttrs" required>
               <option value="otica">👓 Ótica</option>
               <option value="relojoaria">⌚ Relojoaria</option>
               <option value="semijoia">💍 Semi-joias</option>
               <option value="multimarcas">🏪 Multimarcas</option>
             </NSelect>
           </div>
-
-          <div>
-            <NTypo as="label" size="xs" weight="semibold" tone="muted" class="block mb-1.5">
-              Status
-            </NTypo>
-            <NSelect v-model="form.status">
-              <option value="ativo">✅ Ativo</option>
-              <option value="potencial">🎯 Potencial</option>
-              <option value="inativo">⏸️ Inativo</option>
-            </NSelect>
-          </div>
-        </div>
+       </div>
 
         <!-- Contato -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -76,22 +59,14 @@
             <NTypo as="label" size="xs" weight="semibold" tone="muted" class="block mb-1.5">
               Telefone
             </NTypo>
-            <NInput
-              v-model="form.telefone"
-              type="tel"
-              placeholder="(48) 99999-9999"
-            />
+            <NInput v-model="telefone" v-bind="telefoneAttrs" type="tel" placeholder="(48) 99999-9999" />
           </div>
 
           <div>
             <NTypo as="label" size="xs" weight="semibold" tone="muted" class="block mb-1.5">
               Email
             </NTypo>
-            <NInput
-              v-model="form.email"
-              type="email"
-              placeholder="contato@exemplo.com"
-            />
+            <NInput v-model="email" v-bind="emailAttrs" type="email" placeholder="contato@exemplo.com" />
           </div>
         </div>
 
@@ -100,11 +75,7 @@
           <NTypo as="label" size="xs" weight="semibold" tone="muted" class="block mb-1.5">
             CNPJ
           </NTypo>
-          <NInput
-            v-model="form.cnpj"
-            type="text"
-            placeholder="00.000.000/0000-00"
-          />
+          <NInput v-model="cnpj" v-bind="cnpjAttrs" type="text" placeholder="00.000.000/0000-00" />
         </div>
 
         <!-- Endereço Completo -->
@@ -113,11 +84,13 @@
             Endereço Completo *
           </NTypo>
           <NInput
-            v-model="form.endereco_completo"
+            v-model="endereco_completo"
+            v-bind="enderecoAttrs"
             type="text"
             placeholder="Rua, número, bairro, cidade - SC"
             required
           />
+          <NTypo v-if="errors.endereco_completo" size="xs" class="text-red-600 mt-1">{{ errors.endereco_completo }}</NTypo>
           <NTypo size="xs" tone="muted" class="mt-1">
             Este endereço será geocodificado automaticamente
           </NTypo>
@@ -128,11 +101,7 @@
           <NTypo as="label" size="xs" weight="semibold" tone="muted" class="block mb-1.5">
             Cidade
           </NTypo>
-          <NInput
-            v-model="form.cidade"
-            type="text"
-            placeholder="Ex: Florianópolis"
-          />
+          <NInput v-model="cidade" v-bind="cidadeAttrs" type="text" placeholder="Ex: Florianópolis" />
         </div>
 
         <!-- Observações -->
@@ -141,7 +110,8 @@
             Observações
           </NTypo>
           <NTextArea
-            v-model="form.observacoes"
+            v-model="observacoes"
+            v-bind="observacoesAttrs"
             rows="3"
             placeholder="Informações adicionais sobre o cliente..."
           />
@@ -161,7 +131,7 @@
           <NButton
             type="submit"
             variant="primary"
-            :disabled="isSubmitting"
+            :disabled="isBusy"
             class="flex-1"
           >
             {{ isSubmitting ? '⏳ Salvando...' : isNew ? '📝 Criar Cliente' : '💾 Salvar Alterações' }}
@@ -170,7 +140,7 @@
             v-if="!isNew && client?.status !== 'inativo'"
             @click="handleInativar"
             variant="danger"
-            :disabled="isSubmitting"
+            :disabled="isBusy"
             class="flex-1"
           >
             ⏸️ Inativar Cliente
@@ -179,7 +149,7 @@
             v-if="!isNew && client?.status === 'inativo'"
             @click="handleReativar"
             variant="success"
-            :disabled="isSubmitting"
+            :disabled="isBusy"
             class="flex-1"
           >
             ✅ Reativar Cliente
@@ -188,7 +158,7 @@
             as="NuxtLink"
             to="/admin/clients"
             variant="outline"
-            :disabled="isSubmitting"
+            :disabled="isBusy"
           >
             Cancelar
           </NButton>
@@ -282,10 +252,15 @@
 
 <script setup lang="ts">
 import { z } from 'zod'
+import { toTypedSchema } from '@vee-validate/zod'
+import { useForm } from 'vee-validate'
 import { ClientDtoSchema, HistoricoClienteDtoSchema } from '~/types/schemas'
 import { useClientsApi } from '~/composables/useClientsApi'
 
-definePageMeta({ layout: 'admin' })
+definePageMeta({
+  layout: 'admin',
+  key: (route) => String(route.params.id || 'new'),
+})
 
 const route = useRoute()
 const router = useRouter()
@@ -294,67 +269,76 @@ const isNew = id === 'new'
 
 const { createClient, patchClient } = useClientsApi()
 
-// Form state
-const form = ref({
-  nome: '',
-  segmento: 'otica' as 'otica' | 'relojoaria' | 'semijoia' | 'multimarcas',
-  status: 'potencial' as 'ativo' | 'potencial' | 'inativo',
-  telefone: '',
-  email: '',
-  cnpj: '',
-  endereco_completo: '',
-  cidade: '',
-  observacoes: '',
+const emptyToUndefined = (value: unknown) =>
+  typeof value === 'string' && value.trim() === '' ? undefined : value
+
+const ClientForm = z.object({
+  nome: z.string().trim().min(1, 'Nome é obrigatório'),
+  segmento: z.enum(['otica', 'relojoaria', 'semijoia', 'multimarcas']),
+  status: z.enum(['ativo', 'potencial', 'inativo']),
+  telefone: z.preprocess(emptyToUndefined, z.string().optional()),
+  email: z.preprocess(emptyToUndefined, z.string().email('Email inválido').optional()),
+  cnpj: z.preprocess(emptyToUndefined, z.string().optional()),
+  endereco_completo: z.string().trim().min(1, 'Endereço é obrigatório'),
+  cidade: z.preprocess(emptyToUndefined, z.string().optional()),
+  observacoes: z.preprocess(emptyToUndefined, z.string().optional()),
 })
 
-const errors = ref<Record<string, string>>({})
-const isSubmitting = ref(false)
+export type ClientForm = z.infer<typeof ClientForm>
+
+const ClientFormSchema = toTypedSchema(ClientForm)
+
+const isMutating = ref(false)
 const submitError = ref('')
 const submitSuccess = ref('')
 
-// Schemas
 const ClientResponseSchema = z.object({ success: z.boolean(), data: ClientDtoSchema })
 const HistoricoResponseSchema = z.object({ success: z.boolean(), data: z.array(HistoricoClienteDtoSchema) })
 
-// Fetch client (somente se não for novo)
-const { data: client, pending: pendingClient, error: clientError } = await useFetch(
-  isNew ? null : `/api/v1/clients/${encodeURIComponent(id)}`,
-  { 
-    transform: (res) => ClientResponseSchema.parse(res).data,
+const { data: client, pending: pendingClient, error: clientError, refresh: refreshClient } = await useFetch(
+  `/api/v1/clients/${id}`,
+  {
     immediate: !isNew,
+    transform: (res) => ClientResponseSchema.parse(res).data,
   }
 )
 
-// Popular form quando carregar cliente existente
-watch(client, (clientData) => {
-  if (clientData) {
-    form.value = {
-      nome: clientData.nome || '',
-      segmento: (clientData.segmento || 'otica') as any,
-      status: (clientData.status || 'potencial') as any,
-      telefone: clientData.telefone || '',
-      email: clientData.email || '',
-      cnpj: clientData.cnpj || '',
-      endereco_completo: clientData.endereco_completo || clientData.endereco?.endereco_completo || '',
-      cidade: clientData.cidade || clientData.endereco?.cidade || '',
-      observacoes: clientData.observacoes || '',
-    }
-  }
-}, { immediate: true })
-
-// Fetch histórico (somente se não for novo)
 const {
   data: historico,
   pending: pendingHistorico,
   error: historicoError,
   refresh: refreshHistorico,
-} = await useFetch(
-  isNew ? null : `/api/v1/historico-cliente?clientId=${encodeURIComponent(id)}&limit=200`,
+} = await useFetch(`/api/v1/historico-cliente?clientId=${id}&limit=200`,
   {
-    transform: (res) => HistoricoResponseSchema.parse(res).data,
     immediate: !isNew,
+    transform: (res) => HistoricoResponseSchema.parse(res).data,
   }
 )
+
+const { handleSubmit, errors, isSubmitting, defineField, resetForm, meta } = useForm({
+  validationSchema: ClientFormSchema,
+  initialValues: {
+    nome: '',
+    segmento: 'otica' as any,
+    status: 'potencial' as any,
+    telefone: '',
+    email: '',
+    cnpj: '',
+    endereco_completo: '',
+    cidade: '',
+    observacoes: '',
+  },
+})
+
+const [nome, nomeAttrs] = defineField('nome')
+const [segmento, segmentoAttrs] = defineField('segmento')
+const [status, statusAttrs] = defineField('status')
+const [telefone, telefoneAttrs] = defineField('telefone')
+const [email, emailAttrs] = defineField('email')
+const [cnpj, cnpjAttrs] = defineField('cnpj')
+const [endereco_completo, enderecoAttrs] = defineField('endereco_completo')
+const [cidade, cidadeAttrs] = defineField('cidade')
+const [observacoes, observacoesAttrs] = defineField('observacoes')
 
 const { metaForClient } = useClientEngagementStatus()
 const statusMeta = computed(() => metaForClient(client.value))
@@ -362,68 +346,76 @@ const statusMeta = computed(() => metaForClient(client.value))
 const { taskForClient } = useSellerActionPlan()
 const task = computed(() => (client.value ? taskForClient(client.value) : null))
 
-// Validação básica
-function validateForm(): boolean {
-  errors.value = {}
-  
-  if (!form.value.nome.trim()) {
-    errors.value.nome = 'Nome é obrigatório'
-    return false
-  }
-  
-  if (!form.value.endereco_completo.trim()) {
-    errors.value.endereco_completo = 'Endereço é obrigatório'
-    return false
-  }
-  
-  return true
+const isBusy = computed(() => isSubmitting.value || isMutating.value)
+const mapClientToFormValues = (value: typeof client.value) => ({
+  nome: value?.nome ?? '',
+  segmento: (value?.segmento ?? 'otica') as any,
+  status: (value?.status ?? 'potencial') as any,
+  telefone: value?.telefone ?? '',
+  email: value?.email ?? '',
+  cnpj: value?.cnpj ?? '',
+  endereco_completo: value?.endereco_completo ?? '',
+  cidade: value?.cidade ?? '',
+  observacoes: value?.observacoes ?? '',
+})
+
+watch(
+  () => client.value,
+  (value) => {
+    if (!value) return
+    if (meta.value.dirty) return
+    resetForm({ values: mapClientToFormValues(value) })
+  },
+  { immediate: true }
+)
+
+const normalizeOptional = (value: string | undefined) => {
+  const normalized = (value ?? '').trim()
+  return normalized ? normalized : undefined
 }
 
-// Submit
-async function handleSubmit() {
-  if (!validateForm()) {
-    return
-  }
-
-  isSubmitting.value = true
+const onSubmit = handleSubmit(async (values) => {
   submitError.value = ''
   submitSuccess.value = ''
 
   try {
     if (isNew) {
-      // Criar novo cliente
       const novoCliente = await createClient({
-        nome: form.value.nome,
-        segmento: form.value.segmento,
-        status: form.value.status,
-        telefone: form.value.telefone || undefined,
-        email: form.value.email || undefined,
-        cnpj: form.value.cnpj || undefined,
-        endereco_completo: form.value.endereco_completo,
-        cidade: form.value.cidade || undefined,
-        observacoes: form.value.observacoes || undefined,
+        nome: values.nome.trim(),
+        segmento: values.segmento,
+        status: values.status,
+        telefone: normalizeOptional(values.telefone),
+        email: normalizeOptional(values.email),
+        cnpj: normalizeOptional(values.cnpj),
+        endereco_completo: values.endereco_completo.trim(),
+        cidade: normalizeOptional(values.cidade),
+        observacoes: normalizeOptional(values.observacoes),
       })
 
       submitSuccess.value = `Cliente "${novoCliente.nome}" criado com sucesso!`
-      
-      // Redirecionar após 1.5s
+
       setTimeout(() => {
         router.push(`/admin/clients/${novoCliente.id}`)
       }, 1500)
     } else {
-      // Atualizar cliente existente
-      const updates: any = {}
-      if (form.value.nome !== client.value?.nome) updates.nome = form.value.nome
-      if (form.value.segmento !== client.value?.segmento) updates.segmento = form.value.segmento
-      if (form.value.status !== client.value?.status) updates.status = form.value.status
-      if (form.value.telefone !== client.value?.telefone) updates.telefone = form.value.telefone
-      if (form.value.email !== client.value?.email) updates.email = form.value.email
-      if (form.value.cnpj !== client.value?.cnpj) updates.cnpj = form.value.cnpj
-      if (form.value.endereco_completo !== client.value?.endereco_completo) {
-        updates.endereco_completo = form.value.endereco_completo
-      }
-      if (form.value.cidade !== client.value?.cidade) updates.cidade = form.value.cidade
-      if (form.value.observacoes !== client.value?.observacoes) updates.observacoes = form.value.observacoes
+      const updates: Record<string, unknown> = {}
+      const nextNome = values.nome.trim()
+      const nextEndereco = values.endereco_completo.trim()
+      const nextTelefone = normalizeOptional(values.telefone)
+      const nextEmail = normalizeOptional(values.email)
+      const nextCnpj = normalizeOptional(values.cnpj)
+      const nextCidade = normalizeOptional(values.cidade)
+      const nextObservacoes = normalizeOptional(values.observacoes)
+
+      if (nextNome !== (client.value?.nome ?? '')) updates.nome = nextNome
+      if (values.segmento !== client.value?.segmento) updates.segmento = values.segmento
+      if (values.status !== client.value?.status) updates.status = values.status
+      if (nextTelefone !== (client.value?.telefone ?? undefined)) updates.telefone = nextTelefone
+      if (nextEmail !== (client.value?.email ?? undefined)) updates.email = nextEmail
+      if (nextCnpj !== (client.value?.cnpj ?? undefined)) updates.cnpj = nextCnpj
+      if (nextEndereco !== (client.value?.endereco_completo ?? '')) updates.endereco_completo = nextEndereco
+      if (nextCidade !== (client.value?.cidade ?? undefined)) updates.cidade = nextCidade
+      if (nextObservacoes !== (client.value?.observacoes ?? undefined)) updates.observacoes = nextObservacoes
 
       if (Object.keys(updates).length === 0) {
         submitError.value = 'Nenhuma alteração detectada'
@@ -431,23 +423,32 @@ async function handleSubmit() {
       }
 
       await patchClient(id, updates)
+      await refreshClient()
+
       submitSuccess.value = 'Cliente atualizado com sucesso!'
 
-      // Limpar mensagem após 3s
       setTimeout(() => {
         submitSuccess.value = ''
       }, 3000)
     }
   } catch (error: any) {
     console.error('Erro ao salvar cliente:', error)
-    submitError.value = error?.data?.message || error?.message || 'Erro ao salvar cliente. Tente novamente.'
-  } finally {
-    isSubmitting.value = false
+    submitError.value =
+      error?.data?.statusMessage ||
+      error?.data?.message ||
+      error?.message ||
+      'Erro ao salvar cliente. Tente novamente.'
   }
-}
+})
 
-function formatDate(iso: string) {
-  return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(iso))
+function formatDate(iso: string | undefined) {
+  if (!iso) return '--'
+  try {
+    return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(iso))
+  } catch (e) {
+    console.warn('Invalid date:', iso)
+    return '--'
+  }
 }
 function formatCurrency(v: number) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
@@ -466,18 +467,19 @@ async function handleInativar() {
   const confirmar = confirm(`Tem certeza que deseja inativar o cliente "${client.value.nome}"?`)
   if (!confirmar) return
 
-  isSubmitting.value = true
+  isMutating.value = true
   submitError.value = ''
   submitSuccess.value = ''
 
   try {
     await patchClient(id, { status: 'inativo' })
+    
+    // Recarregar cliente do servidor
+    await refreshClient()
+    
     submitSuccess.value = 'Cliente inativado com sucesso!'
     
-    // Atualizar o form local
-    form.value.status = 'inativo'
-    
-    // Recarregar dados
+    // Recarregar histórico
     await refreshHistorico()
     
     setTimeout(() => {
@@ -485,9 +487,13 @@ async function handleInativar() {
     }, 3000)
   } catch (error: any) {
     console.error('Erro ao inativar cliente:', error)
-    submitError.value = error?.data?.message || error?.message || 'Erro ao inativar cliente. Tente novamente.'
+    submitError.value =
+      error?.data?.statusMessage ||
+      error?.data?.message ||
+      error?.message ||
+      'Erro ao inativar cliente. Tente novamente.'
   } finally {
-    isSubmitting.value = false
+    isMutating.value = false
   }
 }
 
@@ -497,18 +503,19 @@ async function handleReativar() {
   const confirmar = confirm(`Tem certeza que deseja reativar o cliente "${client.value.nome}"?`)
   if (!confirmar) return
 
-  isSubmitting.value = true
+  isMutating.value = true
   submitError.value = ''
   submitSuccess.value = ''
 
   try {
     await patchClient(id, { status: 'ativo' })
+    
+    // Recarregar cliente do servidor
+    await refreshClient()
+    
     submitSuccess.value = 'Cliente reativado com sucesso!'
     
-    // Atualizar o form local
-    form.value.status = 'ativo'
-    
-    // Recarregar dados
+    // Recarregar histórico
     await refreshHistorico()
     
     setTimeout(() => {
@@ -516,9 +523,13 @@ async function handleReativar() {
     }, 3000)
   } catch (error: any) {
     console.error('Erro ao reativar cliente:', error)
-    submitError.value = error?.data?.message || error?.message || 'Erro ao reativar cliente. Tente novamente.'
+    submitError.value =
+      error?.data?.statusMessage ||
+      error?.data?.message ||
+      error?.message ||
+      'Erro ao reativar cliente. Tente novamente.'
   } finally {
-    isSubmitting.value = false
+    isMutating.value = false
   }
 }
 </script>

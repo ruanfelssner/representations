@@ -16,8 +16,14 @@ const SalesTotalsSchema = z.object({
 })
 
 export function useClientsApi() {
-  const fetchClients = async (opts?: { scope?: 'all' | 'portfolio' }) => {
-    const query = opts?.scope ? `?scope=${encodeURIComponent(opts.scope)}` : ''
+  const fetchClients = async (opts?: {
+    scope?: 'all' | 'portfolio'
+    exclude?: Array<'ativo' | 'potencial' | 'inativo'>
+  }) => {
+    const params = new URLSearchParams()
+    if (opts?.scope) params.set('scope', opts.scope)
+    for (const v of opts?.exclude || []) params.append('exclude', v)
+    const query = params.size ? `?${params.toString()}` : ''
     const res = await $fetch<
       ApiResponse<{
         clients: unknown
@@ -70,10 +76,12 @@ export function useClientsApi() {
   }
 
   const patchClient = async (id: string, updates: Partial<Cliente> & { endereco_completo?: string }) => {
+    console.log('🔧 COMPOSABLE - patchClient chamado com:', { id, updates: JSON.stringify(updates) })
     const res = await $fetch<ApiResponse<unknown>>(`/api/v1/clients/${encodeURIComponent(id)}`, {
       method: 'PATCH',
       body: updates,
     })
+    console.log('🔧 COMPOSABLE - Resposta recebida:', res)
     return ClientDtoSchema.parse(res.data) as Cliente
   }
 

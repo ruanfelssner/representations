@@ -12,57 +12,38 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
-    "import:aco-e-ouro": "tsx scripts/import_aco_e_ouro.ts",
-    "import:plano-ouro": "tsx scripts/import_plano_ouro.ts",
-    "mongo:unset-color": "tsx scripts/mongo_unset_color.ts",
-    "migrate:step1:clients": "tsx scripts/migrate_step1_clients.ts",
-    "migrate:step2:historico": "tsx scripts/migrate_step2_historico.ts",
-    "rebuild:from-sources": "tsx scripts/rebuild_from_sources.ts",
-    "recompute:client-sales": "tsx scripts/recompute_client_sales.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.{js,ts,vue,json,md}\""
   },
   "dependencies": {
     "@iconify/vue": "^5.0.0",
-    "@nuxt/eslint": "1.13.0",
     "@vee-validate/zod": "^4.15.1",
+    "vee-validate": "^4.15.1",
     "bcryptjs": "^3.0.3",
-    "bullmq": "^5.67.2",
-    "eslint": "^9.39.2",
-    "h3": "2.0.1-rc.11",
+    "bullmq": "^5.27.0",
+    "h3": "1.15.5",
     "ioredis": "^5.9.2",
     "jose": "^6.1.3",
     "mongodb": "^7.0.0",
-    "nuxt": "^4.3.0",
-    "vee-validate": "^4.15.1",
+    "nuxt": "^4.2.2",
     "vue": "^3.5.27",
     "vue-router": "^4.6.4",
     "vue3-google-map": "^0.24.1",
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@nuxt/eslint": "1.13.0",
     "@nuxtjs/tailwindcss": "^6.14.0",
     "@tailwindcss/postcss": "^4.1.18",
     "@tailwindcss/vite": "^4.1.18",
     "@typescript-eslint/eslint-plugin": "^8.54.0",
     "@typescript-eslint/parser": "^8.54.0",
+    "eslint": "^9.39.2",
     "autoprefixer": "^10.4.24",
     "postcss": "^8.5.6",
     "prettier": "^3.8.1",
     "tailwindcss": "^4.1.18",
     "tsx": "^4.21.0"
-  },
-  "pnpm": {
-    "overrides": {
-      "unicorn-magic": "0.4.0"
-    },
-    "onlyBuiltDependencies": [
-      "@parcel/watcher",
-      "esbuild",
-      "lightningcss",
-      "msgpackr-extract",
-      "unrs-resolver"
-    ]
   }
 }

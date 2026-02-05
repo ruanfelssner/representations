@@ -42,7 +42,7 @@
         <NuxtLink
           v-for="c in filtered"
           :key="c.id"
-          :to="`/admin/clients/${encodeURIComponent(c.id)}`"
+          :to="`/admin/clients/${encodeURIComponent(c.cnpj || c.id)}`"
           class="block px-4 py-3 hover:bg-slate-50"
         >
           <div class="flex items-center justify-between gap-3">
@@ -59,7 +59,7 @@
                 </span>
               </div>
             </div>
-            <NTypo size="xs" tone="muted" class="tabular-nums">{{ c.id }}</NTypo>
+            <NTypo size="xs" tone="muted" class="tabular-nums">{{ c.cnpj || c.id }}</NTypo>
           </div>
         </NuxtLink>
       </div>

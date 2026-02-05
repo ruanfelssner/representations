@@ -165,7 +165,7 @@ export function toClientApi(doc: any) {
     segmento: typeof doc?.segmento === 'string' && doc.segmento.trim() ? doc.segmento : undefined,
     objectives,
     sales,
-    status: explicitStatus || inferredStatus,
+    status: explicitStatus ?? inferredStatus,
     createdAt,
     updatedAt,
     localizacao,
