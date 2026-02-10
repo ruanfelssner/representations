@@ -16,6 +16,7 @@ export type CreateHistoricoPayload = {
     | 'feedback'
   data: string
   descricao?: string
+  pedidoCodigo?: string
   items?: Array<{ produtoId: string; nome: string; quantidade: number; valorUnitario: number }>
   resultado?: 'sucesso' | 'pendente' | 'fracasso'
   feedback?: string

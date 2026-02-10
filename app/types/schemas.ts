@@ -182,6 +182,7 @@ export const HistoricoClienteSchema = z.object({
   tipo: HistoricoClienteTipoSchema,
   data: IsoDateTimeSchema,
   descricao: z.string().optional(),
+  pedidoCodigo: z.string().min(1).optional(),
 
   items: z.array(HistoricoClienteItemSchema).optional().default([]),
 

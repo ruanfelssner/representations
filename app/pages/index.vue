@@ -285,6 +285,14 @@
                 WhatsApp
               </NButton>
               <NButton
+                variant="outline"
+                size="sm"
+                leading-icon="mdi:file-pdf-box"
+                @click="isPdfImporterOpen = true"
+              >
+                Importar PDF
+              </NButton>
+              <NButton
                 as="NuxtLink"
                 to="/admin"
                 variant="outline"
@@ -297,6 +305,8 @@
         </NContainer>
       </section>
     </main>
+
+    <ModalImportarPdfVenda v-model="isPdfImporterOpen" />
 
     <footer class="border-t border-[color:var(--layer-border)] bg-[color:var(--layer-solid)] py-12">
       <NContainer>

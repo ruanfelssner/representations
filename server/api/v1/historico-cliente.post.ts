@@ -38,6 +38,15 @@ export default defineEventHandler(async (event) => {
     body
   )
 
+  const pedidoCodigoRaw = typeof validated.pedidoCodigo === 'string' ? validated.pedidoCodigo : ''
+  const pedidoCodigo = pedidoCodigoRaw.replace(/\D/g, '')
+  if (pedidoCodigo) {
+    const existing = await db.collection('historicoCliente').findOne({ pedidoCodigo })
+    if (existing) {
+      throw createError({ statusCode: 409, statusMessage: 'Pedido de venda ja registrado.' })
+    }
+  }
+
   const items = Array.isArray(validated.items) ? validated.items : []
   const totalVenda = items.reduce(
     (sum, item) => sum + item.quantidade * item.valorUnitario,
@@ -48,6 +57,7 @@ export default defineEventHandler(async (event) => {
   const evento = {
     _id: new ObjectId(),
     ...validated,
+    pedidoCodigo: pedidoCodigo || undefined,
     items,
     totalVenda,
     createdAt: now,
