@@ -2,174 +2,128 @@
   <div class="min-h-screen">
 
     <div class="w-full px-3 py-4 lg:px-4 lg:py-6 space-y-3">
-      <!-- Filtros + Stats -->
-      <NLayer variant="paper" size="base" radius="soft" class="shadow-sm lg:shadow-lg relative space-y-2">
-
-        <div class="grid !grid-cols-1 sm:!grid-cols-2 md:!grid-cols-3 lg:!grid-cols-5 gap-2 sm:gap-2 md:gap-3 lg:gap-3">
-          <div class="bg-emerald-50 border border-emerald-100 rounded-lg p-3 lg:p-4">
-            <NTypo size="xs" tone="muted" class="mb-1">Clientes</NTypo>
-            <NTypo size="xl" weight="bold" class="tabular-nums text-emerald-500 lg:text-2xl">
-              {{ visitedStats.total }}
-            </NTypo>
-            <div class="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-semibold">
-              <span class="inline-flex items-center gap-1 text-emerald-700">
-                <span class="h-2 w-2 rounded-full bg-emerald-500" />
-                {{ visitedStats.clientes }} clientes
-              </span>
-              <span class="inline-flex items-center gap-1 text-blue-700">
-                <span class="h-2 w-2 rounded-full bg-blue-500" />
-                {{ visitedStats.comerciais }} comercial
-              </span>
-              <span class="inline-flex items-center gap-1 text-gray-700">
-                <span class="h-2 w-2 rounded-full bg-gray-400" />
-                {{ visitedStats.prospectos }} prospectos
-              </span>
-            </div>
-            <div class="mt-2 pt-2 border-t border-emerald-100 flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-semibold">
-              <span class="inline-flex items-center gap-1 text-emerald-700">
-                <span class="h-2 w-2 rounded-full bg-emerald-500" />
-                {{ visitedStats.ativosVerde }} ativo
-              </span>
-              <span class="inline-flex items-center gap-1 text-yellow-700">
-                <span class="h-2 w-2 rounded-full bg-yellow-500" />
-                {{ visitedStats.ativosAmarelo }} atenção
-              </span>
-              <span class="inline-flex items-center gap-1 text-red-700">
-                <span class="h-2 w-2 rounded-full bg-red-500" />
-                {{ visitedStats.ativosVermelho }} crítico
-              </span>
+      
+        <div class="flex gap-2 md:gap-3 overflow-x-auto pb-1">
+          <div class="flex-1 min-w-[240px] bg-emerald-50 border border-emerald-100 rounded-lg p-3">
+            <div class="grid gap-2 md:grid-cols-[120px_1fr] md:items-start">
+              <div>
+                <NTypo size="xs" tone="muted" class="mb-1">Clientes</NTypo>
+                <NTypo size="xl" weight="bold" class="tabular-nums text-emerald-500 lg:text-2xl">
+                  {{ formatCompactNumber(visitedStats.total) }}
+                </NTypo>
+              </div>
+              <div class="text-[11px] font-semibold">
+                <div class="flex flex-wrap gap-x-3 gap-y-1">
+                  <span class="inline-flex items-center gap-1 text-emerald-700">
+                    <span class="h-2 w-2 rounded-full bg-emerald-500" />
+                    {{ visitedStats.clientes }} clientes
+                  </span>
+                  <span class="inline-flex items-center gap-1 text-blue-700">
+                    <span class="h-2 w-2 rounded-full bg-blue-500" />
+                    {{ visitedStats.comerciais }} comercial
+                  </span>
+                  <span class="inline-flex items-center gap-1 text-gray-700">
+                    <span class="h-2 w-2 rounded-full bg-gray-400" />
+                    {{ visitedStats.prospectos }} prospectos
+                  </span>
+                </div>
+                <div class="mt-2 pt-2 border-t border-emerald-100 flex flex-wrap gap-x-3 gap-y-1">
+                  <span class="inline-flex items-center gap-1 text-emerald-700">
+                    <span class="h-2 w-2 rounded-full bg-emerald-500" />
+                    {{ visitedStats.ativosVerde }} ativo
+                  </span>
+                  <span class="inline-flex items-center gap-1 text-yellow-700">
+                    <span class="h-2 w-2 rounded-full bg-yellow-500" />
+                    {{ visitedStats.ativosAmarelo }} atenção
+                  </span>
+                  <span class="inline-flex items-center gap-1 text-red-700">
+                    <span class="h-2 w-2 rounded-full bg-red-500" />
+                    {{ visitedStats.ativosVermelho }} crítico
+                  </span>
+                </div>
+              </div>
             </div>
           </div>          
-          <div class="bg-sky-50 border border-sky-100 rounded-lg p-3 lg:p-4">
-            <NTypo size="xs" tone="muted" class="mb-1">Contatos nesse mês</NTypo>
-            <NTypo size="xl" weight="bold" class="tabular-nums text-sky-500 lg:text-2xl">
-              {{ visitedStats.contatosNoMes }}
-            </NTypo>
-            <div class="mt-2 flex items-center gap-1 text-[11px] font-semibold" :class="contatosVsMesAnterior.class">
-              <NIcon :name="contatosVsMesAnterior.icon" class="w-4 h-4" />
-              <span class="tabular-nums">{{ contatosVsMesAnterior.text }}</span>
-              <span class="font-medium text-slate-500">vs mês anterior</span>
-            </div>
-          </div>
-          <div class="bg-violet-50 border border-violet-100 rounded-lg p-3 lg:p-4">
-            <NTypo size="xs" tone="muted" class="mb-1">Mensal</NTypo>
-            <NTypo size="xl" weight="bold" class="tabular-nums text-violet-500 lg:text-2xl">
-              {{ formatCurrency(visitedStats.faturamentoMensal) }}
-            </NTypo>
-            <div class="mt-2 space-y-1 text-[11px] font-semibold">
-              <div class="flex items-center gap-1" :class="mensalVsMesAnterior.class">
-                <NIcon :name="mensalVsMesAnterior.icon" class="w-4 h-4" />
-                <span class="tabular-nums">{{ mensalVsMesAnterior.text }}</span>
-                <span class="font-medium text-slate-500">vs mês anterior</span>
-              </div>
-              <div class="flex items-center gap-1" :class="mensalVsMesmoMesAnoAnterior.class">
-                <NIcon :name="mensalVsMesmoMesAnoAnterior.icon" class="w-4 h-4" />
-                <span class="tabular-nums">{{ mensalVsMesmoMesAnoAnterior.text }}</span>
-                <span class="font-medium text-slate-500">vs mesmo mês (ano anterior)</span>
-              </div>
-            </div>
-          </div>
-          <div class="bg-amber-50 border border-amber-100 rounded-lg p-3 lg:p-4">
-            <NTypo size="xs" tone="muted" class="mb-1">Trimestral</NTypo>
-            <NTypo size="xl" weight="bold" class="tabular-nums text-amber-600 lg:text-2xl">
-              {{ formatCurrency(visitedStats.faturamentoTrimestral) }}
-            </NTypo>
-            <div class="mt-2 space-y-1 text-[11px] font-semibold">
-              <div class="flex items-center gap-1" :class="trimestralVsTrimestreAnterior.class">
-                <NIcon :name="trimestralVsTrimestreAnterior.icon" class="w-4 h-4" />
-                <span class="tabular-nums">{{ trimestralVsTrimestreAnterior.text }}</span>
-                <span class="font-medium text-slate-500">vs trimestre anterior</span>
-              </div>
-              <div class="flex items-center gap-1" :class="trimestralVsMesmoTrimestreAnoAnterior.class">
-                <NIcon :name="trimestralVsMesmoTrimestreAnoAnterior.icon" class="w-4 h-4" />
-                <span class="tabular-nums">{{ trimestralVsMesmoTrimestreAnoAnterior.text }}</span>
-                <span class="font-medium text-slate-500">vs mesmo trimestre (ano anterior)</span>
-              </div>
-            </div>
-          </div>
-          <div class="bg-orange-50 border border-orange-100 rounded-lg p-3 lg:p-4">
-            <NTypo size="xs" tone="muted" class="mb-1">Anual</NTypo>
-            <NTypo size="xl" weight="bold" class="tabular-nums text-orange-500 lg:text-2xl">
-              {{ formatCurrency(visitedStats.faturamentoAnual) }}
-            </NTypo>
-            <div class="mt-2 flex items-center gap-1 text-[11px] font-semibold" :class="anualVsAnoAnterior.class">
-              <NIcon :name="anualVsAnoAnterior.icon" class="w-4 h-4" />
-              <span class="tabular-nums">{{ anualVsAnoAnterior.text }}</span>
-              <span class="font-medium text-slate-500">vs mesmo período (ano anterior)</span>
-            </div>
-          </div>
-        </div>
-        
-        <div class="flex flex-col gap-3 lg:gap-4">
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <div class="col-span-1 sm:col-span-2 lg:col-span-1">
-              <NTypo as="label" size="xs" weight="semibold" tone="muted" class="block mb-1">
-                Buscar
-              </NTypo>
-              
-              <NButton
-                v-if="searchQuery || filterSegmento || filterTipo"
-                @click="searchQuery = ''; filterSegmento = ''; filterTipo = ''"
-                variant="outline"
-                size="zs"
-                class="absolute right-2 top-2"
-                >
-                Limpar filtros
-              </NButton>
-              <div class="relative">
-                <NTypo
-                  as="span"
-                  size="sm"
-                  tone="muted"
-                  class="absolute left-3 top-1/2 -translate-y-1/2"
-                >
-                  🔎
+          <div class="flex-1 min-w-[240px] bg-sky-50 border border-sky-100 rounded-lg p-3 lg:p-4">
+            <div class="grid gap-2 md:grid-cols-[120px_1fr] md:items-start">
+              <div>
+                <NTypo size="xs" tone="muted" class="mb-1">Contatos nesse mês</NTypo>
+                <NTypo size="xl" weight="bold" class="tabular-nums text-sky-500 lg:text-2xl">
+                  {{ formatCompactNumber(visitedStats.contatosNoMes) }}
                 </NTypo>
-                <input
-                  v-model="searchQuery"
-                  type="text"
-                  placeholder="Nome, cidade, endereço ou CNPJ..."
-                  class="w-full pl-10 pr-3 py-2 rounded-lg border bg-white border-gray-200 focus:ring-2 focus:ring-sky-400 focus:border-sky-400 transition-colors"
-                />
+              </div>
+              <div class="text-[11px] font-semibold" :class="contatosVsMesAnterior.class">
+                <div class="flex items-center gap-1">
+                  <NIcon :name="contatosVsMesAnterior.icon" class="w-4 h-4" />
+                  <span class="tabular-nums">{{ contatosVsMesAnterior.text }}</span>
+                  <span class="font-medium text-slate-500">vs mês anterior</span>
+                </div>
               </div>
             </div>
-
-            <div>
-              <NTypo as="label" size="xs" weight="semibold" tone="muted" class="block mb-1">
-                Segmento
-              </NTypo>
-              <select
-                v-model="filterSegmento"
-                class="w-full px-3 py-2 rounded-lg border bg-white border-gray-200 focus:ring-2 focus:ring-sky-400 focus:border-sky-400 transition-colors"
-              >
-                <option value="">Todos</option>
-                <option value="joalheria">💎 Joalheria</option>
-                <option value="relojoaria">⌚ Relojoaria</option>
-                <option value="otica">👓 Ótica</option>
-                <option value="outros">🏪 Outros</option>
-              </select>
-            </div>
-
-            <div>
-              <NTypo as="label" size="xs" weight="semibold" tone="muted" class="block mb-1">
-                Status
-              </NTypo>
-              <select
-                v-model="filterTipo"
-                class="w-full px-3 py-2 rounded-lg border bg-white border-gray-200 focus:ring-2 focus:ring-sky-400 focus:border-sky-400 transition-colors"
-              >
-                <option value="">Todos</option>
-                <option value="ativo">✅ Ativo (≤90d)</option>
-                <option value="atencao">⚠️ Em atenção (91–180d)</option>
-                <option value="critico">🚨 Crítico / Reativar (&gt;180d)</option>
-                <option value="potencial">🎯 Potencial</option>
-                <option value="inativo">⏸️ Inativo</option>
-              </select>
+          </div>
+          <div class="flex-1 min-w-[240px] bg-violet-50 border border-violet-100 rounded-lg p-3 lg:p-4">
+            <div class="grid gap-2 md:grid-cols-[120px_1fr] md:items-start">
+              <div>
+                <NTypo size="xs" tone="muted" class="mb-1">Mensal</NTypo>
+                <NTypo size="xl" weight="bold" class="tabular-nums text-violet-500 lg:text-2xl">
+                  {{ formatCurrency(visitedStats.faturamentoMensal) }}
+                </NTypo>
+              </div>
+              <div class="space-y-1 text-[11px] font-semibold">
+                <div class="flex items-center gap-1" :class="mensalVsMesAnterior.class">
+                  <NIcon :name="mensalVsMesAnterior.icon" class="w-4 h-4" />
+                  <span class="tabular-nums">{{ mensalVsMesAnterior.text }}</span>
+                  <span class="font-medium text-slate-500">vs mês anterior</span>
+                </div>
+                <div class="flex items-center gap-1" :class="mensalVsMesmoMesAnoAnterior.class">
+                  <NIcon :name="mensalVsMesmoMesAnoAnterior.icon" class="w-4 h-4" />
+                  <span class="tabular-nums">{{ mensalVsMesmoMesAnoAnterior.text }}</span>
+                  <span class="font-medium text-slate-500">vs mesmo mês (ano anterior)</span>
+                </div>
+              </div>
             </div>
           </div>
-
+          <div class="flex-1 min-w-[240px] bg-amber-50 border border-amber-100 rounded-lg p-3 lg:p-4">
+            <div class="grid gap-2 md:grid-cols-[120px_1fr] md:items-start">
+              <div>
+                <NTypo size="xs" tone="muted" class="mb-1">Trimestral</NTypo>
+                <NTypo size="xl" weight="bold" class="tabular-nums text-amber-600 lg:text-2xl">
+                  {{ formatCurrency(visitedStats.faturamentoTrimestral) }}
+                </NTypo>
+              </div>
+              <div class="space-y-1 text-[11px] font-semibold">
+                <div class="flex items-center gap-1" :class="trimestralVsTrimestreAnterior.class">
+                  <NIcon :name="trimestralVsTrimestreAnterior.icon" class="w-4 h-4" />
+                  <span class="tabular-nums">{{ trimestralVsTrimestreAnterior.text }}</span>
+                  <span class="font-medium text-slate-500">vs trimestre anterior</span>
+                </div>
+                <div class="flex items-center gap-1" :class="trimestralVsMesmoTrimestreAnoAnterior.class">
+                  <NIcon :name="trimestralVsMesmoTrimestreAnoAnterior.icon" class="w-4 h-4" />
+                  <span class="tabular-nums">{{ trimestralVsMesmoTrimestreAnoAnterior.text }}</span>
+                  <span class="font-medium text-slate-500">vs mesmo trimestre (ano anterior)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="flex-1 min-w-[240px] bg-orange-50 border border-orange-100 rounded-lg p-3 lg:p-4">
+            <div class="grid gap-2 md:grid-cols-[120px_1fr] md:items-start">
+              <div>
+                <NTypo size="xs" tone="muted" class="mb-1">Anual</NTypo>
+                <NTypo size="xl" weight="bold" class="tabular-nums text-orange-500 lg:text-2xl">
+                  {{ formatCurrency(visitedStats.faturamentoAnual) }}
+                </NTypo>
+              </div>
+              <div class="text-[11px] font-semibold" :class="anualVsAnoAnterior.class">
+                <div class="flex items-center gap-1">
+                  <NIcon :name="anualVsAnoAnterior.icon" class="w-4 h-4" />
+                  <span class="tabular-nums">{{ anualVsAnoAnterior.text }}</span>
+                  <span class="font-medium text-slate-500">vs mesmo período (ano anterior)</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      </NLayer>
+      <!-- Filtros + Stats -->
 
 
       <!-- Mapa + painel -->
@@ -220,27 +174,87 @@
             </button>
           </div>
 
-          <div class="absolute bottom-4 right-4 z-10 w-42 rounded-lg border border-white/60 bg-white/95 px-3 py-2 shadow-lg backdrop-blur">
-            <div class="flex items-center gap-2">
-              <NTypo as="label" size="xs" weight="semibold" tone="muted">
-                Ranking
-              </NTypo>
-              <select
-                class="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
-                :value="topRankSelectValue"
-                @change="handleTopRankSelect"
-                :disabled="!maxRankLimit"
+      <NLayer variant="paper" size="base" radius="soft" class="absolute bottom-4 left-4 right-4 z-10 w-auto px-3 py-2 shadow-sm lg:shadow-lg">
+        <div class="flex flex-nowrap items-end gap-3">
+          <div class="min-w-[260px] flex-1">
+            <NTypo as="label" size="xs" weight="semibold" tone="muted" class="block mb-1 leading-none">
+              Buscar
+            </NTypo>
+            <NButton
+              v-if="searchQuery || filterSegmento || filterTipo"
+              @click="searchQuery = ''; filterSegmento = ''; filterTipo = ''"
+              variant="outline"
+              size="zs"
+              class="absolute right-2 top-2"
+            >
+              Limpar filtros
+            </NButton>
+            <div class="relative">
+              <NTypo
+                as="span"
+                size="sm"
+                tone="muted"
+                class="absolute left-3 top-1/2 -translate-y-1/2"
               >
-                <option
-                  v-for="preset in rankPresets"
-                  :key="`rank-${preset.value}`"
-                  :value="preset.value"
-                >
-                  {{ preset.label }}
-                </option>
-              </select>
+                🔎
+              </NTypo>
+              <input
+                v-model="searchQuery"
+                type="text"
+                placeholder="Nome, cidade, endereço ou CNPJ..."
+                class="w-full pl-10 pr-3 py-2 rounded-lg border bg-white border-gray-200 focus:ring-2 focus:ring-sky-400 focus:border-sky-400 transition-colors"
+              />
             </div>
           </div>
+
+          <div class="min-w-[150px]">
+            <NTypo as="label" size="xs" weight="semibold" tone="muted" class="block mb-1 leading-none">
+              Segmento
+            </NTypo>
+            <select
+              v-model="filterSegmento"
+              class="w-full px-3 py-2 rounded-lg border bg-white border-gray-200 focus:ring-2 focus:ring-sky-400 focus:border-sky-400 transition-colors"
+            >
+              <option value="">Todos</option>
+              <option value="joalheria">💎 Joalheria</option>
+              <option value="relojoaria">⌚ Relojoaria</option>
+              <option value="otica">👓 Ótica</option>
+              <option value="outros">🏪 Outros</option>
+            </select>
+          </div>
+
+          <div class="min-w-[160px]">
+            <NTypo as="label" size="xs" weight="semibold" tone="muted" class="block mb-1 leading-none">
+              Status
+            </NTypo>
+            <select
+              v-model="filterTipo"
+              class="w-full px-3 py-2 rounded-lg border bg-white border-gray-200 focus:ring-2 focus:ring-sky-400 focus:border-sky-400 transition-colors"
+            >
+              <option value="">Todos</option>
+              <option value="ativo">✅ Ativo (≤90d)</option>
+              <option value="atencao">⚠️ Em atenção (91–180d)</option>
+              <option value="critico">🚨 Crítico / Reativar (&gt;180d)</option>
+              <option value="potencial">🎯 Potencial</option>
+              <option value="inativo">⏸️ Inativo</option>
+            </select>
+          </div>
+
+          <div class="min-w-[150px]">
+            <NTypo as="label" size="xs" weight="semibold" tone="muted" class="block mb-1 leading-none">
+              Ranking
+            </NTypo>
+            <NSelect
+              :model-value="topRankSelectValue"
+              :options="rankPresets"
+              size="md"
+              class="w-full"
+              :disabled="!maxRankLimit"
+              @update:modelValue="handleTopRankSelect"
+            />
+          </div>
+        </div>
+      </NLayer>
 
           <BrokerMaps
             v-if="visitedMapData"
@@ -662,7 +676,15 @@ function safeNumber(v: any) {
 function formatCompactMoney(v: number) {
   const n = Math.round(v)
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n >= 10_000_000 ? 0 : 1)}M`
-  if (n >= 1_000) return `${(n / 1_000).toFixed(n >= 10_000 ? 0 : 1)}k`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(n >= 10_000 ? 0 : 1)}K`
+  return String(n)
+}
+
+function formatCompactNumber(v: number) {
+  const n = Math.round(v)
+  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(n >= 10_000_000_000 ? 0 : 1)}B`
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n >= 10_000_000 ? 0 : 1)}M`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(n >= 10_000 ? 0 : 1)}K`
   return String(n)
 }
 
@@ -746,11 +768,10 @@ function setTopRank(value: number) {
   topRankLimit.value = Math.min(Math.max(1, value), maxValue)
 }
 
-function handleTopRankSelect(event: Event) {
-  const target = event.target as HTMLSelectElement
-  const value = Number(target.value)
-  if (!Number.isFinite(value) || value <= 0) return
-  setTopRank(value)
+function handleTopRankSelect(value: string | number) {
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric) || numeric <= 0) return
+  setTopRank(numeric)
 }
 
 const createVisitedMarkers = computed(() => {
