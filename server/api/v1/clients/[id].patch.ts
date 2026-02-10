@@ -42,17 +42,12 @@ export default defineEventHandler(async (event) => {
     updates['localizacao.geo'] = { type: 'Point', coordinates: [body.lng, body.lat] }
   }
 
-  console.log('🔍 SERVER - Body recebido:', body)
-  console.log('🔍 SERVER - Status no body:', body.status)
-  console.log('🔍 SERVER - Updates antes do assign:', updates)
-
   // Compat: campos antigos (cidade/estado/endereco/endereco_completo)
-  const enderecoUpdates: Record<string, unknown> = {}
-  if (typeof body.endereco === 'string') enderecoUpdates['endereco.rua'] = body.endereco
-  if (typeof body.cidade === 'string') enderecoUpdates['endereco.cidade'] = body.cidade
-  if (typeof body.estado === 'string') enderecoUpdates['endereco.uf'] = body.estado
-  if (typeof body.cep === 'string') enderecoUpdates['endereco.cep'] = body.cep
-  Object.assign(updates, enderecoUpdates)
+  const enderecoPayload: Record<string, unknown> = {}
+  if (typeof body.endereco === 'string') enderecoPayload.rua = body.endereco
+  if (typeof body.cidade === 'string') enderecoPayload.cidade = body.cidade
+  if (typeof body.estado === 'string') enderecoPayload.uf = body.estado
+  if (typeof body.cep === 'string') enderecoPayload.cep = body.cep
 
   // Apenas geocodificar se endereco_completo veio E não tem coordenadas manuais
   if (typeof body.endereco_completo === 'string' && body.endereco_completo.trim() && !hasManualCoords) {
@@ -65,19 +60,27 @@ export default defineEventHandler(async (event) => {
       })
     }
     const geo = await geocodeAddress(body.endereco_completo.trim(), apiKey)
-    updates['endereco.endereco_completo'] = geo.endereco_completo
-    if (geo.formatted_address) updates['endereco.rua'] = geo.formatted_address
+    enderecoPayload.endereco_completo = geo.endereco_completo
+    if (geo.formatted_address) enderecoPayload.rua = geo.formatted_address
     updates['localizacao.latitude'] = geo.lat
     updates['localizacao.longitude'] = geo.lng
     updates['localizacao.geo'] = { type: 'Point', coordinates: [geo.lng, geo.lat] }
   } else if (typeof body.endereco_completo === 'string' && body.endereco_completo.trim()) {
     // Apenas salvar o endereço_completo sem geocodificar
-    updates['endereco.endereco_completo'] = body.endereco_completo.trim()
+    enderecoPayload.endereco_completo = body.endereco_completo.trim()
+  }
+
+  if (Object.keys(enderecoPayload).length > 0) {
+    const existingEndereco =
+      existing && typeof (existing as any).endereco === 'object' && (existing as any).endereco !== null
+        ? (existing as any).endereco
+        : typeof (existing as any).endereco === 'string'
+          ? { rua: (existing as any).endereco }
+          : {}
+    updates.endereco = { ...existingEndereco, ...enderecoPayload }
   }
 
   updates.updatedAt = new Date().toISOString()
-
-  console.log('🔍 SERVER - Updates finais que vão para o $set:', updates)
 
   await db.collection('clients').updateOne(
     { _id: existing._id },
@@ -88,20 +91,8 @@ export default defineEventHandler(async (event) => {
   )
   
   const client = await db.collection('clients').findOne({ _id: existing._id })
-  console.log('🔍 SERVER - Cliente após updateOne (do MongoDB):', {
-    _id: client?._id,
-    nome: client?.nome,
-    status: client?.status,
-  })
   
   if (!client) throw createError({ statusCode: 404, statusMessage: 'Cliente não encontrado. no patch' })
 
-  const resultado = toClientApi(client)
-  console.log('🔍 SERVER - Cliente após toClientApi (o que vai retornar):', {
-    id: resultado.id,
-    nome: resultado.nome,
-    status: resultado.status,
-  })
-
-  return { success: true, data: resultado }
+  return { success: true, data: toClientApi(client) }
 })

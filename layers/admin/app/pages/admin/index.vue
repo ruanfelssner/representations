@@ -3,78 +3,9 @@
 
     <div class="w-full px-3 py-4 lg:px-4 lg:py-6 space-y-3">
       <!-- Filtros + Stats -->
-      <NLayer variant="paper" size="base" radius="soft" class="shadow-sm lg:shadow-lg relative">
-        <div class="flex flex-col gap-3 lg:gap-4">
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <div class="col-span-1 sm:col-span-2 lg:col-span-1">
-              <NTypo as="label" size="xs" weight="semibold" tone="muted" class="block mb-1">
-                Buscar
-              </NTypo>
-              
-              <NButton
-                v-if="searchQuery || filterSegmento || filterTipo"
-                @click="searchQuery = ''; filterSegmento = ''; filterTipo = ''"
-                variant="outline"
-                size="zs"
-                class="absolute right-2 top-2"
-                >
-                Limpar filtros
-              </NButton>
-              <div class="relative">
-                <NTypo
-                  as="span"
-                  size="sm"
-                  tone="muted"
-                  class="absolute left-3 top-1/2 -translate-y-1/2"
-                >
-                  🔎
-                </NTypo>
-                <input
-                  v-model="searchQuery"
-                  type="text"
-                  placeholder="Nome, cidade, endereço ou CNPJ..."
-                  class="w-full pl-10 pr-3 py-2 rounded-lg border bg-white border-gray-200 focus:ring-2 focus:ring-sky-400 focus:border-sky-400 transition-colors"
-                />
-              </div>
-            </div>
+      <NLayer variant="paper" size="base" radius="soft" class="shadow-sm lg:shadow-lg relative space-y-2">
 
-            <div>
-              <NTypo as="label" size="xs" weight="semibold" tone="muted" class="block mb-1">
-                Segmento
-              </NTypo>
-              <select
-                v-model="filterSegmento"
-                class="w-full px-3 py-2 rounded-lg border bg-white border-gray-200 focus:ring-2 focus:ring-sky-400 focus:border-sky-400 transition-colors"
-              >
-                <option value="">Todos</option>
-                <option value="joalheria">💎 Joalheria</option>
-                <option value="relojoaria">⌚ Relojoaria</option>
-                <option value="otica">👓 Ótica</option>
-                <option value="outros">🏪 Outros</option>
-              </select>
-            </div>
-
-            <div>
-              <NTypo as="label" size="xs" weight="semibold" tone="muted" class="block mb-1">
-                Status
-              </NTypo>
-              <select
-                v-model="filterTipo"
-                class="w-full px-3 py-2 rounded-lg border bg-white border-gray-200 focus:ring-2 focus:ring-sky-400 focus:border-sky-400 transition-colors"
-              >
-                <option value="">Todos</option>
-                <option value="ativo">✅ Ativo (≤90d)</option>
-                <option value="atencao">⚠️ Em atenção (91–180d)</option>
-                <option value="critico">🚨 Crítico / Reativar (&gt;180d)</option>
-                <option value="potencial">🎯 Potencial</option>
-                <option value="inativo">⏸️ Inativo</option>
-              </select>
-            </div>
-          </div>
-
-        </div>
-
-        <div class="mt-4 grid !grid-cols-1 sm:!grid-cols-2 md:!grid-cols-3 lg:!grid-cols-5 gap-2 sm:gap-2 md:gap-3 lg:gap-3">
+        <div class="grid !grid-cols-1 sm:!grid-cols-2 md:!grid-cols-3 lg:!grid-cols-5 gap-2 sm:gap-2 md:gap-3 lg:gap-3">
           <div class="bg-emerald-50 border border-emerald-100 rounded-lg p-3 lg:p-4">
             <NTypo size="xs" tone="muted" class="mb-1">Clientes</NTypo>
             <NTypo size="xl" weight="bold" class="tabular-nums text-emerald-500 lg:text-2xl">
@@ -168,6 +99,76 @@
             </div>
           </div>
         </div>
+        
+        <div class="flex flex-col gap-3 lg:gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div class="col-span-1 sm:col-span-2 lg:col-span-1">
+              <NTypo as="label" size="xs" weight="semibold" tone="muted" class="block mb-1">
+                Buscar
+              </NTypo>
+              
+              <NButton
+                v-if="searchQuery || filterSegmento || filterTipo"
+                @click="searchQuery = ''; filterSegmento = ''; filterTipo = ''"
+                variant="outline"
+                size="zs"
+                class="absolute right-2 top-2"
+                >
+                Limpar filtros
+              </NButton>
+              <div class="relative">
+                <NTypo
+                  as="span"
+                  size="sm"
+                  tone="muted"
+                  class="absolute left-3 top-1/2 -translate-y-1/2"
+                >
+                  🔎
+                </NTypo>
+                <input
+                  v-model="searchQuery"
+                  type="text"
+                  placeholder="Nome, cidade, endereço ou CNPJ..."
+                  class="w-full pl-10 pr-3 py-2 rounded-lg border bg-white border-gray-200 focus:ring-2 focus:ring-sky-400 focus:border-sky-400 transition-colors"
+                />
+              </div>
+            </div>
+
+            <div>
+              <NTypo as="label" size="xs" weight="semibold" tone="muted" class="block mb-1">
+                Segmento
+              </NTypo>
+              <select
+                v-model="filterSegmento"
+                class="w-full px-3 py-2 rounded-lg border bg-white border-gray-200 focus:ring-2 focus:ring-sky-400 focus:border-sky-400 transition-colors"
+              >
+                <option value="">Todos</option>
+                <option value="joalheria">💎 Joalheria</option>
+                <option value="relojoaria">⌚ Relojoaria</option>
+                <option value="otica">👓 Ótica</option>
+                <option value="outros">🏪 Outros</option>
+              </select>
+            </div>
+
+            <div>
+              <NTypo as="label" size="xs" weight="semibold" tone="muted" class="block mb-1">
+                Status
+              </NTypo>
+              <select
+                v-model="filterTipo"
+                class="w-full px-3 py-2 rounded-lg border bg-white border-gray-200 focus:ring-2 focus:ring-sky-400 focus:border-sky-400 transition-colors"
+              >
+                <option value="">Todos</option>
+                <option value="ativo">✅ Ativo (≤90d)</option>
+                <option value="atencao">⚠️ Em atenção (91–180d)</option>
+                <option value="critico">🚨 Crítico / Reativar (&gt;180d)</option>
+                <option value="potencial">🎯 Potencial</option>
+                <option value="inativo">⏸️ Inativo</option>
+              </select>
+            </div>
+          </div>
+
+        </div>
       </NLayer>
 
 
@@ -228,6 +229,7 @@
                 class="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
                 :value="topRankSelectValue"
                 @change="handleTopRankSelect"
+                :disabled="!maxRankLimit"
               >
                 <option
                   v-for="preset in rankPresets"
@@ -616,6 +618,16 @@ const clientesParaPins = computed(() => {
   return geocoded.slice(0, MAX_PINS)
 })
 
+const visibleClientesForRanking = computed(() => {
+  return clientesParaPins.value.filter((cliente) => {
+    const categoria = categorizeClient(cliente)
+    if (categoria === 'cliente' && !mostrarClientes.value) return false
+    if (categoria === 'comercial' && !mostrarComerciais.value) return false
+    if (categoria === 'prospecto' && !mostrarProspectos.value) return false
+    return true
+  })
+})
+
 function categorizeClient(cliente: any) {
   const temVendas = safeNumber(cliente?.sales?.totalAllTime) > 0 || 
                     safeNumber(cliente?.sales?.total12m) > 0 || 
@@ -655,7 +667,7 @@ function formatCompactMoney(v: number) {
 }
 
 const pinMetricByClientId = computed(() => {
-  const list = clientesParaPins.value
+  const list = visibleClientesForRanking.value
   const pairs = list.map((c: any) => {
     const totalAllTime = safeNumber(c?.sales?.totalAllTime)
     const total12m = safeNumber(c?.sales?.total12m)
@@ -692,7 +704,7 @@ const topRankLabel = computed(() => {
 
 const rankPresets = computed(() => {
   const maxValue = maxRankLimit.value
-  if (!maxValue) return []
+  if (!maxValue) return [{ value: 0, label: 'Sem resultados' }]
   const base = [3, 10, 50, 100].filter((n) => n < maxValue)
   return [...base, maxValue].map((value) => ({
     value,
@@ -709,12 +721,21 @@ const topRankSelectValue = computed(() => {
 
 watch(maxRankLimit, (maxValue) => {
   if (!maxValue) return
-  if (topRankLimit.value === null) {
+  if (topRankLimit.value === null || topRankLimit.value <= 0) {
     topRankLimit.value = maxValue
   } else if (topRankLimit.value > maxValue) {
     topRankLimit.value = maxValue
   }
 })
+
+watch(
+  () => [searchQuery.value, filterSegmento.value, filterTipo.value],
+  ([query, segmento, tipo]) => {
+    if (!query && !segmento && !tipo && maxRankLimit.value) {
+      topRankLimit.value = maxRankLimit.value
+    }
+  }
+)
 
 function setTopRank(value: number) {
   const maxValue = maxRankLimit.value || 0
@@ -739,13 +760,8 @@ const createVisitedMarkers = computed(() => {
   const limit = topRankLimit.value
   const shouldLimit = typeof limit === 'number' && limit > 0 && limit < maxRank
 
-  for (const cliente of clientesParaPins.value) {
+  for (const cliente of visibleClientesForRanking.value) {
     const categoria = categorizeClient(cliente)
-    
-    // Filtrar por toggle
-    if (categoria === 'cliente' && !mostrarClientes.value) continue
-    if (categoria === 'comercial' && !mostrarComerciais.value) continue
-    if (categoria === 'prospecto' && !mostrarProspectos.value) continue
 
     const id = (cliente as any).id
     const m = meta.metric.get(id) || 0
@@ -858,7 +874,7 @@ const trimestralVsMesmoTrimestreAnoAnterior = computed(() =>
 const anualVsAnoAnterior = computed(() => deltaMeta(salesTotals.value.year, salesTotals.value.yearPrevYear))
 
 const rankedPortfolioClientes = computed(() => {
-  const list = portfolioClientes.value
+  const list = visibleClientesForRanking.value
   const maxRank = maxRankLimit.value
   const limit = topRankLimit.value
   const shouldLimit = typeof limit === 'number' && limit > 0 && limit < maxRank
@@ -866,7 +882,8 @@ const rankedPortfolioClientes = computed(() => {
 
   const rankMap = pinMetricByClientId.value.rank
   return list.filter((c: any) => {
-    const r = rankMap.get(c.id) || 1
+    const r = rankMap.get(c.id)
+    if (!r) return false
     return r <= (limit as number)
   })
 })

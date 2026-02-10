@@ -237,6 +237,21 @@ const coordenadasAntigas = ref('')
 const coordenadasNovas = ref('')
 const erroGeocoding = ref('')
 
+function normalizeSegmento(value?: string) {
+  if (!value) return ''
+  const raw = value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .trim()
+  if (raw === 'optica') return 'otica'
+  if (raw === 'joalheria') return 'joalheria'
+  if (raw === 'relojoaria') return 'relojoaria'
+  if (raw === 'bijuteria' || raw === 'acessorios') return 'outros'
+  if (raw === 'outros') return 'outros'
+  return ''
+}
+
 watch(
   () => props.cliente,
   (cliente) => {
@@ -245,9 +260,16 @@ watch(
       nome: cliente.nome,
       telefone: cliente.telefone || '',
       email: cliente.email || '',
-      segmento: (cliente.segmento as any) || 'otica',
+      segmento:
+        normalizeSegmento((cliente as any).segmento) ||
+        normalizeSegmento((cliente as any)._metadata?.segmento) ||
+        'otica',
       status: (cliente.status as any) || 'potencial',
-      endereco_completo: cliente.endereco_completo || cliente.endereco?.endereco_completo || '',
+      endereco_completo:
+        cliente.endereco_completo ||
+        (typeof (cliente as any).endereco === 'string' ? (cliente as any).endereco : '') ||
+        (cliente as any).endereco?.endereco_completo ||
+        '',
       lat: (cliente as any).lat,
       lng: (cliente as any).lng,
       stage: (cliente.sales?.stage as any) || '',
