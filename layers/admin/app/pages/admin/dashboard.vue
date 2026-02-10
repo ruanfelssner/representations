@@ -195,6 +195,170 @@
       </NLayer>
     </div>
 
+    <!-- Últimos 3 Meses + Médias Anuais -->
+    <div class="grid !grid-cols-1 md:!grid-cols-5 lg:!grid-cols-5 gap-3 lg:gap-4">
+      <!-- Mês Atual -->
+      <NLayer variant="paper" size="sm" radius="soft" class="shadow-sm">
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <NTypo size="xs" tone="muted" weight="medium">{{ currentMonthName }}</NTypo>
+            <div class="p-1 bg-indigo-50 rounded">
+              <NIcon name="mdi:calendar" class="w-3.5 h-3.5 text-indigo-600" />
+            </div>
+          </div>
+          <NTypo size="xl" weight="bold" class="text-indigo-600 tabular-nums lg:text-2xl">
+            {{ formatCurrency(salesTotals.month) }}
+          </NTypo>
+        </div>
+      </NLayer>
+
+      <!-- Mês Anterior -->
+      <NLayer variant="paper" size="sm" radius="soft" class="shadow-sm">
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <NTypo size="xs" tone="muted" weight="medium">{{ prevMonthName }}</NTypo>
+            <div class="p-1 bg-indigo-50 rounded">
+              <NIcon name="mdi:calendar" class="w-3.5 h-3.5 text-indigo-600" />
+            </div>
+          </div>
+          <NTypo size="xl" weight="bold" class="text-indigo-600 tabular-nums lg:text-2xl">
+            {{ formatCurrency(salesTotals.monthPrev) }}
+          </NTypo>
+        </div>
+      </NLayer>
+
+      <!-- 2 Meses Atrás -->
+      <NLayer variant="paper" size="sm" radius="soft" class="shadow-sm">
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <NTypo size="xs" tone="muted" weight="medium">{{ twoMonthsAgoName }}</NTypo>
+            <div class="p-1 bg-indigo-50 rounded">
+              <NIcon name="mdi:calendar" class="w-3.5 h-3.5 text-indigo-600" />
+            </div>
+          </div>
+          <NTypo size="xl" weight="bold" class="text-gray-400 tabular-nums lg:text-2xl">
+            N/A
+          </NTypo>
+          <NTypo size="xs" tone="muted" class="mt-1">Dados em breve</NTypo>
+        </div>
+      </NLayer>
+
+      <!-- Média Mensal Deste Ano -->
+      <NLayer variant="paper" size="sm" radius="soft" class="shadow-sm">
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <NTypo size="xs" tone="muted" weight="medium">Média/Mês {{ currentYear }}</NTypo>
+            <div class="p-1 bg-teal-50 rounded">
+              <NIcon name="mdi:chart-line" class="w-3.5 h-3.5 text-teal-600" />
+            </div>
+          </div>
+          <NTypo size="xl" weight="bold" class="text-teal-600 tabular-nums lg:text-2xl">
+            {{ formatCurrency(avgMonthlyThisYear) }}
+          </NTypo>
+          <NTypo size="xs" tone="muted" class="mt-1">{{ currentMonthNumber }} meses</NTypo>
+        </div>
+      </NLayer>
+
+      <!-- Média Mensal Ano Passado -->
+      <NLayer variant="paper" size="sm" radius="soft" class="shadow-sm">
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <NTypo size="xs" tone="muted" weight="medium">Média/Mês {{ prevYear }}</NTypo>
+            <div class="p-1 bg-slate-50 rounded">
+              <NIcon name="mdi:chart-line" class="w-3.5 h-3.5 text-slate-600" />
+            </div>
+          </div>
+          <NTypo size="xl" weight="bold" class="text-slate-600 tabular-nums lg:text-2xl">
+            {{ formatCurrency(avgMonthlyLastYear) }}
+          </NTypo>
+          <NTypo size="xs" tone="muted" class="mt-1">{{ currentMonthNumber }} meses</NTypo>
+        </div>
+      </NLayer>
+    </div>
+
+    <!-- Comissões Estimadas -->
+    <div class="grid !grid-cols-1 md:!grid-cols-5 lg:!grid-cols-5 gap-3 lg:gap-4">
+      <!-- Comissão Mês Atual -->
+      <NLayer variant="paper" size="sm" radius="soft" class="shadow-sm bg-gradient-to-br from-green-50 to-emerald-50">
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <NTypo size="xs" tone="muted" weight="medium">Comissão {{ currentMonthName.split(' ')[0] }}</NTypo>
+            <div class="p-1 bg-emerald-100 rounded">
+              <NIcon name="mdi:cash-multiple" class="w-3.5 h-3.5 text-emerald-700" />
+            </div>
+          </div>
+          <NTypo size="xl" weight="bold" class="text-emerald-700 tabular-nums lg:text-2xl">
+            {{ formatCurrency(commissionMonth) }}
+          </NTypo>
+          <NTypo size="xs" tone="muted" class="mt-1">sobre {{ formatCurrency(salesTotals.month) }}</NTypo>
+        </div>
+      </NLayer>
+
+      <!-- Comissão Mês Anterior -->
+      <NLayer variant="paper" size="sm" radius="soft" class="shadow-sm bg-gradient-to-br from-green-50 to-emerald-50">
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <NTypo size="xs" tone="muted" weight="medium">Comissão {{ prevMonthName.split(' ')[0] }}</NTypo>
+            <div class="p-1 bg-emerald-100 rounded">
+              <NIcon name="mdi:cash-multiple" class="w-3.5 h-3.5 text-emerald-700" />
+            </div>
+          </div>
+          <NTypo size="xl" weight="bold" class="text-emerald-700 tabular-nums lg:text-2xl">
+            {{ formatCurrency(commissionMonthPrev) }}
+          </NTypo>
+          <NTypo size="xs" tone="muted" class="mt-1">sobre {{ formatCurrency(salesTotals.monthPrev) }}</NTypo>
+        </div>
+      </NLayer>
+
+      <!-- Comissão 2 Meses Atrás -->
+      <NLayer variant="paper" size="sm" radius="soft" class="shadow-sm bg-gradient-to-br from-green-50 to-emerald-50">
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <NTypo size="xs" tone="muted" weight="medium">Comissão {{ twoMonthsAgoName.split(' ')[0] }}</NTypo>
+            <div class="p-1 bg-emerald-100 rounded">
+              <NIcon name="mdi:cash-multiple" class="w-3.5 h-3.5 text-emerald-700" />
+            </div>
+          </div>
+          <NTypo size="xl" weight="bold" class="text-gray-400 tabular-nums lg:text-2xl">
+            N/A
+          </NTypo>
+          <NTypo size="xs" tone="muted" class="mt-1">Dados em breve</NTypo>
+        </div>
+      </NLayer>
+
+      <!-- Comissão Média Mensal Deste Ano -->
+      <NLayer variant="paper" size="sm" radius="soft" class="shadow-sm bg-gradient-to-br from-green-50 to-emerald-50">
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <NTypo size="xs" tone="muted" weight="medium">Comissão Média/Mês {{ currentYear }}</NTypo>
+            <div class="p-1 bg-emerald-100 rounded">
+              <NIcon name="mdi:cash-multiple" class="w-3.5 h-3.5 text-emerald-700" />
+            </div>
+          </div>
+          <NTypo size="xl" weight="bold" class="text-emerald-700 tabular-nums lg:text-2xl">
+            {{ formatCurrency(commissionAvgThisYear) }}
+          </NTypo>
+          <NTypo size="xs" tone="muted" class="mt-1">sobre {{ formatCurrency(avgMonthlyThisYear) }}/mês</NTypo>
+        </div>
+      </NLayer>
+
+      <!-- Comissão Média Mensal Ano Passado -->
+      <NLayer variant="paper" size="sm" radius="soft" class="shadow-sm bg-gradient-to-br from-green-50 to-emerald-50">
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <NTypo size="xs" tone="muted" weight="medium">Comissão Média/Mês {{ prevYear }}</NTypo>
+            <div class="p-1 bg-emerald-100 rounded">
+              <NIcon name="mdi:cash-multiple" class="w-3.5 h-3.5 text-emerald-700" />
+            </div>
+          </div>
+          <NTypo size="xl" weight="bold" class="text-emerald-700 tabular-nums lg:text-2xl">
+            {{ formatCurrency(commissionAvgLastYear) }}
+          </NTypo>
+          <NTypo size="xs" tone="muted" class="mt-1">sobre {{ formatCurrency(avgMonthlyLastYear) }}/mês</NTypo>
+        </div>
+      </NLayer>
+    </div>
+
     <!-- Status Distribution & Quick Actions -->
     <div class="grid !grid-cols-1 md:!grid-cols-2 lg:!grid-cols-2 gap-4 lg:gap-6">
       <!-- Distribuição por Status -->
@@ -337,6 +501,20 @@
             </div>
             <NIcon name="mdi:chevron-right" class="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
           </NuxtLink>
+
+          <NuxtLink 
+            to="/admin/configuracoes" 
+            class="flex items-center gap-3 p-4 rounded-lg border-2 border-gray-100 hover:border-orange-200 hover:bg-orange-50 transition-all group"
+          >
+            <div class="p-2 bg-orange-100 rounded-lg group-hover:bg-orange-200 transition-colors">
+              <NIcon name="mdi:cog" class="w-5 h-5 text-orange-600" />
+            </div>
+            <div class="flex-1">
+              <NTypo weight="semibold" class="group-hover:text-orange-700">Configurações</NTypo>
+              <NTypo size="xs" tone="muted">Comissão e preferências</NTypo>
+            </div>
+            <NIcon name="mdi:chevron-right" class="w-5 h-5 text-gray-400 group-hover:text-orange-600" />
+          </NuxtLink>
         </div>
       </NLayer>
     </div>
@@ -418,9 +596,22 @@ const ClientsResponseSchema = z.object({
   }),
 })
 
+const SettingsResponseSchema = z.object({
+  success: z.boolean(),
+  data: z.object({
+    commissionRate: z.number(),
+  }),
+})
+
 const { data, pending, error, refresh } = await useFetch('/api/v1/clients', {
   transform: (res) => ClientsResponseSchema.parse(res).data,
 })
+
+const { data: settingsData } = await useFetch('/api/v1/settings', {
+  transform: (res) => SettingsResponseSchema.parse(res).data,
+})
+
+const commissionRate = computed(() => settingsData.value?.commissionRate || 0)
 
 const clients = computed(() => data.value?.clients || [])
 const salesTotals = computed(() => {
@@ -512,6 +703,45 @@ const currentDate = computed(() => {
     year: 'numeric',
   }).format(new Date())
 })
+
+const currentYear = computed(() => new Date().getFullYear())
+const prevYear = computed(() => new Date().getFullYear() - 1)
+const currentMonthNumber = computed(() => new Date().getMonth() + 1)
+
+const currentMonthName = computed(() => {
+  return new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).format(new Date())
+})
+
+const prevMonthName = computed(() => {
+  const d = new Date()
+  d.setMonth(d.getMonth() - 1)
+  return new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).format(d)
+})
+
+const twoMonthsAgoName = computed(() => {
+  const d = new Date()
+  d.setMonth(d.getMonth() - 2)
+  return new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).format(d)
+})
+
+const avgMonthlyThisYear = computed(() => {
+  const months = currentMonthNumber.value
+  if (months === 0) return 0
+  return Math.round(salesTotals.value.year / months)
+})
+
+const avgMonthlyLastYear = computed(() => {
+  const months = currentMonthNumber.value
+  if (months === 0) return 0
+  return Math.round(salesTotals.value.yearPrevYear / months)
+})
+
+const commissionRateFormatted = computed(() => `${(commissionRate.value * 100).toFixed(0)}%`)
+
+const commissionMonth = computed(() => Math.round(salesTotals.value.month * commissionRate.value))
+const commissionMonthPrev = computed(() => Math.round(salesTotals.value.monthPrev * commissionRate.value))
+const commissionAvgThisYear = computed(() => Math.round(avgMonthlyThisYear.value * commissionRate.value))
+const commissionAvgLastYear = computed(() => Math.round(avgMonthlyLastYear.value * commissionRate.value))
 
 function pct(n: number, d: number) {
   if (!d) return 0

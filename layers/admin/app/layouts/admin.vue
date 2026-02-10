@@ -60,6 +60,12 @@
                 label="Templates WhatsApp" 
                 @click="closeMenu"
               />
+              <NNavItem 
+                to="/admin/configuracoes" 
+                icon="mdi:cog" 
+                label="Configurações" 
+                @click="closeMenu"
+              />
             </div>
           </NNavMenu>
         </div>
