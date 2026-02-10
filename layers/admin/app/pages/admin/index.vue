@@ -51,6 +51,9 @@
                 <NTypo size="xl" weight="bold" class="tabular-nums text-sky-500 lg:text-2xl">
                   {{ formatCompactNumber(visitedStats.contatosNoMes) }}
                 </NTypo>
+                <NTypo size="xs" tone="muted" class="mt-1">
+                  Mes anterior: {{ formatCompactNumber(contactsPrevMonth) }}
+                </NTypo>
               </div>
               <div class="text-[11px] font-semibold" :class="contatosVsMesAnterior.class">
                 <div class="flex items-center gap-1">
@@ -67,6 +70,9 @@
                 <NTypo size="xs" tone="muted" class="mb-1">Mensal</NTypo>
                 <NTypo size="xl" weight="bold" class="tabular-nums text-violet-500 lg:text-2xl">
                   {{ formatCurrency(visitedStats.faturamentoMensal) }}
+                </NTypo>
+                <NTypo size="xs" tone="muted" class="mt-1">
+                  Mes anterior: {{ formatCurrency(salesTotals.monthPrev) }}
                 </NTypo>
               </div>
               <div class="space-y-1 text-[11px] font-semibold">
@@ -90,6 +96,9 @@
                 <NTypo size="xl" weight="bold" class="tabular-nums text-amber-600 lg:text-2xl">
                   {{ formatCurrency(visitedStats.faturamentoTrimestral) }}
                 </NTypo>
+                <NTypo size="xs" tone="muted" class="mt-1">
+                  Trimestre anterior: {{ formatCurrency(salesTotals.quarterPrev) }}
+                </NTypo>
               </div>
               <div class="space-y-1 text-[11px] font-semibold">
                 <div class="flex items-center gap-1" :class="trimestralVsTrimestreAnterior.class">
@@ -111,6 +120,9 @@
                 <NTypo size="xs" tone="muted" class="mb-1">Anual</NTypo>
                 <NTypo size="xl" weight="bold" class="tabular-nums text-orange-500 lg:text-2xl">
                   {{ formatCurrency(visitedStats.faturamentoAnual) }}
+                </NTypo>
+                <NTypo size="xs" tone="muted" class="mt-1">
+                  Ano anterior: {{ formatCurrency(salesTotals.yearPrevYear) }}
                 </NTypo>
               </div>
               <div class="text-[11px] font-semibold" :class="anualVsAnoAnterior.class">
@@ -233,6 +245,7 @@
             >
               <option value="">Todos</option>
               <option value="ativo">✅ Ativo (≤90d)</option>
+              <option value="ativo_mes">📈 Ativo mes (venda no mes)</option>
               <option value="atencao">⚠️ Em atenção (91–180d)</option>
               <option value="critico">🚨 Crítico / Reativar (&gt;180d)</option>
               <option value="potencial">🎯 Potencial</option>
@@ -617,7 +630,11 @@ const filteredClientes = computed(() => {
 
   // Filtro por tipo
   if (filterTipo.value) {
-    result = result.filter((cliente) => keyForClient(cliente) === (filterTipo.value as any))
+    if (filterTipo.value === 'ativo_mes') {
+      result = result.filter((cliente) => safeNumber((cliente as any)?.objectives?.mesAberto) > 0)
+    } else {
+      result = result.filter((cliente) => keyForClient(cliente) === (filterTipo.value as any))
+    }
   }
 
   return result
