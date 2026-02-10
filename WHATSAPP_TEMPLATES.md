@@ -78,14 +78,14 @@ No painel do cliente (ClientSidePanel):
 
 ## 🔧 Variáveis Disponíveis
 
-| Variável | Descrição | Exemplo |
-|----------|-----------|---------|
-| `{{nome}}` | Nome do cliente | "NAIH JOALHERIA" |
-| `{{atendente}}` | Nome do vendedor | "Marcus" (padrão) |
-| `{{empresa}}` | Nome da empresa | "NAIH JOALHERIA" |
-| `{{cidade}}` | Cidade do cliente | "Chapecó" |
-| `{{linha}}` | Linha de produtos | "alianças e joias" |
-| `{{ultimaCompraData}}` | Data última compra | "10/02/2026" |
+| Variável                | Descrição              | Exemplo            |
+| ----------------------- | ---------------------- | ------------------ |
+| `{{nome}}`              | Nome do cliente        | "NAIH JOALHERIA"   |
+| `{{atendente}}`         | Nome do vendedor       | "Marcus" (padrão)  |
+| `{{empresa}}`           | Nome da empresa        | "NAIH JOALHERIA"   |
+| `{{cidade}}`            | Cidade do cliente      | "Chapecó"          |
+| `{{linha}}`             | Linha de produtos      | "alianças e joias" |
+| `{{ultimaCompraData}}`  | Data última compra     | "10/02/2026"       |
 | `{{ultimaCompraItens}}` | Itens da última compra | "Alianças de ouro" |
 
 ## 📝 Tipos de Gatilho (Trigger Types)
@@ -104,13 +104,13 @@ No painel do cliente (ClientSidePanel):
 Nome: Primeiro Contato - Formal
 Tipo: FIRST_CONTACT
 Mensagem:
-  Olá! Sou {{atendente}} da Felssner Representações. 
-  Trabalhamoscom {{linha}} de alta qualidade. 
+  Olá! Sou {{atendente}} da Felssner Representações.
+  Trabalhamoscom {{linha}} de alta qualidade.
   Posso te enviar nosso catálogo?
 
 Variação 1:
-  Oi! Aqui é {{atendente}} da Felssner. 
-  Temos {{linha}} que podem interessar sua loja. 
+  Oi! Aqui é {{atendente}} da Felssner.
+  Temos {{linha}} que podem interessar sua loja.
   Gostaria de conhecer?
 ```
 
@@ -150,6 +150,7 @@ graph TD
 ```
 
 **Índices**:
+
 - `triggerType_1`
 - `isActive_1`
 
