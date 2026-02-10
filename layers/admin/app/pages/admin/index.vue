@@ -71,6 +71,7 @@
               </select>
             </div>
           </div>
+
         </div>
 
         <div class="mt-4 grid !grid-cols-1 sm:!grid-cols-2 md:!grid-cols-3 lg:!grid-cols-5 gap-2 sm:gap-2 md:gap-3 lg:gap-3">
@@ -216,6 +217,27 @@
               <NIcon :name="mostrarProspectos ? 'mdi:eye' : 'mdi:eye-off'" class="w-4 h-4" />
               <span>Prospectos</span>
             </button>
+          </div>
+
+          <div class="absolute bottom-4 right-4 z-10 w-42 rounded-lg border border-white/60 bg-white/95 px-3 py-2 shadow-lg backdrop-blur">
+            <div class="flex items-center gap-2">
+              <NTypo as="label" size="xs" weight="semibold" tone="muted">
+                Ranking
+              </NTypo>
+              <select
+                class="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
+                :value="topRankSelectValue"
+                @change="handleTopRankSelect"
+              >
+                <option
+                  v-for="preset in rankPresets"
+                  :key="`rank-${preset.value}`"
+                  :value="preset.value"
+                >
+                  {{ preset.label }}
+                </option>
+              </select>
+            </div>
           </div>
 
           <BrokerMaps
@@ -420,6 +442,7 @@ const filterTipo = ref('')
 const mostrarClientes = ref(true)
 const mostrarComerciais = ref(true)
 const mostrarProspectos = ref(true)
+const topRankLimit = ref<number | null>(null)
 
 const { fetchClients, patchClient, deleteClient } = useClientsApi()
 const { createEvento } = useHistoricoClienteApi()
@@ -584,7 +607,7 @@ const filteredClientes = computed(() => {
   return result
 })
 
-const MAX_PINS = 2500
+const MAX_PINS = 10000
 const clientesParaPins = computed(() => {
   const geocoded = filteredClientes.value.filter(
     (c) => Number.isFinite((c as any).lat) && Number.isFinite((c as any).lng)
@@ -657,9 +680,64 @@ const pinMetricByClientId = computed(() => {
   return { rank, metric, totals, maxMetric }
 })
 
+const maxRankLimit = computed(() => pinMetricByClientId.value.rank.size || 0)
+const topRankLabel = computed(() => {
+  if (!maxRankLimit.value) return '--'
+  if (topRankLimit.value === null) return 'Tudo'
+  if (topRankLimit.value <= 0 || topRankLimit.value >= maxRankLimit.value) {
+    return 'Tudo'
+  }
+  return `Top ${topRankLimit.value}`
+})
+
+const rankPresets = computed(() => {
+  const maxValue = maxRankLimit.value
+  if (!maxValue) return []
+  const base = [3, 10, 50, 100].filter((n) => n < maxValue)
+  return [...base, maxValue].map((value) => ({
+    value,
+    label: value === maxValue ? 'Tudo' : `Top ${value}`,
+  }))
+})
+
+const topRankSelectValue = computed(() => {
+  const maxValue = maxRankLimit.value
+  if (!maxValue) return 0
+  if (topRankLimit.value === null) return maxValue
+  return Math.min(topRankLimit.value, maxValue)
+})
+
+watch(maxRankLimit, (maxValue) => {
+  if (!maxValue) return
+  if (topRankLimit.value === null) {
+    topRankLimit.value = maxValue
+  } else if (topRankLimit.value > maxValue) {
+    topRankLimit.value = maxValue
+  }
+})
+
+function setTopRank(value: number) {
+  const maxValue = maxRankLimit.value || 0
+  if (!maxValue) {
+    topRankLimit.value = null
+    return
+  }
+  topRankLimit.value = Math.min(Math.max(1, value), maxValue)
+}
+
+function handleTopRankSelect(event: Event) {
+  const target = event.target as HTMLSelectElement
+  const value = Number(target.value)
+  if (!Number.isFinite(value) || value <= 0) return
+  setTopRank(value)
+}
+
 const createVisitedMarkers = computed(() => {
   const markers: any[] = []
   const meta = pinMetricByClientId.value
+  const maxRank = maxRankLimit.value
+  const limit = topRankLimit.value
+  const shouldLimit = typeof limit === 'number' && limit > 0 && limit < maxRank
 
   for (const cliente of clientesParaPins.value) {
     const categoria = categorizeClient(cliente)
@@ -672,6 +750,8 @@ const createVisitedMarkers = computed(() => {
     const id = (cliente as any).id
     const m = meta.metric.get(id) || 0
     const r = meta.rank.get(id) || 1
+
+    if (shouldLimit && r > (limit as number)) continue
     
     markers.push({
       lat: cliente.lat,
@@ -680,9 +760,13 @@ const createVisitedMarkers = computed(() => {
       value: r,
       color: markerColor(cliente),
       size: (() => {
-        if (m <= 0) return 18
+        const minSize = categoria === 'prospecto' ? 18 : categoria === 'comercial' ? 22 : 24
+        if (m <= 0) return minSize
         const ratio = Math.max(0, Math.min(1, m / meta.maxMetric))
-        return 16 + Math.round(ratio * 12)
+        const base = minSize + Math.round(ratio * 18)
+        if (r <= 3) return base + 6
+        if (r <= 10) return base + 3
+        return base
       })(),
       clientId: id,
       categoria,
@@ -773,7 +857,21 @@ const trimestralVsMesmoTrimestreAnoAnterior = computed(() =>
 )
 const anualVsAnoAnterior = computed(() => deltaMeta(salesTotals.value.year, salesTotals.value.yearPrevYear))
 
-const actionPlanTop = computed(() => topTasks(portfolioClientes.value, { limit: 8 }))
+const rankedPortfolioClientes = computed(() => {
+  const list = portfolioClientes.value
+  const maxRank = maxRankLimit.value
+  const limit = topRankLimit.value
+  const shouldLimit = typeof limit === 'number' && limit > 0 && limit < maxRank
+  if (!shouldLimit) return list
+
+  const rankMap = pinMetricByClientId.value.rank
+  return list.filter((c: any) => {
+    const r = rankMap.get(c.id) || 1
+    return r <= (limit as number)
+  })
+})
+
+const actionPlanTop = computed(() => topTasks(rankedPortfolioClientes.value, { limit: 8 }))
 
 function whatsAppUrl(telefoneRaw: string, nome: string) {
   const telefone = String(telefoneRaw || '').replace(/\D/g, '')

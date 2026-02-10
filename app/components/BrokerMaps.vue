@@ -16,8 +16,8 @@
         >
           <template v-if="showPins">
             <CustomMarker
-              v-for="marker in markers"
-              :key="`marker-${(marker as any).clientId || marker.title || ''}-${marker.lat}-${marker.lng}`"
+              v-for="marker in renderedMarkers"
+              :key="markerKey(marker)"
               :options="{
                 position: { lat: marker.lat, lng: marker.lng },
                 title: marker.title || `${marker.value} seguros`,
@@ -26,10 +26,15 @@
             >
               <div
                 :style="markerStyle(marker)"
+                :class="[
+                  'flex items-center justify-center font-bold border border-white/70 rounded-full',
+                  'shadow-[0_10px_24px_rgba(0,0,0,0.2)] hover:scale-110 transition-transform duration-200 ease-in-out',
+                  markerTextClass(marker),
+                  markerRingClass(marker),
+                ]"
                 @pointerdown.stop
                 @mousedown.stop
                 @touchstart.stop
-                class="flex items-center justify-center font-bold text-neutral-white border-2 border-white shadow-md hover:scale-110 transition-transform duration-200 ease-in-out rounded-full"
               >
                 {{ marker.value }}
               </div>
@@ -88,6 +93,10 @@ type MapMarker = {
   value?: number | string
   color?: string
   size?: number
+  categoria?: string
+  cluster?: boolean
+  count?: number
+  clusterId?: string
 }
 
 type MapPolygon = {
@@ -145,6 +154,7 @@ const googleMapsRef = ref<InstanceType<typeof GoogleMap> | null>(null)
 const showPins = ref(true)
 const showPolygons = ref(true)
 const isFullscreen = ref(false)
+const currentZoom = ref(props.zoom)
 
 function zoomIn() {
   const mapInstance = googleMapsRef.value?.map
@@ -214,14 +224,42 @@ const mapStyles = [
 ]
 
 function markerStyle(marker: MapMarker) {
-  const rawSize = typeof marker.size === 'number' ? marker.size : 20
-  const size = Math.max(14, Math.min(rawSize, 28))
+  const rawSize = typeof marker.size === 'number' ? marker.size : marker.cluster ? 20 : 22
+  const size = Math.max(14, Math.min(rawSize, marker.cluster ? 30 : 38))
   return {
     width: `${size}px`,
     height: `${size}px`,
-    background: marker.color || '#6B7280',
-    fontSize: size >= 24 ? '11px' : '10px',
+    backgroundColor: marker.color || '#6B7280',
+    fontSize: `${Math.max(9, Math.round(size * 0.38))}px`,
   }
+}
+
+function markerTextClass(marker: MapMarker) {
+  if (marker.cluster) return 'text-slate-800'
+  const color = typeof marker.color === 'string' ? marker.color : '#6B7280'
+  return isLightColor(color) ? 'text-slate-900' : 'text-white'
+}
+
+function markerRingClass(marker: MapMarker) {
+  if (marker.cluster) return 'ring-2 ring-white/90'
+  const rank = Number(marker.value)
+  if (Number.isFinite(rank) && rank > 0 && rank <= 10) {
+    return 'ring-4 ring-white/95 shadow-[0_14px_30px_rgba(0,0,0,0.28)]'
+  }
+  return 'ring-2 ring-white/80'
+}
+
+function isLightColor(hexColor: string) {
+  const hex = hexColor.replace('#', '')
+  const normalized = hex.length === 3
+    ? hex.split('').map((c) => c + c).join('')
+    : hex
+  const r = parseInt(normalized.slice(0, 2), 16)
+  const g = parseInt(normalized.slice(2, 4), 16)
+  const b = parseInt(normalized.slice(4, 6), 16)
+  if ([r, g, b].some((v) => Number.isNaN(v))) return false
+  const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255
+  return luminance > 0.6
 }
 
 function polygonOptions(polygon: MapPolygon) {
@@ -236,6 +274,15 @@ function polygonOptions(polygon: MapPolygon) {
 }
 
 function handleMarkerClick(marker: MapMarker) {
+  if (marker.cluster) {
+    const mapInstance = googleMapsRef.value?.map
+    if (mapInstance) {
+      const nextZoom = Math.min((mapInstance.getZoom() || currentZoom.value || 10) + 2, 14)
+      mapInstance.panTo({ lat: marker.lat, lng: marker.lng })
+      mapInstance.setZoom(nextZoom)
+    }
+    return
+  }
   emit('marker-click', marker)
   props.onMarkerClick?.(marker)
 }
@@ -317,8 +364,87 @@ watch(
 watch(
   () => (googleMapsRef.value as any)?.ready,
   (isReady) => {
-    if (isReady) nextTick(() => fitBoundsToData())
+    if (!isReady) return
+    nextTick(() => fitBoundsToData())
+    const mapInstance = googleMapsRef.value?.map
+    if (!mapInstance) return
+    currentZoom.value = mapInstance.getZoom() || props.zoom
+    mapInstance.addListener('zoom_changed', () => {
+      currentZoom.value = mapInstance.getZoom() || props.zoom
+    })
   },
   { immediate: true }
 )
+
+const renderedMarkers = computed(() => {
+  const list = props.markers || []
+  const zoom = currentZoom.value || props.zoom
+  if (list.length < 1200 || zoom >= 11) return list
+
+  const prospects = list.filter((m) => m.categoria === 'prospecto')
+  const nonProspects = list.filter((m) => m.categoria !== 'prospecto')
+  if (!prospects.length) return list
+
+  return [...nonProspects, ...buildClusters(prospects, zoom)]
+})
+
+function buildClusters(markers: MapMarker[], zoom: number): MapMarker[] {
+  const gridPx = zoom < 7 ? 90 : zoom < 9 ? 75 : 60
+  const scale = 256 * Math.pow(2, zoom)
+  const gridDeg = (gridPx * 360) / scale
+  const buckets = new Map<string, { lat: number; lng: number; count: number }>()
+
+  for (const m of markers) {
+    const keyLat = Math.round(m.lat / gridDeg)
+    const keyLng = Math.round(m.lng / gridDeg)
+    const key = `${keyLat}:${keyLng}`
+    const bucket = buckets.get(key)
+    if (bucket) {
+      bucket.lat += m.lat
+      bucket.lng += m.lng
+      bucket.count += 1
+    } else {
+      buckets.set(key, { lat: m.lat, lng: m.lng, count: 1 })
+    }
+  }
+
+  const clustered: MapMarker[] = []
+  for (const [key, bucket] of buckets) {
+    if (bucket.count <= 1) continue
+    const count = bucket.count
+    const size = Math.min(30, 16 + Math.round(Math.log2(count) * 3))
+    clustered.push({
+      lat: bucket.lat / count,
+      lng: bucket.lng / count,
+      value: formatCount(count),
+      title: `${count} clientes`,
+      color: '#E2E8F0',
+      size,
+      cluster: true,
+      count,
+      clusterId: key,
+    })
+  }
+
+  const singles: MapMarker[] = []
+  for (const m of markers) {
+    const keyLat = Math.round(m.lat / gridDeg)
+    const keyLng = Math.round(m.lng / gridDeg)
+    const key = `${keyLat}:${keyLng}`
+    const bucket = buckets.get(key)
+    if (bucket && bucket.count <= 1) singles.push(m)
+  }
+
+  return [...clustered, ...singles]
+}
+
+function formatCount(count: number) {
+  if (count >= 1000) return `${Math.round(count / 100) / 10}k`
+  return String(count)
+}
+
+function markerKey(marker: MapMarker) {
+  const base = marker.cluster ? `cluster-${marker.clusterId || ''}` : `client-${(marker as any).clientId || ''}`
+  return `${base}-${marker.lat}-${marker.lng}-${marker.value || ''}`
+}
 </script>
