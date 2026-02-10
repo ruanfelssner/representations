@@ -219,3 +219,66 @@ export const TimelineEventSchema = z.object({
 })
 
 export type TimelineEvent = z.infer<typeof TimelineEventSchema>
+
+// WhatsApp Templates
+export const TriggerTypeSchema = z.enum([
+  'FIRST_CONTACT',
+  'LAST_SALE_90D',
+  'LAST_CONTACT_180D',
+  'REACTIVATION',
+  'DATE_CAMPAIGN',
+  'BUDGET_FOLLOWUP',
+  'RELATIONSHIP',
+])
+
+export type TriggerType = z.infer<typeof TriggerTypeSchema>
+
+export const WhatsAppTemplateSchema = z.object({
+  _id: z.union([z.string(), z.any()]), // ObjectId ou string
+  name: z.string().min(1, 'Nome é obrigatório'),
+  triggerType: TriggerTypeSchema,
+  isActive: z.boolean().default(true),
+  messageBody: z.string().min(1, 'Mensagem é obrigatória').max(800, 'Máximo 800 caracteres'),
+  variations: z.array(z.string().max(800)).max(3).default([]),
+  language: z.string().default('pt-BR'),
+  variablesAllowed: z.array(z.string()).default([]),
+  createdAt: z.union([z.string().datetime(), z.date()]),
+  updatedAt: z.union([z.string().datetime(), z.date()]),
+  createdBy: z.string().optional(),
+})
+
+export type WhatsAppTemplate = z.infer<typeof WhatsAppTemplateSchema>
+
+export const WhatsAppTemplateDtoSchema = WhatsAppTemplateSchema.extend({
+  id: z.string(),
+}).omit({ _id: true })
+
+export type WhatsAppTemplateDto = z.infer<typeof WhatsAppTemplateDtoSchema>
+
+export const WhatsAppTemplateCreateSchema = WhatsAppTemplateSchema.omit({
+  _id: true,
+  createdAt: true,
+  updatedAt: true,
+})
+
+export type WhatsAppTemplateCreate = z.infer<typeof WhatsAppTemplateCreateSchema>
+
+export const WhatsAppTemplateUpdateSchema = WhatsAppTemplateCreateSchema.partial()
+
+export type WhatsAppTemplateUpdate = z.infer<typeof WhatsAppTemplateUpdateSchema>
+
+export const WhatsAppPreviewRequestSchema = z.object({
+  clientId: z.string(),
+  templateId: z.string(),
+  variationIndex: z.number().min(0).max(2).optional(),
+})
+
+export type WhatsAppPreviewRequest = z.infer<typeof WhatsAppPreviewRequestSchema>
+
+export const WhatsAppPreviewResponseSchema = z.object({
+  message: z.string(),
+  waLink: z.string(),
+  variables: z.record(z.string(), z.string()),
+})
+
+export type WhatsAppPreviewResponse = z.infer<typeof WhatsAppPreviewResponseSchema>

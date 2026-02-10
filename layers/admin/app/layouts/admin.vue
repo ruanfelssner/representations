@@ -54,6 +54,12 @@
                 label="Produtos" 
                 @click="closeMenu"
               />
+              <NNavItem 
+                to="/admin/whatsapp-templates" 
+                icon="mdi:whatsapp" 
+                label="Templates WhatsApp" 
+                @click="closeMenu"
+              />
             </div>
           </NNavMenu>
         </div>

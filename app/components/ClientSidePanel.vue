@@ -99,6 +99,13 @@
               <NBigNumber :value="produtoMaisConsumido || '--'" label="Produto top" description="" icon="mdi:shopping" />
               <NBigNumber :value="formatCurrency(totalVendido90Dias)" label="90 dias" description="" icon="mdi:currency-usd" />
             </div>
+
+            <!-- Seletor de Templates WhatsApp -->
+            <WhatsAppTemplateSelector
+              v-if="clientData.telefone && whatsappTemplates.length > 0"
+              :client="clientData"
+              :templates="whatsappTemplates"
+            />
           </div>
 
           <div class="border-t border-gray-100 px-4 py-2 flex items-center justify-between">
@@ -186,7 +193,9 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useHistoricoClienteApi } from '~/composables/useHistoricoClienteApi'
+import { useWhatsAppTemplates } from '~/composables/useWhatsAppTemplates'
 import type { Cliente } from '~/types/client'
+import type { WhatsAppTemplateDto } from '~/types/schemas'
 
 interface Props {
   isOpen: boolean
@@ -205,10 +214,12 @@ const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
 const { fetchHistorico } = useHistoricoClienteApi()
+const { fetchTemplates } = useWhatsAppTemplates()
 const { metaForClient } = useClientEngagementStatus()
 const historico = ref<any[]>([])
 const isLoadingHistorico = ref(false)
 const historicoErrorMessage = ref('')
+const whatsappTemplates = ref<WhatsAppTemplateDto[]>([])
 
 const isProspect = computed(() => (props.clientData as any)?._isProspect === true)
 
@@ -224,6 +235,21 @@ const statusMeta = computed(() => {
   }
   return metaForClient(props.clientData)
 })
+
+// Carregar templates WhatsApp
+async function loadWhatsAppTemplates() {
+  try {
+    whatsappTemplates.value = await fetchTemplates({ active: true })
+  } catch (error) {
+    console.error('Erro ao carregar templates WhatsApp:', error)
+    whatsappTemplates.value = []
+  }
+}
+
+// Carregar templates ao montar componente
+if (import.meta.client) {
+  loadWhatsAppTemplates()
+}
 
 watch(
   () => [props.clientData?.id, props.clientData?.updatedAt],
