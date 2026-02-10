@@ -323,6 +323,56 @@ async function getHistoricoSummary(db: any): Promise<HistoricoSummaryResult> {
   return value
 }
 
+async function populateVisitas(db: any, clients: any[]): Promise<void> {
+  if (!clients.length) return
+  
+  const clientIds = clients.map(c => String(c._id || '')).filter(Boolean)
+  if (!clientIds.length) return
+  
+  const historico = await db
+    .collection('historicoCliente')
+    .find(
+      { clientId: { $in: clientIds } },
+      { 
+        projection: { 
+          clientId: 1, 
+          tipo: 1, 
+          data: 1, 
+          descricao: 1, 
+          proximoContato: 1,
+          totalVenda: 1,
+          createdAt: 1,
+        },
+        sort: { data: -1 }
+      }
+    )
+    .toArray()
+  
+  const visitasByClientId = new Map<string, any[]>()
+  for (const evento of historico) {
+    const clientId = String(evento.clientId || '')
+    if (!clientId) continue
+    
+    if (!visitasByClientId.has(clientId)) {
+      visitasByClientId.set(clientId, [])
+    }
+    
+    visitasByClientId.get(clientId)!.push({
+      tipo: evento.tipo,
+      data: evento.data,
+      descricao: evento.descricao,
+      proximoContato: evento.proximoContato,
+      totalVenda: evento.totalVenda,
+      createdAt: evento.createdAt,
+    })
+  }
+  
+  for (const client of clients) {
+    const clientId = String(client._id || '')
+    client.visitas = visitasByClientId.get(clientId) || []
+  }
+}
+
 export default defineEventHandler(async (event) => {
   const url = new URL((event as any)?.node?.req?.url || (event as any)?.req?.url || '', 'http://localhost')
   const queryParsed = ClientsQuerySchema.safeParse({
@@ -340,6 +390,9 @@ export default defineEventHandler(async (event) => {
     .collection('clients')
     .find({}, { projection: { rawOrders: 0 } })
     .toArray()
+
+  // Popular visitas individuais de cada cliente
+  await populateVisitas(db, clients)
 
   const mapped = clients.map((doc: any) => {
     const c: any = toClientApi(doc)

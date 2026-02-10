@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { ObjectId } from 'mongodb'
 
 const EmailSchema = z.string().email()
 
@@ -182,4 +183,23 @@ export function toSimpleIdApi(doc: any) {
   if (!doc) return doc
   const { _id, ...rest } = doc
   return { ...rest, id: String(_id) }
+}
+
+/**
+ * Busca cliente por ID (ObjectID, _id ou CNPJ)
+ * Tenta 3 formas:
+ * 1. Por ObjectId (se o id tiver 24 caracteres hex)
+ * 2. Por _id direto (string)
+ * 3. Por CNPJ
+ */
+export async function resolveClientDoc(db: any, id: string) {
+  if (/^[0-9a-fA-F]{24}$/.test(id)) {
+    const byObjectId = await db.collection('clients').findOne({ _id: new ObjectId(id) })
+    if (byObjectId) return byObjectId
+  }
+  const byId = await db.collection('clients').findOne({ _id: id })
+  if (byId) return byId
+  const byCnpj = await db.collection('clients').findOne({ cnpj: id })
+  if (byCnpj) return byCnpj
+  return null
 }

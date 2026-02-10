@@ -1,21 +1,9 @@
 import { createError } from 'h3'
 import { ObjectId } from 'mongodb'
 import { getMongoDb } from '../../../utils/mongo'
-import { toClientApi } from '../../../utils/dto'
+import { toClientApi, resolveClientDoc } from '../../../utils/dto'
 
 const SALES_TYPES = ['venda_fisica', 'venda_ligacao']
-
-async function resolveClientDoc(db: any, id: string) {
-  if (/^[0-9a-fA-F]{24}$/.test(id)) {
-    const byObjectId = await db.collection('clients').findOne({ _id: new ObjectId(id) })
-    if (byObjectId) return byObjectId
-  }
-  const byId = await db.collection('clients').findOne({ _id: id })
-  if (byId) return byId
-  const byCnpj = await db.collection('clients').findOne({ cnpj: id })
-  if (byCnpj) return byCnpj
-  return null
-}
 
 export default defineEventHandler(async (event) => {
   const { id } = getRouterParams(event)

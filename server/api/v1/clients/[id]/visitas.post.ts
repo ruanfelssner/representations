@@ -1,9 +1,10 @@
 import { createError } from 'h3'
 import { getMongoDb } from '../../../../utils/mongo'
 import { ObjectId } from 'mongodb'
-import { toClientApi } from '../../../../utils/dto'
+import { toClientApi, resolveClientDoc } from '../../../../utils/dto'
 
-async function updateClientMonthSales(db: any, clientId: string, monthStartIso: string) {
+async function updateClientMonthSales(db: any, clientObjectId: ObjectId, monthStartIso: string) {
+  const clientId = String(clientObjectId)
   const vendas = await db
     .collection('historicoCliente')
     .find({
@@ -17,7 +18,7 @@ async function updateClientMonthSales(db: any, clientId: string, monthStartIso: 
   const faturamento = vendas.reduce((sum: number, v: any) => sum + (Number(v?.totalVenda) || 0), 0)
 
   await db.collection('clients').updateOne(
-    { _id: clientId },
+    { _id: clientObjectId },
     {
       $set: {
         'objectives.mesAberto': faturamento,
@@ -34,6 +35,13 @@ export default defineEventHandler(async (event) => {
 
   const body = (await readBody(event).catch(() => ({}))) as Record<string, unknown>
   const db = await getMongoDb()
+
+  // Resolve cliente primeiro para ter o ObjectID real
+  const client = await resolveClientDoc(db, id)
+  if (!client) throw createError({ statusCode: 404, statusMessage: 'Cliente não encontrado.' })
+
+  const clientObjectId = client._id
+  const clientIdString = String(clientObjectId)
 
   const data = (body.data as string | undefined) || new Date().toISOString()
   const descricao = (body.descricao as string | undefined) || ''
@@ -56,7 +64,7 @@ export default defineEventHandler(async (event) => {
   const now = new Date().toISOString()
   await db.collection('historicoCliente').insertOne({
     _id: new ObjectId(),
-    clientId: id,
+    clientId: clientIdString,
     userId: typeof body.userId === 'string' ? body.userId : 'user-app',
     tipo: vendeuAlgo ? 'venda_fisica' : 'visita_fisica',
     data,
@@ -71,13 +79,10 @@ export default defineEventHandler(async (event) => {
     updatedAt: now,
   })
 
-  const client = await db.collection('clients').findOne({ _id: id })
-  if (!client) throw createError({ statusCode: 404, statusMessage: 'Cliente não encontrado.' })
-
   const monthStart = new Date()
   monthStart.setDate(1)
   monthStart.setHours(0, 0, 0, 0)
-  await updateClientMonthSales(db, id, monthStart.toISOString())
+  await updateClientMonthSales(db, clientObjectId, monthStart.toISOString())
 
   return { success: true, data: toClientApi(client) }
 })

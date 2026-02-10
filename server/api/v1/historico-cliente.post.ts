@@ -2,6 +2,7 @@ import { createError } from 'h3'
 import { ObjectId } from 'mongodb'
 import { getMongoDb } from '../../utils/mongo'
 import { parseWithZod } from '../../utils/validation'
+import { resolveClientDoc } from '../../utils/dto'
 import { HistoricoClienteSchema } from '~/types/schemas'
 
 async function updateClientMonthSales(db: any, clientId: string, monthStartIso: string) {
@@ -56,7 +57,7 @@ export default defineEventHandler(async (event) => {
   await db.collection('historicoCliente').insertOne(evento)
   ;(globalThis as any).__clientsHistoricoSummaryCache = undefined
 
-  const client = await db.collection('clients').findOne({ _id: validated.clientId })
+  const client = await resolveClientDoc(db, validated.clientId)
   if (!client) throw createError({ statusCode: 404, statusMessage: 'Cliente não encontrado.' })
 
   const clientSet: Record<string, unknown> = {
@@ -71,12 +72,12 @@ export default defineEventHandler(async (event) => {
     if (!stage || stage === 'lead') clientSet['sales.stage'] = 'ativo'
   }
 
-  await db.collection('clients').updateOne({ _id: validated.clientId }, { $set: clientSet })
+  await db.collection('clients').updateOne({ _id: client._id }, { $set: clientSet })
 
   const d = new Date()
   d.setDate(1)
   d.setHours(0, 0, 0, 0)
-  await updateClientMonthSales(db, validated.clientId, d.toISOString())
+  await updateClientMonthSales(db, String(client._id), d.toISOString())
 
   const { _id, ...rest } = evento as any
   return { success: true, data: { ...rest, id: String(_id) } }
