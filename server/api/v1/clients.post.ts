@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
 
   const db = await getMongoDb()
   const config = useRuntimeConfig()
-  const apiKey = config.googleMapsServerApiKey
+  const apiKey = config.googleMapsServerApiKey || config.public?.googleMapsApiKey
   if (!apiKey) {
     throw createError({
       statusCode: 500,
