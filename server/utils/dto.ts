@@ -58,7 +58,11 @@ export function toClientApi(doc: any) {
   if (!doc) return doc
   const { _id, color: _color, ...rest } = doc
 
-  const nome = typeof doc?.nome === 'string' && doc.nome.trim() ? doc.nome.trim() : '(Sem nome)'
+  const nome = typeof doc?.nome === 'string' && doc.nome.trim() 
+    ? doc.nome.trim() 
+    : typeof doc?.razao_social === 'string' && doc.razao_social.trim()
+    ? doc.razao_social.trim()
+    : '(Sem nome)'
 
   const coords = Array.isArray(doc?.localizacao?.geo?.coordinates)
     ? doc.localizacao.geo.coordinates
@@ -176,6 +180,7 @@ export function toClientApi(doc: any) {
     endereco,
     cidade,
     estado,
+    visitas: Array.isArray(doc?.visitas) ? doc.visitas : undefined,
   }
 }
 

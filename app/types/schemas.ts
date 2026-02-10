@@ -93,6 +93,7 @@ export const ClientDtoSchema = ClientSchema.omit({ _id: true }).extend({
   endereco_completo: z.string().optional(),
   cidade: z.string().optional(),
   estado: z.string().optional(),
+  visitas: z.array(z.unknown()).optional(),
 })
 export type ClientDto = z.infer<typeof ClientDtoSchema>
 

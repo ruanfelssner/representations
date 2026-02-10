@@ -105,15 +105,16 @@ async function getHistoricoSummary(db: any): Promise<HistoricoSummaryResult> {
         dataDate: { $convert: { input: '$data', to: 'date', onError: null, onNull: null } },
         proximoContatoDate: { $convert: { input: '$proximoContato', to: 'date', onError: null, onNull: null } },
         totalVendaNum: { $convert: { input: '$totalVenda', to: 'double', onError: 0, onNull: 0 } },
+        clientIdStr: { $toString: '$clientId' },
       },
     },
-    { $match: { clientId: { $type: 'string', $ne: '' }, dataDate: { $ne: null } } },
+    { $match: { clientIdStr: { $ne: '' }, dataDate: { $ne: null } } },
     {
       $facet: {
         byClient: [
           {
             $group: {
-              _id: '$clientId',
+              _id: '$clientIdStr',
               lastContactAt: { $max: '$dataDate' },
               nextActionAt: {
                 $min: {
@@ -326,13 +327,30 @@ async function getHistoricoSummary(db: any): Promise<HistoricoSummaryResult> {
 async function populateVisitas(db: any, clients: any[]): Promise<void> {
   if (!clients.length) return
   
-  const clientIds = clients.map(c => String(c._id || '')).filter(Boolean)
-  if (!clientIds.length) return
+  // Coletar tanto ObjectId quanto string do _id
+  const clientIdsAsObjects: any[] = []
+  const clientIdsAsStrings: string[] = []
   
+  for (const c of clients) {
+    if (c._id) {
+      clientIdsAsObjects.push(c._id) // ObjectId original
+      const idStr = c._id.toString ? c._id.toString() : String(c._id)
+      clientIdsAsStrings.push(idStr) // String
+    }
+  }
+  
+  if (!clientIdsAsObjects.length) return
+  
+  // Buscar usando $or para cobrir ambos os casos (ObjectId e string)
   const historico = await db
     .collection('historicoCliente')
     .find(
-      { clientId: { $in: clientIds } },
+      { 
+        $or: [
+          { clientId: { $in: clientIdsAsObjects } },
+          { clientId: { $in: clientIdsAsStrings } }
+        ]
+      },
       { 
         projection: { 
           clientId: 1, 
@@ -350,14 +368,30 @@ async function populateVisitas(db: any, clients: any[]): Promise<void> {
   
   const visitasByClientId = new Map<string, any[]>()
   for (const evento of historico) {
-    const clientId = String(evento.clientId || '')
-    if (!clientId) continue
-    
-    if (!visitasByClientId.has(clientId)) {
-      visitasByClientId.set(clientId, [])
+    // Normalizar clientId para string hexadecimal
+    let clientIdStr = ''
+    if (evento.clientId) {
+      // Se for ObjectId, usar toHexString() ou toString()
+      if (typeof evento.clientId === 'object' && evento.clientId.toHexString) {
+        clientIdStr = evento.clientId.toHexString()
+      } else if (typeof evento.clientId === 'object' && evento.clientId.toString) {
+        // ObjectId.toString() retorna a string hex corretamente
+        const str = evento.clientId.toString()
+        // Extrair apenas o hex se vier no formato "new ObjectId('...')"
+        const match = str.match(/^new ObjectId\(['"]([a-f0-9]{24})['"]\)$/i)
+        clientIdStr = match ? match[1] : str
+      } else {
+        clientIdStr = String(evento.clientId)
+      }
     }
     
-    visitasByClientId.get(clientId)!.push({
+    if (!clientIdStr) continue
+    
+    if (!visitasByClientId.has(clientIdStr)) {
+      visitasByClientId.set(clientIdStr, [])
+    }
+    
+    visitasByClientId.get(clientIdStr)!.push({
       tipo: evento.tipo,
       data: evento.data,
       descricao: evento.descricao,
@@ -368,8 +402,19 @@ async function populateVisitas(db: any, clients: any[]): Promise<void> {
   }
   
   for (const client of clients) {
-    const clientId = String(client._id || '')
-    client.visitas = visitasByClientId.get(clientId) || []
+    let clientIdStr = ''
+    if (client._id) {
+      if (typeof client._id === 'object' && client._id.toHexString) {
+        clientIdStr = client._id.toHexString()
+      } else if (typeof client._id === 'object' && client._id.toString) {
+        clientIdStr = client._id.toString()
+      } else {
+        clientIdStr = String(client._id)
+      }
+    }
+    
+    const visitas = visitasByClientId.get(clientIdStr) || []
+    client.visitas = visitas
   }
 }
 

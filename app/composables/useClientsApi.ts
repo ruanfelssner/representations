@@ -76,12 +76,10 @@ export function useClientsApi() {
   }
 
   const patchClient = async (id: string, updates: Partial<Cliente> & { endereco_completo?: string }) => {
-    console.log('🔧 COMPOSABLE - patchClient chamado com:', { id, updates: JSON.stringify(updates) })
     const res = await $fetch<ApiResponse<unknown>>(`/api/v1/clients/${encodeURIComponent(id)}`, {
       method: 'PATCH',
       body: updates,
     })
-    console.log('🔧 COMPOSABLE - Resposta recebida:', res)
     return ClientDtoSchema.parse(res.data) as Cliente
   }
 

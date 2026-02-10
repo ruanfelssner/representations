@@ -1,4 +1,5 @@
 import { getMongoDb } from '../../utils/mongo'
+import { ObjectId } from 'mongodb'
 
 function toIso(v: any): string | undefined {
   if (!v) return undefined
@@ -17,7 +18,20 @@ export default defineEventHandler(async (event) => {
   const clientId = query.get('clientId')
   const userId = query.get('userId')
   const tipo = query.get('tipo')
-  if (clientId) filter.clientId = clientId
+  
+  // clientId pode ser ObjectId ou string, buscar ambos
+  if (clientId) {
+    if (/^[0-9a-fA-F]{24}$/.test(clientId)) {
+      // Se for hex válido, buscar tanto como ObjectId quanto como string
+      filter.$or = [
+        { clientId: new ObjectId(clientId) },
+        { clientId: clientId }
+      ]
+    } else {
+      filter.clientId = clientId
+    }
+  }
+  
   if (userId) filter.userId = userId
   if (tipo) filter.tipo = tipo
 
@@ -41,8 +55,19 @@ export default defineEventHandler(async (event) => {
 
   const mapped = events.map((e: any) => {
     const { _id, ...rest } = e
+    let clientId = rest.clientId
+    if (clientId && typeof clientId === 'object') {
+      if (typeof clientId.toHexString === 'function') {
+        clientId = clientId.toHexString()
+      } else if (typeof clientId.toString === 'function') {
+        const asString = clientId.toString()
+        const match = asString.match(/^new ObjectId\(['"]([a-f0-9]{24})['"]\)$/i)
+        clientId = match ? match[1] : asString
+      }
+    }
     const out: any = {
       ...rest,
+      clientId,
       id: String(_id),
       data: toIso(rest.data),
       proximoContato: toIso(rest.proximoContato),
