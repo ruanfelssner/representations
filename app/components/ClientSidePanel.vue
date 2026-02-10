@@ -45,10 +45,11 @@
               {{ clientData.telefone }}
             </NButton>
 
-            <NButton @click="removerCliente" variant="danger" leading-icon="mdi:trash-can-outline" />
-            <NButton @click="$emit('edit-client')" leading-icon="mdi:pencil" variant="secondary" />
-
-            <NButton variant="primary" @click="$emit('add-visit')" leading-icon="mdi:plus" label="Visita" />
+            <template v-if="!isProspect">
+              <NButton @click="removerCliente" variant="danger" leading-icon="mdi:trash-can-outline" />
+              <NButton @click="$emit('edit-client')" leading-icon="mdi:pencil" variant="secondary" />
+              <NButton variant="primary" @click="$emit('add-visit')" leading-icon="mdi:plus" label="Visita" />
+            </template>
           </div>
         </div>
 
@@ -57,7 +58,41 @@
         </div>
 
         <div v-else class="flex-1 min-h-0 flex flex-col">
-          <div class="p-4 space-y-3">
+          <!-- Prospecto: apenas informações básicas -->
+          <div v-if="isProspect" class="p-4 space-y-3">
+            <NLayer variant="paper" size="sm" radius="soft">
+              <NTypo size="xs" tone="muted" weight="semibold" class="mb-2">Informações</NTypo>
+              <div class="space-y-2">
+                <div v-if="clientData.segmento">
+                  <NTypo size="xs" tone="muted">Segmento</NTypo>
+                  <NTypo size="sm" weight="medium">{{ clientData.segmento }}</NTypo>
+                </div>
+                <div v-if="clientData.cidade">
+                  <NTypo size="xs" tone="muted">Cidade</NTypo>
+                  <NTypo size="sm" weight="medium">{{ clientData.cidade }}</NTypo>
+                </div>
+                <div v-if="clientData.estado">
+                  <NTypo size="xs" tone="muted">Estado</NTypo>
+                  <NTypo size="sm" weight="medium">{{ clientData.estado }}</NTypo>
+                </div>
+                <div v-if="clientData._metadata?.porte">
+                  <NTypo size="xs" tone="muted">Porte</NTypo>
+                  <NTypo size="sm" weight="medium">{{ clientData._metadata.porte }}</NTypo>
+                </div>
+              </div>
+            </NLayer>
+
+            <NLayer variant="paper" size="sm" radius="soft" class="bg-blue-50 border-blue-100">
+              <NTypo size="xs" weight="semibold" class="text-blue-900 mb-1">💡 Dica</NTypo>
+              <NTypo size="xs" class="text-blue-800">
+                Este é um prospecto importado. Entre em contato para transformá-lo em cliente!
+              </NTypo>
+            </NLayer>
+          </div>
+
+          <!-- Cliente real: histórico completo -->
+          <template v-else>
+            <div class="p-4 space-y-3">
             <div class="grid grid-cols-2 gap-2">
               <NBigNumber :value="ultimaVisitaFormatted" label="Último contato" description="" icon="mdi:calendar" />
               <NBigNumber :value="proximaVisitaFormatted" label="Próxima" description="" icon="mdi:calendar" />
@@ -141,6 +176,7 @@
               </div>
             </div>
           </div>
+          </template>
         </div>
       </div>
     </aside>
@@ -174,13 +210,26 @@ const historico = ref<any[]>([])
 const isLoadingHistorico = ref(false)
 const historicoErrorMessage = ref('')
 
-const statusMeta = computed(() => metaForClient(props.clientData))
+const isProspect = computed(() => (props.clientData as any)?._isProspect === true)
+
+const statusMeta = computed(() => {
+  if (isProspect.value) {
+    return {
+      emoji: '🎯',
+      label: 'Prospecto',
+      chipClass: 'bg-gray-100 border-gray-200 text-gray-700',
+      dotClass: 'bg-gray-400',
+      colorHex: '#9CA3AF',
+    }
+  }
+  return metaForClient(props.clientData)
+})
 
 watch(
   () => [props.clientData?.id, props.clientData?.updatedAt],
   async ([clientId]) => {
     if (import.meta.server) return
-    if (!clientId) {
+    if (!clientId || isProspect.value) {
       historico.value = []
       historicoErrorMessage.value = ''
       return

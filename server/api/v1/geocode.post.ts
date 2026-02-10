@@ -13,11 +13,11 @@ export default defineEventHandler(async (event) => {
   }
 
   const config = useRuntimeConfig()
-  const apiKey = config.googleMapsServerApiKey
+  const apiKey = config.googleMapsServerApiKey || config.public.googleMapsApiKey
   if (!apiKey) {
     throw createError({
       statusCode: 500,
-      statusMessage: 'Google Maps API key não configurada (NUXT_GOOGLE_MAPS_API_KEY).',
+      statusMessage: 'Google Maps API key não configurada (NUXT_GOOGLE_MAPS_SERVER_API_KEY ou NUXT_PUBLIC_GOOGLE_MAPS_API_KEY).',
     })
   }
 

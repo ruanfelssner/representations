@@ -47,10 +47,10 @@
                 class="w-full px-3 py-2 rounded-lg border bg-white border-gray-200 focus:ring-2 focus:ring-sky-400 focus:border-sky-400 transition-colors"
               >
                 <option value="">Todos</option>
-                <option value="otica">👓 Ótica</option>
+                <option value="joalheria">💎 Joalheria</option>
                 <option value="relojoaria">⌚ Relojoaria</option>
-                <option value="semijoia">💍 Semi-joias</option>
-                <option value="multimarcas">🏪 Multimarcas</option>
+                <option value="otica">👓 Ótica</option>
+                <option value="outros">🏪 Outros</option>
               </select>
             </div>
 
@@ -82,23 +82,29 @@
             <div class="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-semibold">
               <span class="inline-flex items-center gap-1 text-emerald-700">
                 <span class="h-2 w-2 rounded-full bg-emerald-500" />
-                {{ visitedStats.ativosVerde }} ≤90d
+                {{ visitedStats.clientes }} clientes
+              </span>
+              <span class="inline-flex items-center gap-1 text-blue-700">
+                <span class="h-2 w-2 rounded-full bg-blue-500" />
+                {{ visitedStats.comerciais }} comercial
+              </span>
+              <span class="inline-flex items-center gap-1 text-gray-700">
+                <span class="h-2 w-2 rounded-full bg-gray-400" />
+                {{ visitedStats.prospectos }} prospectos
+              </span>
+            </div>
+            <div class="mt-2 pt-2 border-t border-emerald-100 flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-semibold">
+              <span class="inline-flex items-center gap-1 text-emerald-700">
+                <span class="h-2 w-2 rounded-full bg-emerald-500" />
+                {{ visitedStats.ativosVerde }} ativo
               </span>
               <span class="inline-flex items-center gap-1 text-yellow-700">
                 <span class="h-2 w-2 rounded-full bg-yellow-500" />
-                {{ visitedStats.ativosAmarelo }} 91–180d
+                {{ visitedStats.ativosAmarelo }} atenção
               </span>
               <span class="inline-flex items-center gap-1 text-red-700">
                 <span class="h-2 w-2 rounded-full bg-red-500" />
-                {{ visitedStats.ativosVermelho }} &gt;180d
-              </span>
-              <span v-if="visitedStats.potenciais" class="inline-flex items-center gap-1 text-blue-700">
-                <span class="h-2 w-2 rounded-full bg-blue-500" />
-                {{ visitedStats.potenciais }} potencial
-              </span>
-              <span v-if="visitedStats.inativos" class="inline-flex items-center gap-1 text-gray-700">
-                <span class="h-2 w-2 rounded-full bg-gray-400" />
-                {{ visitedStats.inativos }} inativo
+                {{ visitedStats.ativosVermelho }} crítico
               </span>
             </div>
           </div>          
@@ -166,7 +172,52 @@
 
       <!-- Mapa + painel -->
       <div class="grid !grid-cols-1 md:!grid-cols-12 lg:!grid-cols-12 gap-4 lg:gap-6">
-        <div class="md:!col-span-9 lg:!col-span-9 rounded-xl lg:rounded-2xl shadow-lg lg:shadow-2xl overflow-hidden border border-gray-200 bg-white h-[450px] sm:h-[550px] lg:h-[700px]">
+        <div class="md:!col-span-9 lg:!col-span-9 rounded-xl lg:rounded-2xl shadow-lg lg:shadow-2xl overflow-hidden border border-gray-200 bg-white h-[450px] sm:h-[550px] lg:h-[700px] relative">
+          <!-- Controles de visibilidade -->
+          <div class="absolute top-4 left-4 z-10 flex flex-col gap-2">
+            <button
+              @click="mostrarClientes = !mostrarClientes"
+              :class="[
+                'flex items-center gap-2 px-3 py-2 rounded-lg shadow-lg transition-all text-sm font-semibold',
+                mostrarClientes
+                  ? 'bg-emerald-500 text-white hover:bg-emerald-600'
+                  : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+              ]"
+              :title="mostrarClientes ? 'Esconder clientes' : 'Mostrar clientes'"
+            >
+              <NIcon :name="mostrarClientes ? 'mdi:eye' : 'mdi:eye-off'" class="w-4 h-4" />
+              <span>Clientes</span>
+            </button>
+
+            <button
+              @click="mostrarComerciais = !mostrarComerciais"
+              :class="[
+                'flex items-center gap-2 px-3 py-2 rounded-lg shadow-lg transition-all text-sm font-semibold',
+                mostrarComerciais
+                  ? 'bg-blue-500 text-white hover:bg-blue-600'
+                  : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+              ]"
+              :title="mostrarComerciais ? 'Esconder comercial' : 'Mostrar comercial'"
+            >
+              <NIcon :name="mostrarComerciais ? 'mdi:eye' : 'mdi:eye-off'" class="w-4 h-4" />
+              <span>Comercial</span>
+            </button>
+
+            <button
+              @click="mostrarProspectos = !mostrarProspectos"
+              :class="[
+                'flex items-center gap-2 px-3 py-2 rounded-lg shadow-lg transition-all text-sm font-semibold',
+                mostrarProspectos
+                  ? 'bg-gray-500 text-white hover:bg-gray-600'
+                  : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'
+              ]"
+              :title="mostrarProspectos ? 'Esconder prospectos' : 'Mostrar prospectos'"
+            >
+              <NIcon :name="mostrarProspectos ? 'mdi:eye' : 'mdi:eye-off'" class="w-4 h-4" />
+              <span>Prospectos</span>
+            </button>
+          </div>
+
           <BrokerMaps
             v-if="visitedMapData"
             :markers="createVisitedMarkers"
@@ -321,21 +372,9 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import type { Cliente } from '~/types/client'
+import type { ClientDto } from '~/types/schemas'
 import { useClientsApi } from '~/composables/useClientsApi'
 import { useHistoricoClienteApi } from '~/composables/useHistoricoClienteApi'
-
-interface MarkerData {
-  lat: number
-  lng: number
-  title: string
-  value: number
-  color: string
-  size: number
-  type: 'sede' | 'filial' | 'distribuidor' | 'parceiro'
-  address: string
-  phone: string
-  city: string
-}
 
 interface MapData {
   markers: any[]
@@ -346,7 +385,6 @@ interface MapData {
   }
 }
 
-const commercialMapData = ref<MapData | null>(null)
 const visitedMapData = ref<MapData | null>(null)
 const scGeoJson = ref<any>(null)
 const clientes = ref<Cliente[]>([])
@@ -379,6 +417,9 @@ const isModalEditarClienteOpen = ref(false)
 const searchQuery = ref('')
 const filterSegmento = ref('')
 const filterTipo = ref('')
+const mostrarClientes = ref(true)
+const mostrarComerciais = ref(true)
+const mostrarProspectos = ref(true)
 
 const { fetchClients, patchClient, deleteClient } = useClientsApi()
 const { createEvento } = useHistoricoClienteApi()
@@ -386,16 +427,8 @@ const { keyForClient, metaForClient, metaForKey } = useClientEngagementStatus()
 const { topTasks } = useSellerActionPlan()
 const currentUserId = 'user-app'
 
-const filters = ref({
-  sede: true,
-  filial: true,
-  distribuidor: true,
-  parceiro: true,
-})
-
 onMounted(async () => {
   try {
-    const commercialData = await $fetch('/api/v1/commercial-points')
     const geoJsonData = await $fetch('/santa-catarina.json')
 
     scGeoJson.value = geoJsonData
@@ -414,17 +447,6 @@ onMounted(async () => {
         clientes: 1850,
         corretores: 45,
       },
-    }
-
-    if (commercialData && 'data' in commercialData) {
-      commercialMapData.value = {
-        markers: commercialData.data.markers,
-        polygons: [scPolygon],
-        mapSettings: commercialData.data.mapSettings || {
-          center: { lat: -27.5954, lng: -48.548 },
-          zoom: 7,
-        },
-      }
     }
 
     visitedMapData.value = {
@@ -486,7 +508,7 @@ async function loadClients() {
       visitedMapData.value.mapSettings = data.mapSettings
     }
 
-    if (selectedClient.value) {
+    if (selectedClient.value && !(selectedClient.value as any)._isProspect) {
       selectedClient.value = clientes.value.find((c) => c.id === selectedClient.value?.id) || null
     }
   } catch (err: any) {
@@ -524,14 +546,6 @@ function processGeoJsonCoordinates(coordinates: any[]): { lat: number; lng: numb
   processCoords(coordinates)
   return paths
 }
-
-const filteredMarkers = computed(() => {
-  if (!commercialMapData.value) return []
-
-  return commercialMapData.value.markers.filter((marker: MarkerData) => {
-    return filters.value[marker.type as keyof typeof filters.value]
-  })
-})
 
 const portfolioClientes = computed(() => {
   if (filterTipo.value === 'inativo') {
@@ -579,7 +593,29 @@ const clientesParaPins = computed(() => {
   return geocoded.slice(0, MAX_PINS)
 })
 
+function categorizeClient(cliente: any) {
+  const temVendas = safeNumber(cliente?.sales?.totalAllTime) > 0 || 
+                    safeNumber(cliente?.sales?.total12m) > 0 || 
+                    safeNumber(cliente?.sales?.total90d) > 0
+  const temContatos = Array.isArray(cliente?.visitas) && cliente.visitas.length > 0
+  
+  if (temVendas) return 'cliente' // Verde/Amarelo/Vermelho baseado no engajamento
+  if (temContatos) return 'comercial' // Azul
+  return 'prospecto' // Cinza
+}
+
 function markerColor(cliente: any) {
+  const categoria = categorizeClient(cliente)
+  
+  if (categoria === 'prospecto') {
+    return '#9CA3AF' // gray-400
+  }
+  
+  if (categoria === 'comercial') {
+    return '#3B82F6' // blue-500
+  }
+  
+  // Cliente com vendas - usar lógica de engajamento
   return metaForClient(cliente).colorHex
 }
 
@@ -617,70 +653,78 @@ const pinMetricByClientId = computed(() => {
     totals.set(p.id, { totalAllTime: p.totalAllTime, total12m: p.total12m, total90d: p.total90d, mesAberto: p.mesAberto })
   })
 
-  const maxMetric = pairs.length ? Math.max(1, pairs[0].metric) : 1
+  const maxMetric = pairs.length && pairs[0] ? Math.max(1, pairs[0].metric) : 1
   return { rank, metric, totals, maxMetric }
 })
 
 const createVisitedMarkers = computed(() => {
+  const markers: any[] = []
   const meta = pinMetricByClientId.value
-  return clientesParaPins.value
-    .map((cliente) => ({
+
+  for (const cliente of clientesParaPins.value) {
+    const categoria = categorizeClient(cliente)
+    
+    // Filtrar por toggle
+    if (categoria === 'cliente' && !mostrarClientes.value) continue
+    if (categoria === 'comercial' && !mostrarComerciais.value) continue
+    if (categoria === 'prospecto' && !mostrarProspectos.value) continue
+
+    const id = (cliente as any).id
+    const m = meta.metric.get(id) || 0
+    const r = meta.rank.get(id) || 1
+    
+    markers.push({
       lat: cliente.lat,
       lng: cliente.lng,
-      title: (() => {
-        const id = (cliente as any).id
-        const m = meta.metric.get(id) || 0
-        const r = meta.rank.get(id) || 1
-        return m > 0 ? `${cliente.nome} (#${r} · R$ ${formatCompactMoney(m)})` : `${cliente.nome} (#${r})`
-      })(),
-      // Número do pin: ranking (sempre varia). O "peso" fica no tamanho.
-      value: meta.rank.get((cliente as any).id) || 1,
+      title: m > 0 ? `${cliente.nome} (#${r} · R$ ${formatCompactMoney(m)})` : `${cliente.nome} (#${r})`,
+      value: r,
       color: markerColor(cliente),
       size: (() => {
-        const m = meta.metric.get((cliente as any).id) || 0
         if (m <= 0) return 18
         const ratio = Math.max(0, Math.min(1, m / meta.maxMetric))
         return 16 + Math.round(ratio * 12)
       })(),
-      clientId: cliente.id,
-    }))
-})
-
-const stats = computed(() => {
-  if (!commercialMapData.value) return { total: 0, filiais: 0, distribuidores: 0, parceiros: 0 }
-
-  const markers = commercialMapData.value.markers
-  return {
-    total: markers.length,
-    filiais: markers.filter((m: MarkerData) => m.type === 'filial' || m.type === 'sede').length,
-    distribuidores: markers.filter((m: MarkerData) => m.type === 'distribuidor').length,
-    parceiros: markers.filter((m: MarkerData) => m.type === 'parceiro').length,
+      clientId: id,
+      categoria,
+    })
   }
+
+  return markers
 })
 
 const carteiraBuckets = computed(() => {
+  let clientes = 0 // Com vendas
+  let comerciais = 0 // Só contatos
+  let prospectos = 0 // Sem histórico
   let verde = 0
   let amarelo = 0
   let vermelho = 0
-  let potencial = 0
-  let inativo = 0
 
   for (const c of portfolioClientes.value as any[]) {
-    const k = keyForClient(c)
-    if (k === 'inativo') inativo++
-    else if (k === 'potencial') potencial++
-    else if (k === 'critico') vermelho++
-    else if (k === 'atencao') amarelo++
-    else verde++
+    const categoria = categorizeClient(c)
+    
+    if (categoria === 'cliente') {
+      clientes++
+      // Subcategorizar por engajamento
+      const k = keyForClient(c)
+      if (k === 'critico') vermelho++
+      else if (k === 'atencao') amarelo++
+      else verde++
+    } else if (categoria === 'comercial') {
+      comerciais++
+    } else {
+      prospectos++
+    }
   }
 
   return {
+    clientes,
+    comerciais,
+    prospectos,
     verde,
     amarelo,
     vermelho,
-    potencial,
-    inativo,
-    total: verde + amarelo + vermelho + potencial + inativo,
+    total: clientes + comerciais + prospectos,
   }
 })
 
@@ -688,11 +732,12 @@ const visitedStats = computed(() => {
   const carteira = carteiraBuckets.value
   return {
     total: carteira.total,
+    clientes: carteira.clientes,
+    comerciais: carteira.comerciais,
+    prospectos: carteira.prospectos,
     ativosVerde: carteira.verde,
     ativosAmarelo: carteira.amarelo,
     ativosVermelho: carteira.vermelho,
-    potenciais: carteira.potencial,
-    inativos: carteira.inativo,
     contatosNoMes: contactsThisMonth.value,
     faturamentoMensal: salesTotals.value.month,
     faturamentoTrimestral: salesTotals.value.quarter,
@@ -787,14 +832,22 @@ function handleOpenEditarCliente() {
   isModalEditarClienteOpen.value = true
 }
 
-function handleSubmitEditarCliente(updates: Record<string, unknown>) {
+async function handleSubmitEditarCliente(updates: Record<string, unknown>) {
   if (!selectedClient.value) return
 
-  patchClient(selectedClient.value.id, updates as any).then(async (updated) => {
-    selectedClient.value = updated
-    await loadClients()
-  })
-
+  const clientId = selectedClient.value.id
+  const updated = await patchClient(clientId, updates as any)
+  console.log('✅ Cliente atualizado:', { id: updated.id, lat: updated.lat, lng: updated.lng })
+  
+  await loadClients()
+  
+  // Re-selecionar o cliente após reload para garantir dados frescos
+  const freshClient = clientes.value.find(c => c.id === clientId)
+  if (freshClient) {
+    selectedClient.value = freshClient
+    console.log('🔄 Cliente re-selecionado:', { id: freshClient.id, lat: freshClient.lat, lng: freshClient.lng })
+  }
+  
   isModalEditarClienteOpen.value = false
 }
 

@@ -37,6 +37,12 @@
                 @click="closeMenu"
               />
               <NNavItem 
+                to="/admin/prospects" 
+                icon="mdi:store-search" 
+                label="Prospecção SC" 
+                @click="closeMenu"
+              />
+              <NNavItem 
                 to="/admin/users" 
                 icon="mdi:account" 
                 label="Usuários" 

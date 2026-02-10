@@ -33,6 +33,15 @@ export default defineEventHandler(async (event) => {
     if (k in body) updates[k] = body[k]
   })
 
+  // Suporte para lat/lng direto (quando buscar coordenadas manualmente)
+  const hasManualCoords = typeof body.lat === 'number' && typeof body.lng === 'number'
+  
+  if (hasManualCoords) {
+    updates['localizacao.latitude'] = body.lat
+    updates['localizacao.longitude'] = body.lng
+    updates['localizacao.geo'] = { type: 'Point', coordinates: [body.lng, body.lat] }
+  }
+
   console.log('🔍 SERVER - Body recebido:', body)
   console.log('🔍 SERVER - Status no body:', body.status)
   console.log('🔍 SERVER - Updates antes do assign:', updates)
@@ -45,13 +54,14 @@ export default defineEventHandler(async (event) => {
   if (typeof body.cep === 'string') enderecoUpdates['endereco.cep'] = body.cep
   Object.assign(updates, enderecoUpdates)
 
-  if (typeof body.endereco_completo === 'string' && body.endereco_completo.trim()) {
+  // Apenas geocodificar se endereco_completo veio E não tem coordenadas manuais
+  if (typeof body.endereco_completo === 'string' && body.endereco_completo.trim() && !hasManualCoords) {
     const config = useRuntimeConfig()
-    const apiKey = config.googleMapsServerApiKey
+    const apiKey = config.googleMapsServerApiKey || config.public.googleMapsApiKey
     if (!apiKey) {
       throw createError({
         statusCode: 500,
-        statusMessage: 'Google Maps API key não configurada (NUXT_GOOGLE_MAPS_API_KEY).',
+        statusMessage: 'Google Maps API key não configurada (NUXT_GOOGLE_MAPS_SERVER_API_KEY ou NUXT_PUBLIC_GOOGLE_MAPS_API_KEY).',
       })
     }
     const geo = await geocodeAddress(body.endereco_completo.trim(), apiKey)
@@ -60,6 +70,9 @@ export default defineEventHandler(async (event) => {
     updates['localizacao.latitude'] = geo.lat
     updates['localizacao.longitude'] = geo.lng
     updates['localizacao.geo'] = { type: 'Point', coordinates: [geo.lng, geo.lat] }
+  } else if (typeof body.endereco_completo === 'string' && body.endereco_completo.trim()) {
+    // Apenas salvar o endereço_completo sem geocodificar
+    updates['endereco.endereco_completo'] = body.endereco_completo.trim()
   }
 
   updates.updatedAt = new Date().toISOString()

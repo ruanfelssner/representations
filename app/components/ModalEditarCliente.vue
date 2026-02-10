@@ -37,11 +37,10 @@
                       v-model="form.segmento"
                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
                     >
-                      <option value="otica">Ótica</option>
-                      <option value="relojoaria">Relojoaria</option>
-                      <option value="semijoia">Semi-joias</option>
-                      <option value="multimarcas">Multimarcas</option>
-                      <option value="joalheria">Joalheria</option>
+                      <option value="joalheria">💎 Joalheria</option>
+                      <option value="relojoaria">⌚ Relojoaria</option>
+                      <option value="otica">👓 Ótica</option>
+                      <option value="outros">🏪 Outros</option>
                     </select>
                   </div>
 
@@ -79,12 +78,43 @@
                     <label class="block text-sm font-semibold text-gray-700 mb-2">
                       Endereço completo (re-geocodifica)
                     </label>
-                    <textarea
-                      v-model="form.endereco_completo"
-                      rows="2"
-                      class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent resize-none"
-                      placeholder="Ex: Rua X, Bairro Y, Cidade/UF, CEP..."
-                    />
+                    <div class="space-y-2">
+                      <textarea
+                        v-model="form.endereco_completo"
+                        rows="2"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent resize-none"
+                        placeholder="Ex: Rua X, Bairro Y, Cidade/UF, CEP..."
+                      />
+                      <button
+                        type="button"
+                        @click="buscarCoordenadas"
+                        :disabled="!form.endereco_completo.trim() || buscandoCoordenadas"
+                        class="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+                      >
+                        <NIcon :name="buscandoCoordenadas ? 'mdi:loading' : 'mdi:map-marker-radius'" :class="{ 'animate-spin': buscandoCoordenadas }" class="w-4 h-4" />
+                        {{ buscandoCoordenadas ? 'Buscando...' : 'Buscar Coordenadas' }}
+                      </button>
+                      
+                      <div v-if="coordenadasAtualizadas" class="flex items-start gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <NIcon name="mdi:check-circle" class="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                        <div class="text-sm">
+                          <p class="font-semibold text-green-900">Coordenadas atualizadas com sucesso!</p>
+                          <p class="text-green-700 mt-1">
+                            <span class="font-medium">Antiga:</span> {{ coordenadasAntigas }}<br>
+                            <span class="font-medium">Nova:</span> {{ coordenadasNovas }}
+                          </p>
+                          <p class="text-green-600 text-xs mt-1">As coordenadas serão salvas ao clicar em "Salvar"</p>
+                        </div>
+                      </div>
+
+                      <div v-if="erroGeocoding" class="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <NIcon name="mdi:alert-circle" class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                        <div class="text-sm">
+                          <p class="font-semibold text-red-900">Erro ao buscar coordenadas</p>
+                          <p class="text-red-700 mt-1">{{ erroGeocoding }}</p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -192,12 +222,20 @@ const form = ref({
   segmento: 'otica',
   status: 'potencial',
   endereco_completo: '',
+  lat: undefined as number | undefined,
+  lng: undefined as number | undefined,
 
   stage: '' as '' | 'lead' | 'ativo' | 'negociacao' | 'perdido' | 'reativacao',
   priorityScore: undefined as number | undefined,
   nextActionType: '' as '' | 'ligar' | 'visitar' | 'enviar_catalogo' | 'cobrar',
   nextActionAt: '',
 })
+
+const buscandoCoordenadas = ref(false)
+const coordenadasAtualizadas = ref(false)
+const coordenadasAntigas = ref('')
+const coordenadasNovas = ref('')
+const erroGeocoding = ref('')
 
 watch(
   () => props.cliente,
@@ -210,16 +248,54 @@ watch(
       segmento: (cliente.segmento as any) || 'otica',
       status: (cliente.status as any) || 'potencial',
       endereco_completo: cliente.endereco_completo || cliente.endereco?.endereco_completo || '',
+      lat: (cliente as any).lat,
+      lng: (cliente as any).lng,
       stage: (cliente.sales?.stage as any) || '',
       priorityScore: typeof cliente.sales?.priorityScore === 'number' ? cliente.sales.priorityScore : undefined,
       nextActionType: (cliente.sales?.nextActionType as any) || '',
       nextActionAt: cliente.sales?.nextActionAt ? cliente.sales.nextActionAt.slice(0, 16) : '',
     }
+    coordenadasAtualizadas.value = false
+    erroGeocoding.value = ''
   },
   { immediate: true }
 )
 
 const isFormValid = computed(() => Boolean(form.value.nome.trim()))
+
+async function buscarCoordenadas() {
+  if (!form.value.endereco_completo.trim()) return
+
+  buscandoCoordenadas.value = true
+  erroGeocoding.value = ''
+  coordenadasAtualizadas.value = false
+
+  try {
+    const response = await $fetch('/api/v1/geocode', {
+      method: 'POST',
+      body: { address: form.value.endereco_completo.trim() }
+    })
+
+    if (response.data?.lat && response.data?.lng) {
+      coordenadasAntigas.value = form.value.lat && form.value.lng 
+        ? `${form.value.lat.toFixed(6)}, ${form.value.lng.toFixed(6)}`
+        : 'N/A'
+      
+      form.value.lat = response.data.lat
+      form.value.lng = response.data.lng
+      
+      coordenadasNovas.value = `${response.data.lat.toFixed(6)}, ${response.data.lng.toFixed(6)}`
+      coordenadasAtualizadas.value = true
+    } else {
+      erroGeocoding.value = 'Nenhuma coordenada encontrada para este endereço.'
+    }
+  } catch (error: any) {
+    console.error('Erro ao buscar coordenadas:', error)
+    erroGeocoding.value = error?.data?.message || 'Erro ao buscar coordenadas. Tente novamente.'
+  } finally {
+    buscandoCoordenadas.value = false
+  }
+}
 
 function handleSubmit() {
   if (!isFormValid.value) return
@@ -242,6 +318,12 @@ function handleSubmit() {
     updates.endereco_completo = form.value.endereco_completo.trim()
   }
 
+  // Incluir coordenadas se foram atualizadas
+  if (form.value.lat !== undefined && form.value.lng !== undefined) {
+    updates.lat = form.value.lat
+    updates.lng = form.value.lng
+  }
+
   emit('submit', updates)
 }
 
@@ -256,11 +338,15 @@ watch(
       segmento: 'otica',
       status: 'potencial',
       endereco_completo: '',
+      lat: undefined,
+      lng: undefined,
       stage: '',
       priorityScore: undefined,
       nextActionType: '',
       nextActionAt: '',
     }
+    coordenadasAtualizadas.value = false
+    erroGeocoding.value = ''
   }
 )
 </script>
