@@ -441,7 +441,7 @@ const filterSegmento = ref('')
 const filterTipo = ref('')
 const mostrarClientes = ref(true)
 const mostrarComerciais = ref(true)
-const mostrarProspectos = ref(true)
+const mostrarProspectos = ref(false)
 const topRankLimit = ref<number | null>(null)
 
 const { fetchClients, patchClient, deleteClient } = useClientsApi()
