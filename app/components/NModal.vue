@@ -50,7 +50,7 @@
               <slot />
             </div>
 
-            <div v-if="$slots.footer" class="mt-6 flex flex-wrap items-center gap-3">
+            <div v-if="$slots.footer" :class="footerClasses">
               <slot name="footer" />
             </div>
           </NLayer>
@@ -68,11 +68,13 @@ const props = withDefaults(
     size?: 'sm' | 'md' | 'lg' | 'xl' | 'full'
     closable?: boolean
     closeOnBackdrop?: boolean
+    stickyFooter?: boolean
   }>(),
   {
     size: 'md',
     closable: true,
     closeOnBackdrop: true,
+    stickyFooter: false,
   }
 )
 
@@ -90,6 +92,13 @@ const sizeClasses = computed(() => {
   }
   return sizes[props.size]
 })
+
+const footerClasses = computed(() => [
+  'mt-6 flex flex-wrap items-center gap-3',
+  props.stickyFooter
+    ? 'sticky bottom-0 z-10 border-t border-[color:var(--layer-border)] bg-[color:var(--layer-solid)] pt-4'
+    : '',
+])
 
 const close = () => {
   emit('update:modelValue', false)

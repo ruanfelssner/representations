@@ -362,7 +362,7 @@ const handleRegister = async () => {
 
     saveSuccess.value = true
   } catch (error: any) {
-    saveError.value = error?.message || 'Falha ao registrar venda.'
+    saveError.value = getErrorMessage(error) || 'Falha ao registrar venda.'
   } finally {
     isSaving.value = false
   }
@@ -387,6 +387,14 @@ const formatCurrency = (value: number) =>
 const roundTo = (value: number, digits: number) => {
   const factor = 10 ** digits
   return Math.round(value * factor) / factor
+}
+
+const getErrorMessage = (error: any) => {
+  if (!error) return ''
+  if (typeof error?.data?.statusMessage === 'string') return error.data.statusMessage
+  if (typeof error?.statusMessage === 'string') return error.statusMessage
+  if (typeof error?.message === 'string') return error.message
+  return ''
 }
 
 const extractPdfLines = async (file: File) => {
