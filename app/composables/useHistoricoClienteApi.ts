@@ -10,10 +10,10 @@ export type CreateHistoricoPayload = {
   tipo:
     | 'visita_fisica'
     | 'ligacao'
-    | 'venda_ligacao'
+    | 'atendimento_online'
     | 'venda_fisica'
-    | 'agendamento'
-    | 'feedback'
+    | 'venda_online'
+    | 'venda_telefone'
   data: string
   descricao?: string
   pedidoCodigo?: string
@@ -40,6 +40,21 @@ export function useHistoricoClienteApi() {
     return HistoricoClienteDtoSchema.parse(res.data) as HistoricoClienteDto
   }
 
-  return { fetchHistorico, createEvento }
+  const updateEvento = async (id: string, payload: Partial<CreateHistoricoPayload>) => {
+    const res = await $fetch<ApiResponse<unknown>>(`/api/v1/historico-cliente/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      body: payload,
+    })
+    return HistoricoClienteDtoSchema.parse(res.data) as HistoricoClienteDto
+  }
+
+  const deleteEvento = async (id: string) => {
+    const res = await $fetch<ApiResponse<{ id: string }>>(`/api/v1/historico-cliente/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    })
+    return res.data
+  }
+
+  return { fetchHistorico, createEvento, updateEvento, deleteEvento }
 }
 

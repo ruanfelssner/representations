@@ -48,7 +48,58 @@
             <template v-if="!isProspect">
               <NButton @click="removerCliente" variant="danger" leading-icon="mdi:trash-can-outline" />
               <NButton @click="$emit('edit-client')" leading-icon="mdi:pencil" variant="secondary" />
-              <NButton variant="primary" @click="$emit('add-visit')" leading-icon="mdi:plus" label="Visita" />
+              <div class="relative">
+                <NButton
+                  variant="primary"
+                  leading-icon="mdi:plus"
+                  label="Acao"
+                  @click="toggleActionMenu"
+                />
+                <NLayer
+                  v-if="isActionMenuOpen"
+                  variant="solid"
+                  size="xs"
+                  radius="soft"
+                  class="absolute right-0 mt-2 w-48 border border-[color:var(--layer-border)] bg-[color:var(--layer-solid)] p-2 shadow-lg"
+                >
+                  <button
+                    class="w-full rounded-lg px-3 py-2 text-left text-sm text-[color:var(--ntypo-default)] hover:bg-[color:var(--layer-muted)]"
+                    @click="selectAction('visita_fisica')"
+                  >
+                    Visita fisica
+                  </button>
+                  <button
+                    class="w-full rounded-lg px-3 py-2 text-left text-sm text-[color:var(--ntypo-default)] hover:bg-[color:var(--layer-muted)]"
+                    @click="selectAction('atendimento_online')"
+                  >
+                    Atendimento online
+                  </button>
+                  <button
+                    class="w-full rounded-lg px-3 py-2 text-left text-sm text-[color:var(--ntypo-default)] hover:bg-[color:var(--layer-muted)]"
+                    @click="selectAction('ligacao')"
+                  >
+                    Ligacao
+                  </button>
+                  <button
+                    class="w-full rounded-lg px-3 py-2 text-left text-sm text-[color:var(--ntypo-default)] hover:bg-[color:var(--layer-muted)]"
+                    @click="selectAction('venda_fisica')"
+                  >
+                    Venda fisica
+                  </button>
+                  <button
+                    class="w-full rounded-lg px-3 py-2 text-left text-sm text-[color:var(--ntypo-default)] hover:bg-[color:var(--layer-muted)]"
+                    @click="selectAction('venda_online')"
+                  >
+                    Venda online
+                  </button>
+                  <button
+                    class="w-full rounded-lg px-3 py-2 text-left text-sm text-[color:var(--ntypo-default)] hover:bg-[color:var(--layer-muted)]"
+                    @click="selectAction('venda_telefone')"
+                  >
+                    Venda por telefone
+                  </button>
+                </NLayer>
+              </div>
             </template>
           </div>
         </div>
@@ -134,7 +185,7 @@
               class="rounded-xl border bg-white p-3 hover:shadow-sm transition-shadow"
             >
               <div class="flex items-start justify-between gap-2">
-                <div class="min-w-0">
+                <div class="min-w-0 flex-1">
                   <NTypo size="sm" weight="semibold" class="tabular-nums">
                     {{ formatDate(evento.data) }}
                   </NTypo>
@@ -146,17 +197,33 @@
                   </NTypo>
                 </div>
 
-                <NTypo
-                  as="span"
-                  size="xs"
-                  weight="semibold"
-                  :class="[
-                    'shrink-0 px-2 py-1 rounded-full text-[11px]',
-                    isVenda(evento.tipo) ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800',
-                  ]"
-                >
-                  {{ labelTipo(evento.tipo) }}
-                </NTypo>
+                <div class="flex items-center gap-1.5 shrink-0">
+                  <NTypo
+                    as="span"
+                    size="xs"
+                    weight="semibold"
+                    :class="[
+                      'px-2 py-1 rounded-full text-[11px]',
+                      isVenda(evento.tipo) ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800',
+                    ]"
+                  >
+                    {{ labelTipo(evento.tipo) }}
+                  </NTypo>
+                  <button
+                    @click="handleEditEvento(evento)"
+                    class="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 hover:text-blue-600 transition-colors"
+                    title="Editar"
+                  >
+                    <NIcon name="mdi:pencil" class="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    @click="handleDeleteEvento(evento.id)"
+                    class="p-1.5 rounded-lg hover:bg-red-50 text-gray-600 hover:text-red-600 transition-colors"
+                    title="Excluir"
+                  >
+                    <NIcon name="mdi:trash-can" class="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
 
               <div v-if="isVenda(evento.tipo)" class="mt-2 space-y-2">
@@ -205,9 +272,11 @@ interface Props {
 
 interface Emits {
   (e: 'close'): void
-  (e: 'add-visit'): void
+  (e: 'add-action', action: 'visita_fisica' | 'atendimento_online' | 'ligacao' | 'venda_fisica' | 'venda_online' | 'venda_telefone'): void
   (e: 'edit-client'): void
   (e: 'remove-client'): void
+  (e: 'edit-evento', evento: any): void
+  (e: 'delete-evento', id: string): void
 }
 
 const props = defineProps<Props>()
@@ -220,6 +289,7 @@ const historico = ref<any[]>([])
 const isLoadingHistorico = ref(false)
 const historicoErrorMessage = ref('')
 const whatsappTemplates = ref<WhatsAppTemplateDto[]>([])
+const isActionMenuOpen = ref(false)
 
 const isProspect = computed(() => (props.clientData as any)?._isProspect === true)
 
@@ -255,6 +325,7 @@ watch(
   () => [props.clientData?.id, props.clientData?.updatedAt],
   async ([clientId]) => {
     if (import.meta.server) return
+    isActionMenuOpen.value = false
     if (!clientId || isProspect.value) {
       historico.value = []
       historicoErrorMessage.value = ''
@@ -279,6 +350,24 @@ watch(
 function getTotalItens(evento: any) {
   const items = Array.isArray(evento?.items) ? evento.items : []
   return items.reduce((sum: number, p: any) => sum + (Number(p?.quantidade) || 0), 0)
+}
+
+const toggleActionMenu = () => {
+  isActionMenuOpen.value = !isActionMenuOpen.value
+}
+
+const selectAction = (action: 'visita_fisica' | 'atendimento_online' | 'ligacao' | 'venda_fisica' | 'venda_online' | 'venda_telefone') => {
+  isActionMenuOpen.value = false
+  emit('add-action', action)
+}
+
+const handleEditEvento = (evento: any) => {
+  emit('edit-evento', evento)
+}
+
+const handleDeleteEvento = async (id: string) => {
+  if (!confirm('Deseja realmente excluir este evento do histórico?')) return
+  emit('delete-evento', id)
 }
 
 function abrirWhatsApp() {
@@ -325,7 +414,7 @@ const totalVendido90Dias = computed(() => {
   return sortedEventos.value
     .filter(
       (e: any) =>
-        (e.tipo === 'venda_fisica' || e.tipo === 'venda_ligacao') && new Date(e.data) >= dias90Atras
+        (e.tipo === 'venda_fisica' || e.tipo === 'venda_online' || e.tipo === 'venda_telefone') && new Date(e.data) >= dias90Atras
     )
     .reduce((sum: number, e: any) => sum + (Number(e.totalVenda) || 0), 0)
 })
@@ -355,15 +444,16 @@ const produtoMaisConsumido = computed(() => {
 })
 
 function isVenda(tipo: string) {
-  return tipo === 'venda_fisica' || tipo === 'venda_ligacao'
+  return tipo === 'venda_fisica' || tipo === 'venda_online' || tipo === 'venda_telefone'
 }
 
 function labelTipo(tipo: string) {
-  if (tipo === 'venda_fisica' || tipo === 'venda_ligacao') return 'Venda'
+  if (tipo === 'venda_fisica') return 'Venda física'
+  if (tipo === 'venda_online') return 'Venda online'
+  if (tipo === 'venda_telefone') return 'Venda por telefone'
   if (tipo === 'visita_fisica') return 'Visita'
   if (tipo === 'ligacao') return 'Ligação'
-  if (tipo === 'agendamento') return 'Agendamento'
-  if (tipo === 'feedback') return 'Feedback'
+  if (tipo === 'atendimento_online') return 'Atendimento online'
   return tipo
 }
 

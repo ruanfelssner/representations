@@ -3,7 +3,7 @@ import { ObjectId } from 'mongodb'
 import { getMongoDb } from '../../../utils/mongo'
 import { toClientApi, resolveClientDoc } from '../../../utils/dto'
 
-const SALES_TYPES = ['venda_fisica', 'venda_ligacao']
+const SALES_TYPES = ['venda_fisica', 'venda_online', 'venda_telefone']
 
 export default defineEventHandler(async (event) => {
   const { id } = getRouterParams(event)

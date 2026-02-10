@@ -10,7 +10,7 @@ async function updateClientMonthSales(db: any, clientObjectId: ObjectId, monthSt
     .find({
       clientId,
       data: { $gte: monthStartIso },
-      tipo: { $in: ['venda_fisica', 'venda_ligacao'] },
+      tipo: { $in: ['venda_fisica', 'venda_online', 'venda_telefone'] },
     })
     .project({ totalVenda: 1 })
     .toArray()

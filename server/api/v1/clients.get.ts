@@ -3,7 +3,7 @@ import { getMongoDb } from '../../utils/mongo'
 import { toClientApi } from '../../utils/dto'
 import { z } from 'zod'
 
-const SALES_TYPES = ['venda_fisica', 'venda_ligacao']
+const SALES_TYPES = ['venda_fisica', 'venda_online', 'venda_telefone']
 const CLIENT_STATUS = ['ativo', 'potencial', 'inativo'] as const
 
 const ClientsQuerySchema = z.object({
@@ -72,15 +72,13 @@ async function getHistoricoSummary(db: any): Promise<HistoricoSummaryResult> {
   const month = now.getUTCMonth()
   const quarterStartMonth = Math.floor(month / 3) * 3
   const monthStart = new Date(Date.UTC(year, month, 1, 0, 0, 0, 0))
+  const nextMonthStart = new Date(Date.UTC(year, month + 1, 1, 0, 0, 0, 0))
   const prevMonthStart = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0))
   const prevMonthDurationMs = Math.max(0, now.getTime() - monthStart.getTime())
   const prevMonthCutoff = new Date(Math.min(monthStart.getTime(), prevMonthStart.getTime() + prevMonthDurationMs))
 
   const monthStartPrevYear = new Date(Date.UTC(year - 1, month, 1, 0, 0, 0, 0))
   const nextMonthStartPrevYear = new Date(Date.UTC(year - 1, month + 1, 1, 0, 0, 0, 0))
-  const monthPrevYearCutoff = new Date(
-    Math.min(nextMonthStartPrevYear.getTime(), monthStartPrevYear.getTime() + prevMonthDurationMs)
-  )
 
   const quarterStart = new Date(Date.UTC(year, quarterStartMonth, 1, 0, 0, 0, 0))
   const prevQuarterStart = new Date(Date.UTC(year, quarterStartMonth - 3, 1, 0, 0, 0, 0))
@@ -193,7 +191,7 @@ async function getHistoricoSummary(db: any): Promise<HistoricoSummaryResult> {
               month: {
                 $sum: {
                   $cond: [
-                    { $and: [{ $in: ['$tipo', SALES_TYPES] }, { $gte: ['$dataDate', monthStart] }, { $lt: ['$dataDate', now] }] },
+                    { $and: [{ $in: ['$tipo', SALES_TYPES] }, { $gte: ['$dataDate', monthStart] }, { $lt: ['$dataDate', nextMonthStart] }] },
                     '$totalVendaNum',
                     0,
                   ],
@@ -202,7 +200,7 @@ async function getHistoricoSummary(db: any): Promise<HistoricoSummaryResult> {
               monthPrev: {
                 $sum: {
                   $cond: [
-                    { $and: [{ $in: ['$tipo', SALES_TYPES] }, { $gte: ['$dataDate', prevMonthStart] }, { $lt: ['$dataDate', prevMonthCutoff] }] },
+                    { $and: [{ $in: ['$tipo', SALES_TYPES] }, { $gte: ['$dataDate', prevMonthStart] }, { $lt: ['$dataDate', monthStart] }] },
                     '$totalVendaNum',
                     0,
                   ],
@@ -211,7 +209,7 @@ async function getHistoricoSummary(db: any): Promise<HistoricoSummaryResult> {
               monthPrevYear: {
                 $sum: {
                   $cond: [
-                    { $and: [{ $in: ['$tipo', SALES_TYPES] }, { $gte: ['$dataDate', monthStartPrevYear] }, { $lt: ['$dataDate', monthPrevYearCutoff] }] },
+                    { $and: [{ $in: ['$tipo', SALES_TYPES] }, { $gte: ['$dataDate', monthStartPrevYear] }, { $lt: ['$dataDate', nextMonthStartPrevYear] }] },
                     '$totalVendaNum',
                     0,
                   ],

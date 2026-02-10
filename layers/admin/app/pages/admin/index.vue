@@ -297,9 +297,11 @@
             :is-open="true"
             :client-data="selectedClient"
             :show-close="false"
-            @add-visit="handleAddVisit"
+            @add-action="handleAddAction"
             @edit-client="handleOpenEditarCliente"
             @remove-client="handleRemoveCliente"
+            @edit-evento="handleEditEvento"
+            @delete-evento="handleDeleteEvento"
           />
         </div>
 
@@ -311,9 +313,11 @@
                   :is-open="true"
                   :client-data="selectedClient"
                   :show-close="false"
-                  @add-visit="handleAddVisit"
+                  @add-action="handleAddAction"
                   @edit-client="handleOpenEditarCliente"
                   @remove-client="handleRemoveCliente"
+                  @edit-evento="handleEditEvento"
+                  @delete-evento="handleDeleteEvento"
                 />
         </Transition>
       </div>
@@ -411,7 +415,10 @@
     <ModalNovaVisita
       :is-open="isModalNovaVisitaOpen"
       :cliente-nome="selectedClient?.nome || ''"
-      @close="isModalNovaVisitaOpen = false"
+      :initial-action-type="modalActionType"
+      :default-user-id="currentUserId"
+      :evento="editingEvento"
+      @close="isModalNovaVisitaOpen = false; editingEvento = null"
       @submit="handleSubmitNovaVisita"
     />
 
@@ -468,6 +475,8 @@ const loadClientsError = ref('')
 const isSidePanelOpen = ref(false)
 const selectedClient = ref<Cliente | null>(null)
 const isModalNovaVisitaOpen = ref(false)
+const modalActionType = ref<'visita_fisica' | 'atendimento_online' | 'ligacao' | 'venda_fisica' | 'venda_online' | 'venda_telefone'>('visita_fisica')
+const editingEvento = ref<any>(null)
 const isModalEditarClienteOpen = ref(false)
 const searchQuery = ref('')
 const filterSegmento = ref('')
@@ -478,7 +487,7 @@ const mostrarProspectos = ref(false)
 const topRankLimit = ref<number | null>(null)
 
 const { fetchClients, patchClient, deleteClient } = useClientsApi()
-const { createEvento } = useHistoricoClienteApi()
+const { createEvento, updateEvento, deleteEvento } = useHistoricoClienteApi()
 const { keyForClient, metaForClient, metaForKey } = useClientEngagementStatus()
 const { topTasks } = useSellerActionPlan()
 const currentUserId = 'user-app'
@@ -967,20 +976,51 @@ function handleVisitedMarkerClick(marker: any) {
   }
 }
 
-function handleAddVisit() {
+function handleAddAction(action: 'visita_fisica' | 'atendimento_online' | 'venda' | 'ligacao') {
+  editingEvento.value = null
+  modalActionType.value = action
   isModalNovaVisitaOpen.value = true
+}
+
+function handleEditEvento(evento: any) {
+  editingEvento.value = evento
+  modalActionType.value = evento.tipo || 'visita_fisica'
+  isModalNovaVisitaOpen.value = true
+}
+
+async function handleDeleteEvento(id: string) {
+  try {
+    await deleteEvento(id)
+    await loadClients()
+  } catch (error: any) {
+    console.error('Erro ao excluir evento:', error)
+    const errorMessage = error?.data?.statusMessage || error?.message || 'Falha ao excluir evento'
+    alert(`Erro: ${errorMessage}`)
+  }
 }
 
 function handleSubmitNovaVisita(payload: any) {
   if (!selectedClient.value) return
 
-  createEvento({
-    clientId: selectedClient.value.id,
-    userId: currentUserId,
-    ...payload,
-  }).then(async () => {
-    await loadClients()
-  })
+  const isEdit = !!payload.id
+  
+  if (isEdit) {
+    // Edição
+    const { id, ...updateData } = payload
+    updateEvento(id, updateData).then(async () => {
+      await loadClients()
+      editingEvento.value = null
+    })
+  } else {
+    // Criação
+    createEvento({
+      clientId: selectedClient.value.id,
+      ...payload,
+      userId: payload.userId || currentUserId,
+    }).then(async () => {
+      await loadClients()
+    })
+  }
 
   isModalNovaVisitaOpen.value = false
 }

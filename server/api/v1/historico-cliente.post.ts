@@ -11,7 +11,7 @@ async function updateClientMonthSales(db: any, clientId: string, monthStartIso: 
     .find({
       clientId,
       data: { $gte: monthStartIso },
-      tipo: { $in: ['venda_fisica', 'venda_ligacao'] },
+      tipo: { $in: ['venda_fisica', 'venda_online', 'venda_telefone'] },
     })
     .project({ totalVenda: 1 })
     .toArray()
@@ -19,7 +19,7 @@ async function updateClientMonthSales(db: any, clientId: string, monthStartIso: 
   const faturamento = vendas.reduce((sum: number, v: any) => sum + (Number(v?.totalVenda) || 0), 0)
 
   await db.collection('clients').updateOne(
-    { _id: clientId },
+    { _id: new ObjectId(clientId) },
     {
       $set: {
         'objectives.mesAberto': faturamento,

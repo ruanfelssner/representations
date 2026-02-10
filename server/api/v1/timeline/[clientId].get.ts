@@ -2,20 +2,19 @@ import { createError } from 'h3'
 import { getMongoDb } from '../../../utils/mongo'
 
 function toTimelineKind(tipo: string) {
-  if (tipo === 'venda_fisica' || tipo === 'venda_ligacao') return 'venda'
+  if (tipo === 'venda_fisica' || tipo === 'venda_online' || tipo === 'venda_telefone') return 'venda'
   if (tipo === 'visita_fisica') return 'visita'
-  if (tipo === 'ligacao') return 'contato'
-  if (tipo === 'agendamento') return 'agendamento'
+  if (tipo === 'ligacao' || tipo === 'atendimento_online') return 'contato'
   return 'contato'
 }
 
 function toTitle(tipo: string, totalVenda: number) {
   if (tipo === 'venda_fisica') return totalVenda > 0 ? `Venda (física)` : 'Venda (física)'
-  if (tipo === 'venda_ligacao') return totalVenda > 0 ? `Venda (ligação)` : 'Venda (ligação)'
+  if (tipo === 'venda_online') return totalVenda > 0 ? `Venda (online)` : 'Venda (online)'
+  if (tipo === 'venda_telefone') return totalVenda > 0 ? `Venda (telefone)` : 'Venda (telefone)'
   if (tipo === 'visita_fisica') return 'Visita'
   if (tipo === 'ligacao') return 'Ligação'
-  if (tipo === 'agendamento') return 'Agendamento'
-  if (tipo === 'feedback') return 'Feedback'
+  if (tipo === 'atendimento_online') return 'Atendimento online'
   return 'Contato'
 }
 

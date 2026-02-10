@@ -167,10 +167,10 @@ export type HistoricoClienteItem = z.infer<typeof HistoricoClienteItemSchema>
 export const HistoricoClienteTipoSchema = z.enum([
   'visita_fisica',
   'ligacao',
-  'venda_ligacao',
+  'atendimento_online',
   'venda_fisica',
-  'agendamento',
-  'feedback',
+  'venda_online',
+  'venda_telefone',
 ])
 
 export const HistoricoClienteResultadoSchema = z.enum(['sucesso', 'pendente', 'fracasso'])
@@ -182,7 +182,7 @@ export const HistoricoClienteSchema = z.object({
   tipo: HistoricoClienteTipoSchema,
   data: IsoDateTimeSchema,
   descricao: z.string().optional(),
-  pedidoCodigo: z.string().min(1).optional(),
+  pedidoCodigo: z.string().min(1).nullish(),
 
   items: z.array(HistoricoClienteItemSchema).optional().default([]),
 

@@ -41,7 +41,7 @@ export default defineEventHandler(async (event) => {
 
   const vendas = await db
     .collection('historicoCliente')
-    .find({ clientId, tipo: { $in: ['venda_fisica', 'venda_ligacao'] } })
+    .find({ clientId, tipo: { $in: ['venda_fisica', 'venda_online', 'venda_telefone'] } })
     .project({ items: 1, totalVenda: 1, data: 1 })
     .toArray()
 
