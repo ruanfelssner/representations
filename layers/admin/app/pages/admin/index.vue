@@ -51,11 +51,12 @@
                 <NTypo size="xl" weight="bold" class="tabular-nums text-sky-500 lg:text-2xl">
                   {{ formatCompactNumber(visitedStats.contatosNoMes) }}
                 </NTypo>
+              </div>
+              <div class="text-[11px] font-semibold" :class="contatosVsMesAnterior.class">
+                
                 <NTypo size="xs" tone="muted" class="mt-1">
                   Mes anterior: {{ formatCompactNumber(contactsPrevMonth) }}
                 </NTypo>
-              </div>
-              <div class="text-[11px] font-semibold" :class="contatosVsMesAnterior.class">
                 <div class="flex items-center gap-1">
                   <NIcon :name="contatosVsMesAnterior.icon" class="w-4 h-4" />
                   <span class="tabular-nums">{{ contatosVsMesAnterior.text }}</span>
@@ -71,11 +72,12 @@
                 <NTypo size="xl" weight="bold" class="tabular-nums text-violet-500 lg:text-2xl">
                   {{ formatCurrency(visitedStats.faturamentoMensal) }}
                 </NTypo>
+              </div>
+              <div class="space-y-1 text-[11px] font-semibold">
+                
                 <NTypo size="xs" tone="muted" class="mt-1">
                   Mes anterior: {{ formatCurrency(salesTotals.monthPrev) }}
                 </NTypo>
-              </div>
-              <div class="space-y-1 text-[11px] font-semibold">
                 <div class="flex items-center gap-1" :class="mensalVsMesAnterior.class">
                   <NIcon :name="mensalVsMesAnterior.icon" class="w-4 h-4" />
                   <span class="tabular-nums">{{ mensalVsMesAnterior.text }}</span>
@@ -96,11 +98,12 @@
                 <NTypo size="xl" weight="bold" class="tabular-nums text-amber-600 lg:text-2xl">
                   {{ formatCurrency(visitedStats.faturamentoTrimestral) }}
                 </NTypo>
+              </div>
+              <div class="space-y-1 text-[11px] font-semibold">
+                
                 <NTypo size="xs" tone="muted" class="mt-1">
                   Trimestre anterior: {{ formatCurrency(salesTotals.quarterPrev) }}
                 </NTypo>
-              </div>
-              <div class="space-y-1 text-[11px] font-semibold">
                 <div class="flex items-center gap-1" :class="trimestralVsTrimestreAnterior.class">
                   <NIcon :name="trimestralVsTrimestreAnterior.icon" class="w-4 h-4" />
                   <span class="tabular-nums">{{ trimestralVsTrimestreAnterior.text }}</span>
@@ -109,7 +112,7 @@
                 <div class="flex items-center gap-1" :class="trimestralVsMesmoTrimestreAnoAnterior.class">
                   <NIcon :name="trimestralVsMesmoTrimestreAnoAnterior.icon" class="w-4 h-4" />
                   <span class="tabular-nums">{{ trimestralVsMesmoTrimestreAnoAnterior.text }}</span>
-                  <span class="font-medium text-slate-500">vs mesmo trimestre (ano anterior)</span>
+                  <span class="font-medium text-slate-500">vs ano anterior</span>
                 </div>
               </div>
             </div>
@@ -121,15 +124,16 @@
                 <NTypo size="xl" weight="bold" class="tabular-nums text-orange-500 lg:text-2xl">
                   {{ formatCurrency(visitedStats.faturamentoAnual) }}
                 </NTypo>
+              </div>
+              <div class="text-[11px] font-semibold" :class="anualVsAnoAnterior.class">
+                
                 <NTypo size="xs" tone="muted" class="mt-1">
                   Ano anterior: {{ formatCurrency(salesTotals.yearPrevYear) }}
                 </NTypo>
-              </div>
-              <div class="text-[11px] font-semibold" :class="anualVsAnoAnterior.class">
                 <div class="flex items-center gap-1">
                   <NIcon :name="anualVsAnoAnterior.icon" class="w-4 h-4" />
                   <span class="tabular-nums">{{ anualVsAnoAnterior.text }}</span>
-                  <span class="font-medium text-slate-500">vs mesmo período (ano anterior)</span>
+                  <span class="font-medium text-slate-500">vs ano anterior</span>
                 </div>
               </div>
             </div>
