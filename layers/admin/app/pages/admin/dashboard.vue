@@ -461,6 +461,20 @@
           </NuxtLink>
 
           <NuxtLink 
+            to="/admin/historico" 
+            class="flex items-center gap-3 p-4 rounded-lg border-2 border-gray-100 hover:border-indigo-200 hover:bg-indigo-50 transition-all group"
+          >
+            <div class="p-2 bg-indigo-100 rounded-lg group-hover:bg-indigo-200 transition-colors">
+              <NIcon name="mdi:history" class="w-5 h-5 text-indigo-600" />
+            </div>
+            <div class="flex-1">
+              <NTypo weight="semibold" class="group-hover:text-indigo-700">Histórico de Atividades</NTypo>
+              <NTypo size="xs" tone="muted">Vendas, visitas e contatos</NTypo>
+            </div>
+            <NIcon name="mdi:chevron-right" class="w-5 h-5 text-gray-400 group-hover:text-indigo-600" />
+          </NuxtLink>
+
+          <NuxtLink 
             to="/admin/users" 
             class="flex items-center gap-3 p-4 rounded-lg border-2 border-gray-100 hover:border-violet-200 hover:bg-violet-50 transition-all group"
           >

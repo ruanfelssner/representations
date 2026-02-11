@@ -37,6 +37,12 @@
                 @click="closeMenu"
               />
               <NNavItem 
+                to="/admin/historico" 
+                icon="mdi:history" 
+                label="Histórico" 
+                @click="closeMenu"
+              />
+              <NNavItem 
                 to="/admin/prospects" 
                 icon="mdi:store-search" 
                 label="Prospecção SC" 
