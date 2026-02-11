@@ -23,6 +23,7 @@ export default defineEventHandler(async (event) => {
       success: true,
       data: {
         commissionRate: settings.commissionRate || 0.15,
+        monthlyGoals: settings.monthlyGoals || {},
       },
     }
   } catch (err) {
@@ -32,6 +33,7 @@ export default defineEventHandler(async (event) => {
       error: 'Erro ao buscar configurações',
       data: {
         commissionRate: 0.15, // fallback
+        monthlyGoals: {},
       },
     }
   }

@@ -66,28 +66,52 @@
             </div>
           </div>
           <div class="flex-1 min-w-[240px] bg-violet-50 border border-violet-100 rounded-lg p-3 lg:p-4">
-            <div class="grid gap-2 md:grid-cols-[120px_1fr] md:items-start">
+            <div class="grid gap-2 md:grid-cols-2 md:items-start">
               <div>
-                <NTypo size="xs" tone="muted" class="mb-1">Mensal</NTypo>
-                <NTypo size="xl" weight="bold" class="tabular-nums text-violet-500 lg:text-2xl">
+                <NTypo size="xs" tone="muted" class="mb-1">Mensal / ant {{ formatCurrency(salesTotals.monthPrev) }}</NTypo>
+                <NTypo size="xl" weight="bold" class="tabular-nums text-violet-500">
                   {{ formatCurrency(visitedStats.faturamentoMensal) }}
                 </NTypo>
+                
+                <div>
+                  <div class="flex items-center gap-1" :class="mensalVsMesAnterior.class">
+                    <NIcon :name="mensalVsMesAnterior.icon" class="w-4 h-4" />
+                    <NTypo size="xs">{{ mensalVsMesAnterior.text }}</NTypo>
+                    <NTypo size="xs">vs mês anterior</NTypo>
+                  </div>
+                </div>
               </div>
               <div class="space-y-1 text-[11px] font-semibold">
+                <!-- Meta do mês -->
+                <div v-if="currentMonthGoal > 0" class="mb-2 pb-2 border-b border-violet-200">
+                  <NTypo size="xs" tone="muted">
+                    Meta: {{ formatCurrency(currentMonthGoal) }}
+                  </NTypo>
+                  <div class="flex items-center gap-2 mt-1">
+                    <div class="flex-1 bg-violet-200 rounded-full h-2">
+                      <div 
+                        class="h-2 rounded-full transition-all"
+                        :class="goalProgress && goalProgress.percentage >= 80 ? 'bg-emerald-500' : goalProgress && goalProgress.percentage >= 50 ? 'bg-violet-500' : 'bg-amber-500'"
+                        :style="{ width: `${Math.min(100, goalProgress?.percentage || 0)}%` }"
+                      />
+                    </div>
+                    <span 
+                      class="text-xs font-bold tabular-nums"
+                      :class="goalProgress && goalProgress.percentage >= 80 ? 'text-emerald-600' : goalProgress && goalProgress.percentage >= 50 ? 'text-violet-600' : 'text-amber-600'"
+                    >
+                      {{ Math.round(goalProgress?.percentage || 0) }}%
+                    </span>
+                  </div>
+                  <div v-if="goalProgress && goalProgress.remaining > 0" class="flex items-center gap-1 mt-1 text-violet-700">
+                    <NIcon name="mdi:target" class="w-3 h-3" />
+                    <span>Faltam {{ formatCurrency(goalProgress.remaining) }}</span>
+                  </div>
+                  <div v-else-if="goalProgress && goalProgress.remaining <= 0" class="flex items-center gap-1 mt-1 text-emerald-700">
+                    <NIcon name="mdi:check-circle" class="w-3 h-3" />
+                    <span>Meta atingida! 🎉</span>
+                  </div>
+                </div>
                 
-                <NTypo size="xs" tone="muted" class="mt-1">
-                  Mes anterior: {{ formatCurrency(salesTotals.monthPrev) }}
-                </NTypo>
-                <div class="flex items-center gap-1" :class="mensalVsMesAnterior.class">
-                  <NIcon :name="mensalVsMesAnterior.icon" class="w-4 h-4" />
-                  <span class="tabular-nums">{{ mensalVsMesAnterior.text }}</span>
-                  <span class="font-medium text-slate-500">vs mês anterior</span>
-                </div>
-                <div class="flex items-center gap-1" :class="mensalVsMesmoMesAnoAnterior.class">
-                  <NIcon :name="mensalVsMesmoMesAnoAnterior.icon" class="w-4 h-4" />
-                  <span class="tabular-nums">{{ mensalVsMesmoMesAnoAnterior.text }}</span>
-                  <span class="font-medium text-slate-500">vs mesmo mês (ano anterior)</span>
-                </div>
               </div>
             </div>
           </div>
@@ -491,6 +515,31 @@ const { createEvento, updateEvento, deleteEvento } = useHistoricoClienteApi()
 const { keyForClient, metaForClient, metaForKey } = useClientEngagementStatus()
 const { topTasks } = useSellerActionPlan()
 const currentUserId = 'user-app'
+
+// Buscar configurações (metas mensais)
+const { data: settingsData } = await useFetch('/api/v1/settings')
+const monthlyGoals = computed(() => {
+  const data = settingsData.value as any
+  return data?.data?.monthlyGoals || {}
+})
+
+// Meta do mês atual
+const currentMonthKey = computed(() => {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+})
+const currentMonthGoal = computed(() => monthlyGoals.value[currentMonthKey.value] || 0)
+
+// Progresso em relação à meta
+const goalProgress = computed(() => {
+  if (!currentMonthGoal.value) return null
+  const percentage = (salesTotals.value.month / currentMonthGoal.value) * 100
+  return {
+    percentage,
+    remaining: currentMonthGoal.value - salesTotals.value.month,
+    isOnTrack: percentage >= 50, // Considera "on track" se atingiu pelo menos 50% (ajustável)
+  }
+})
 
 onMounted(async () => {
   try {

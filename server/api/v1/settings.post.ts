@@ -3,7 +3,8 @@ import { getMongoDb } from '../../utils/mongo'
 import { z } from 'zod'
 
 const UpdateSettingsSchema = z.object({
-  commissionRate: z.number().min(0).max(1), // 0 a 100% (representado como 0.0 a 1.0)
+  commissionRate: z.number().min(0).max(1).optional(), // 0 a 100% (representado como 0.0 a 1.0)
+  monthlyGoals: z.record(z.string(), z.number()).optional(), // { "2026-01": 300000, "2026-02": 350000, ... }
 })
 
 export default defineEventHandler(async (event) => {
@@ -15,23 +16,26 @@ export default defineEventHandler(async (event) => {
     const settingsCollection = db.collection('settings')
 
     // Atualizar ou inserir documento de configurações globais
+    const updateFields: any = { updatedAt: new Date() }
+    
+    if (validated.commissionRate !== undefined) {
+      updateFields.commissionRate = validated.commissionRate
+    }
+    
+    if (validated.monthlyGoals !== undefined) {
+      updateFields.monthlyGoals = validated.monthlyGoals
+    }
+
     await settingsCollection.updateOne(
       { _id: 'global' } as any,
-      {
-        $set: {
-          commissionRate: validated.commissionRate,
-          updatedAt: new Date(),
-        },
-      },
+      { $set: updateFields },
       { upsert: true }
     )
 
     return {
       success: true,
       message: 'Configurações atualizadas com sucesso',
-      data: {
-        commissionRate: validated.commissionRate,
-      },
+      data: validated,
     }
   } catch (err: any) {
     console.error('[settings.post] Erro ao salvar configurações:', err)
