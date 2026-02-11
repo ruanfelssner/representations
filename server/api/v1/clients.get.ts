@@ -44,6 +44,7 @@ type HistoricoSummaryResult = {
   byClientId: Map<string, HistoricoSummary>
   salesTotals: SalesTotals & {
     monthPrev: number
+    month2Ago: number
     monthPrevYear: number
     quarterPrev: number
     quarterPrevYear: number
@@ -74,6 +75,7 @@ async function getHistoricoSummary(db: any): Promise<HistoricoSummaryResult> {
   const monthStart = new Date(Date.UTC(year, month, 1, 0, 0, 0, 0))
   const nextMonthStart = new Date(Date.UTC(year, month + 1, 1, 0, 0, 0, 0))
   const prevMonthStart = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0))
+  const month2AgoStart = new Date(Date.UTC(year, month - 2, 1, 0, 0, 0, 0))
   const prevMonthDurationMs = Math.max(0, now.getTime() - monthStart.getTime())
   const prevMonthCutoff = new Date(Math.min(monthStart.getTime(), prevMonthStart.getTime() + prevMonthDurationMs))
 
@@ -206,6 +208,15 @@ async function getHistoricoSummary(db: any): Promise<HistoricoSummaryResult> {
                   ],
                 },
               },
+              month2Ago: {
+                $sum: {
+                  $cond: [
+                    { $and: [{ $in: ['$tipo', SALES_TYPES] }, { $gte: ['$dataDate', month2AgoStart] }, { $lt: ['$dataDate', prevMonthStart] }] },
+                    '$totalVendaNum',
+                    0,
+                  ],
+                },
+              },
               monthPrevYear: {
                 $sum: {
                   $cond: [
@@ -310,6 +321,7 @@ async function getHistoricoSummary(db: any): Promise<HistoricoSummaryResult> {
     salesTotals: {
       ...salesTotals,
       monthPrev: Number(totalsRow?.monthPrev) || 0,
+      month2Ago: Number(totalsRow?.month2Ago) || 0,
       monthPrevYear: Number(totalsRow?.monthPrevYear) || 0,
       quarterPrev: Number(totalsRow?.quarterPrev) || 0,
       quarterPrevYear: Number(totalsRow?.quarterPrevYear) || 0,

@@ -236,10 +236,9 @@
               <NIcon name="mdi:calendar" class="w-3.5 h-3.5 text-indigo-600" />
             </div>
           </div>
-          <NTypo size="xl" weight="bold" class="text-gray-400 tabular-nums lg:text-2xl">
-            N/A
+          <NTypo size="xl" weight="bold" class="text-indigo-600 tabular-nums lg:text-2xl">
+            {{ formatCurrency(salesTotals.month2Ago) }}
           </NTypo>
-          <NTypo size="xs" tone="muted" class="mt-1">Dados em breve</NTypo>
         </div>
       </NLayer>
 
@@ -319,10 +318,10 @@
               <NIcon name="mdi:cash-multiple" class="w-3.5 h-3.5 text-emerald-700" />
             </div>
           </div>
-          <NTypo size="xl" weight="bold" class="text-gray-400 tabular-nums lg:text-2xl">
-            N/A
+          <NTypo size="xl" weight="bold" class="text-emerald-700 tabular-nums lg:text-2xl">
+            {{ formatCurrency(commissionMonth2Ago) }}
           </NTypo>
-          <NTypo size="xs" tone="muted" class="mt-1">Dados em breve</NTypo>
+          <NTypo size="xs" tone="muted" class="mt-1">sobre {{ formatCurrency(salesTotals.month2Ago) }}</NTypo>
         </div>
       </NLayer>
 
@@ -597,6 +596,7 @@ const ClientsResponseSchema = z.object({
       .object({
         month: z.number(),
         monthPrev: z.number().optional(),
+        month2Ago: z.number().optional(),
         monthPrevYear: z.number().optional(),
         quarter: z.number(),
         quarterPrev: z.number().optional(),
@@ -633,6 +633,7 @@ const salesTotals = computed(() => {
   return {
     month: s?.month || 0,
     monthPrev: s?.monthPrev || 0,
+    month2Ago: s?.month2Ago || 0,
     monthPrevYear: s?.monthPrevYear || 0,
     quarter: s?.quarter || 0,
     quarterPrev: s?.quarterPrev || 0,
@@ -754,6 +755,7 @@ const commissionRateFormatted = computed(() => `${(commissionRate.value * 100).t
 
 const commissionMonth = computed(() => Math.round(salesTotals.value.month * commissionRate.value))
 const commissionMonthPrev = computed(() => Math.round(salesTotals.value.monthPrev * commissionRate.value))
+const commissionMonth2Ago = computed(() => Math.round(salesTotals.value.month2Ago * commissionRate.value))
 const commissionAvgThisYear = computed(() => Math.round(avgMonthlyThisYear.value * commissionRate.value))
 const commissionAvgLastYear = computed(() => Math.round(avgMonthlyLastYear.value * commissionRate.value))
 
