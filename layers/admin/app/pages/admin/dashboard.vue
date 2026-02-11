@@ -359,10 +359,12 @@
     </div>
 
     <!-- Status Distribution & Quick Actions -->
-    <div class="grid !grid-cols-1 md:!grid-cols-2 lg:!grid-cols-2 gap-4 lg:gap-6">
-      <!-- Distribuição por Status -->
-      <NLayer variant="paper" size="base" radius="soft" class="shadow-sm">
-        <NTypo as="h2" size="lg" weight="bold" class="mb-4">Distribuição por Status</NTypo>
+    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-4 lg:gap-6">
+      <!-- Coluna 1: Distribuição + Acesso Rápido -->
+      <div class="space-y-4 lg:space-y-6">
+        <!-- Distribuição por Status -->
+        <NLayer variant="paper" size="base" radius="soft" class="shadow-sm">
+          <NTypo as="h2" size="lg" weight="bold" class="mb-4">Distribuição por Status</NTypo>
         <div class="space-y-3">
           <div>
             <div class="flex items-center justify-between mb-1.5">
@@ -440,11 +442,11 @@
           </div>
         </div>
       </NLayer>
-
-      <!-- Ações Rápidas -->
-      <NLayer variant="paper" size="base" radius="soft" class="shadow-sm">
-        <NTypo as="h2" size="lg" weight="bold" class="mb-4">Acesso Rápido</NTypo>
-        <div class="grid grid-cols-1 gap-3">
+      
+        <!-- Ações Rápidas -->
+        <NLayer variant="paper" size="base" radius="soft" class="shadow-sm">
+          <NTypo as="h2" size="lg" weight="bold" class="mb-4">Acesso Rápido</NTypo>
+          <div class="grid grid-cols-1 gap-3">
           <NuxtLink 
             to="/admin/clients" 
             class="flex items-center gap-3 p-4 rounded-lg border-2 border-gray-100 hover:border-sky-200 hover:bg-sky-50 transition-all group"
@@ -528,6 +530,96 @@
             </div>
             <NIcon name="mdi:chevron-right" class="w-5 h-5 text-gray-400 group-hover:text-orange-600" />
           </NuxtLink>
+        </div>
+      </NLayer>
+      </div>
+
+      <!-- Ranking de Vendas -->
+      <NLayer variant="paper" size="base" radius="soft" class="shadow-sm md:col-span-3 lg:col-span-2">
+        <div class="flex items-center justify-between mb-4">
+          <NTypo as="h2" size="lg" weight="bold">Ranking de Vendas</NTypo>
+          <NButton
+            variant="ghost"
+            size="xs"
+            leading-icon="mdi:refresh"
+            :disabled="rankingPending"
+            @click="refreshRanking()"
+          />
+        </div>
+        
+        <!-- Filtros de período -->
+        <div class="flex gap-2 mb-4">
+          <NButton
+            :variant="rankingPeriod === 'year' ? 'primary' : 'outline'"
+            size="xs"
+            @click="rankingPeriod = 'year'"
+          >
+            {{ currentYear }}
+          </NButton>
+          <NButton
+            :variant="rankingPeriod === 'lastYear' ? 'primary' : 'outline'"
+            size="xs"
+            @click="rankingPeriod = 'lastYear'"
+          >
+            {{ prevYear }}
+          </NButton>
+          <NButton
+            :variant="rankingPeriod === 'all' ? 'primary' : 'outline'"
+            size="xs"
+            @click="rankingPeriod = 'all'"
+          >
+            Todos
+          </NButton>
+        </div>
+
+        <!-- Lista de produtos -->
+        <div v-if="rankingPending" class="space-y-3">
+          <div v-for="i in 5" :key="i" class="h-16 bg-gray-100 rounded-lg animate-pulse" />
+        </div>
+        <div v-else-if="rankingVendas.length === 0" class="py-8 text-center">
+          <NIcon name="mdi:package-variant-closed" class="w-12 h-12 mx-auto text-gray-300 mb-2" />
+          <NTypo size="sm" tone="muted">Nenhuma venda registrada neste período</NTypo>
+        </div>
+        <div v-else class="space-y-2">
+          <div
+            v-for="(produto, index) in rankingVendas"
+            :key="produto.produtoId"
+            class="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-indigo-200 hover:bg-indigo-50/50 transition-all"
+          >
+            <!-- Posição -->
+            <div
+              class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm"
+              :class="[
+                index === 0 ? 'bg-yellow-400 text-yellow-900' : '',
+                index === 1 ? 'bg-gray-300 text-gray-700' : '',
+                index === 2 ? 'bg-orange-400 text-orange-900' : '',
+                index > 2 ? 'bg-gray-100 text-gray-600' : '',
+              ]"
+            >
+              {{ index + 1 }}
+            </div>
+            
+            <!-- Info do produto -->
+            <div class="flex-1 min-w-0">
+              <NTypo size="sm" weight="semibold" class="truncate">{{ produto.nome }}</NTypo>
+              <div class="flex items-center gap-3 mt-0.5">
+                <NTypo size="xs" tone="muted">
+                  {{ produto.quantidade }} unidades
+                </NTypo>
+                <span class="text-gray-300">•</span>
+                <NTypo size="xs" tone="muted">
+                  {{ produto.numeroVendas }} {{ produto.numeroVendas === 1 ? 'venda' : 'vendas' }}
+                </NTypo>
+              </div>
+            </div>
+            
+            <!-- Valor total -->
+            <div class="text-right">
+              <NTypo size="sm" weight="bold" class="text-indigo-600">
+                {{ formatCurrency(produto.totalVendido) }}
+              </NTypo>
+            </div>
+          </div>
         </div>
       </NLayer>
     </div>
@@ -626,6 +718,38 @@ const { data: settingsData } = await useFetch('/api/v1/settings', {
 })
 
 const commissionRate = computed(() => settingsData.value?.commissionRate || 0)
+
+// Ranking de vendas
+const rankingPeriod = ref<'year' | 'lastYear' | 'all'>('year')
+
+const RankingResponseSchema = z.object({
+  success: z.boolean(),
+  data: z.object({
+    ranking: z.array(
+      z.object({
+        produtoId: z.string(),
+        nome: z.string(),
+        quantidade: z.number(),
+        totalVendido: z.number(),
+        numeroVendas: z.number(),
+      })
+    ),
+    period: z.string(),
+    totalEventos: z.number(),
+  }),
+})
+
+const {
+  data: rankingData,
+  pending: rankingPending,
+  refresh: refreshRanking,
+} = await useFetch('/api/v1/admin/ranking-vendas', {
+  query: { period: rankingPeriod },
+  transform: (res) => RankingResponseSchema.parse(res).data,
+  watch: [rankingPeriod],
+})
+
+const rankingVendas = computed(() => rankingData.value?.ranking || [])
 
 const clients = computed(() => data.value?.clients || [])
 const salesTotals = computed(() => {
