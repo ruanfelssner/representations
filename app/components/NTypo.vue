@@ -1,5 +1,6 @@
 <template>
   <component :is="as" :class="classes">
+    <NIcon v-if="leadingIcon" :name="leadingIcon" :size="iconSize" class="inline-block" />
     <slot />
   </component>
 </template>
@@ -19,7 +20,8 @@ type TypoTone =
   | 'success'
   | 'warning'
   | 'danger'
-type TypoWeight = 'regular' | 'medium' | 'semibold' | 'bold'
+  | 'paper'
+type TypoWeight = 'light' | 'regular' | 'medium' | 'semibold' | 'bold' | 'extrabold' | 'black'
 type TypoFamily = 'sans' | 'serif' | 'mono'
 
 const props = withDefaults(
@@ -31,6 +33,7 @@ const props = withDefaults(
     family?: TypoFamily
     caps?: boolean
     tracking?: 'tight' | 'normal' | 'wide'
+    leadingIcon?: string
   }>(),
   {
     as: 'p',
@@ -66,13 +69,17 @@ const toneClasses: Record<TypoTone, string> = {
   success: 'text-[color:var(--ntypo-success)]',
   warning: 'text-[color:var(--ntypo-warning)]',
   danger: 'text-[color:var(--ntypo-danger)]',
+  paper: 'text-amber-50',
 }
 
 const weightClasses: Record<TypoWeight, string> = {
+  light: 'font-light',
   regular: 'font-normal',
   medium: 'font-medium',
   semibold: 'font-semibold',
   bold: 'font-bold',
+  extrabold: 'font-extrabold',
+  black: 'font-[900]',
 }
 
 const familyClasses: Record<TypoFamily, string> = {
@@ -87,6 +94,21 @@ const trackingClasses = {
   wide: 'tracking-[0.3em]',
 }
 
+const iconSize = computed(() => {
+  switch (props.size) {
+    case 'xs': return 'xs'
+    case 'sm': return 'sm'
+    case 'base': return 'base'
+    case 'lg': return 'lg'
+    case 'xl': return 'xl'
+    case '2xl': return '2xl'
+    case '3xl': return '3xl'
+    case '4xl': return '4xl'
+    case '5xl': return '5xl'
+    default: return 'base'
+  }
+})
+
 const attrs = useAttrs()
 const classes = computed(() => [
   sizeClasses[props.size],
@@ -95,6 +117,7 @@ const classes = computed(() => [
   familyClasses[props.family],
   trackingClasses[props.tracking],
   props.caps ? 'uppercase' : '',
+  props.leadingIcon ? 'inline-flex items-center gap-2' : '',
   attrs.class,
 ])
 </script>

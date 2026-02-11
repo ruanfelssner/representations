@@ -14,124 +14,51 @@
 
 
     <main class="relative">
-      <section class="py-14 sm:py-20">
-        <NContainer>
-          <div class="grid gap-10 lg:grid-cols-[1.1fr_0.9fr]">
-            <div class="space-y-6">
-              <div
-                class="inline-flex items-center gap-2 rounded-full border border-[color:var(--layer-border)] bg-[color:var(--layer-solid)] px-4 py-2"
-              >
-                <NIcon name="mdi:diamond-stone" class="h-4 w-4 text-[color:var(--ntypo-brand)]" />
-                <NTypo size="xs" tone="soft" caps tracking="wide">
-                  Representação comercial especializada
+      <section class="relative pt-12 bg-[image:url('/bg.png')] bg-[length:100%_auto] bg-center bg-no-repeat">
+        <div class="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/50 pointer-events-none"></div>
+        
+        <NContainer class="relative z-10 space-y-4">          
+              <NTypo as="h1" size="5xl" tone="paper" weight="semibold" family="serif" class="leading-[1.05] text-center drop-shadow-2xl">
+                Alianças Vi&Va com envio para todo o Brasil
+              </NTypo>
+              <NTypo size="2xl" tone="paper" class="text-center drop-shadow-lg">
+                Grade Completa (Kit) - Reposição Média em até 15 dias
+              </NTypo>
+              <div class="flex flex-col">
+                <NTypo size="2xl" tone="paper" class="max-w-xl drop-shadow-lg" leading-icon="mdi:check">
+                  Envio para todo o Brasil
+                </NTypo>
+                <NTypo size="2xl" tone="paper" class="max-w-xl drop-shadow-lg" leading-icon="mdi:check">
+                  Produção média: 15 dias corridas
+                </NTypo>
+                <NTypo size="2xl" tone="paper" class="max-w-xl drop-shadow-lg" leading-icon="mdi:check">
+                  Certificado + Garantia de 1 Ano
+                </NTypo>
+                <NTypo size="2xl" tone="paper" class="max-w-xl drop-shadow-lg" leading-icon="mdi:check">
+                  Sem Pedido Minimo.
                 </NTypo>
               </div>
 
-              <NTypo as="h1" size="5xl" weight="semibold" family="serif" class="leading-[1.05]">
-                Artigos de Joalheria e Relojoaria para o seu negócio.
-              </NTypo>
-              <NTypo size="lg" tone="muted" class="max-w-xl">
-                Representação comercial especializada em joias, relógios, alianças, pulseiras e acessórios. 
-                Atendimento personalizado em Santa Catarina com mais de 15 anos de experiência.
-              </NTypo>
-
-              <div class="grid gap-3 grid-cols-3">
-                <div
-                  class="rounded-2xl border border-[color:var(--layer-border)] bg-[color:var(--layer-default)] px-4 py-3"
-                >
-                  <NTypo size="xs" tone="soft" caps tracking="tight" class="line-clamp-1"
-                    >clientes</NTypo
-                  >
-                  <NTypo as="div" size="lg" weight="semibold">
-                    280+
-                  </NTypo>
-                </div>
-                <div
-                  class="rounded-2xl border border-[color:var(--layer-border)] bg-[color:var(--layer-default)] px-4 py-3"
-                >
-                  <NTypo size="xs" tone="soft" caps tracking="tight" class="line-clamp-1"
-                    >linhas representadas</NTypo
-                  >
-                  <NTypo as="div" size="lg" weight="semibold">
-                    12
-                  </NTypo>
-                </div>
-                <div
-                  class="rounded-2xl border border-[color:var(--layer-border)] bg-[color:var(--layer-default)] px-4 py-3"
-                >
-                  <NTypo size="xs" tone="soft" caps tracking="tight" class="line-clamp-1"
-                    >experiência</NTypo
-                  >
-                  <NTypo as="div" size="lg" weight="semibold">
-                    15+ anos
-                  </NTypo>
-                </div>
-              </div>
-            </div>
-
-            <div class="space-y-4">
-              <NLayer radius="hero" variant="paper" size="lg" class="space-y-4">
-                <NTypo size="xs" tone="soft" caps tracking="wide">como funciona</NTypo>
-                <div class="space-y-3">
-                  <div
-                    class="flex items-center gap-3 rounded-2xl border border-[color:var(--layer-border)] bg-[color:var(--layer-solid)] px-4 py-3"
-                  >
-                    <NTypo
-                      as="span"
-                      size="xs"
-                      weight="semibold"
-                      class="flex h-9 w-9 items-center justify-center rounded-full bg-amber-500 text-xs font-semibold text-white"
-                    >
-                      1
-                    </NTypo>
-                    <div>
-                      <NTypo size="sm" weight="semibold">Conheça nosso catálogo</NTypo>
-                      <NTypo size="xs" tone="muted">Produtos selecionados e tendências.</NTypo>
-                    </div>
-                  </div>
-                  <div
-                    class="flex items-center gap-3 rounded-2xl border border-[color:var(--layer-border)] bg-[color:var(--layer-solid)] px-4 py-3"
-                  >
-                    <NTypo
-                      as="span"
-                      size="xs"
-                      weight="semibold"
-                      class="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-600 text-xs font-semibold text-white"
-                    >
-                      2
-                    </NTypo>
-                    <div>
-                      <NTypo size="sm" weight="semibold">Atendimento personalizado</NTypo>
-                      <NTypo size="xs" tone="muted">Visitas regulares e suporte contínuo.</NTypo>
-                    </div>
-                  </div>
-                  <div
-                    class="flex items-center gap-3 rounded-2xl border border-[color:var(--layer-border)] bg-[color:var(--layer-solid)] px-4 py-3"
-                  >
-                    <NTypo
-                      as="span"
-                      size="xs"
-                      weight="semibold"
-                      class="flex h-9 w-9 items-center justify-center rounded-full bg-slate-800 text-xs font-semibold text-white"
-                    >
-                      3
-                    </NTypo>
-                    <div>
-                      <NTypo size="sm" weight="semibold">Entrega e acompanhamento</NTypo>
-                      <NTypo size="xs" tone="muted">Logística eficiente e pós-venda.</NTypo>
-                    </div>
+          <div class="grid gap-16 grid-cols-3 items-end">
+                <LandingLayerProduct
+                  title="Kit Aço - Ouro"
+                  description="(10K/18K)"
+                  imgSrc="/aex0100.png"
+                  href="/"
+                />
+                <LandingLayerProduct
+                  title="Kit Prata 925 + Ouro"
+                  description="(10K/18K)"
+                  imgSrc="/aex0100.png"
+                  href="/"
+                />
+                <div class="relative">                  
+                  <div class="absolute bottom-0 left-0 right-0 px-6 z-10 transform translate-y-1/2">
+                    <NButton  trailing-icon="mdi:chevron-right" width-full>
+                    Escolher meu kit
+                    </NButton>
                   </div>
                 </div>
-                <div class="flex flex-wrap gap-2">
-                  <NButton size="sm" variant="primary" @click="scrollToSection('catalogo')">
-                    Ver catálogo
-                  </NButton>
-                  <NButton size="sm" variant="outline" @click="scrollToSection('contato')">
-                    Entrar em contato
-                  </NButton>
-                </div>
-              </NLayer>
-            </div>
           </div>
         </NContainer>
       </section>

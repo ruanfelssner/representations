@@ -155,11 +155,16 @@ type ParsedItem = {
   valorTotal: number
 }
 
-const props = defineProps<{ modelValue: boolean }>()
+const props = withDefaults(
+  defineProps<{ modelValue?: boolean }>(),
+  {
+    modelValue: false,
+  }
+)
 const emit = defineEmits<{ (event: 'update:modelValue', value: boolean): void }>()
 
 const isOpen = computed({
-  get: () => props.modelValue,
+  get: () => props.modelValue ?? false,
   set: (value) => emit('update:modelValue', value),
 })
 

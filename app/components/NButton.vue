@@ -51,12 +51,13 @@ const props = withDefaults(
     trailingIcon?: string
     iconButton?: boolean
     loading?: boolean
+    widthFull?: boolean
   }>(),
   {
     as: 'button',
     variant: 'primary',
     size: 'sm',
-    radius: 'full',
+    radius: 'soft',
     caps: false,
     iconButton: false,
   }
@@ -121,7 +122,7 @@ const baseClasses =
   'inline-flex items-center justify-center gap-2 font-semibold transition cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 pointer'
 
 const variantClasses: Record<ButtonVariant, string> = {
-  primary: 'bg-gradient-to-r to-sky-600 from-violet-600 text-white shadow-sm hover:shadow-md',
+  primary: 'bg-gradient-to-b from-yellow-400 via-yellow-500 to-yellow-700 hover:from-yellow-500 hover:via-yellow-600 hover:to-yellow-800 text-white font-bold shadow-[0_4px_6px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.3)] hover:shadow-[0_6px_8px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.3)] border border-yellow-600/50',
   secondary: 'border border-stone-200 bg-white text-stone-400 shadow-sm hover:border-stone-400',
   outline: 'border border-stone-200 text-stone-400 hover:border-stone-400 hover:text-stone-400',
   soft: 'border border-stone-200 bg-white/20 text-stone-400 shadow-sm hover:border-stone-400',
@@ -151,6 +152,7 @@ const classes = computed(() => [
   sizeClasses[resolvedSize.value],
   radiusClasses[props.radius],
   props.caps ? 'uppercase tracking-[0.3em]' : '',
+  props.widthFull ? 'w-full' : '',
   attrs.class,
 ])
 </script>

@@ -63,7 +63,7 @@
 <script setup lang="ts">
 const props = withDefaults(
   defineProps<{
-    modelValue: boolean
+    modelValue?: boolean
     title?: string
     size?: 'sm' | 'md' | 'lg' | 'xl' | 'full'
     closable?: boolean
@@ -71,6 +71,7 @@ const props = withDefaults(
     stickyFooter?: boolean
   }>(),
   {
+    modelValue: false,
     size: 'md',
     closable: true,
     closeOnBackdrop: true,
