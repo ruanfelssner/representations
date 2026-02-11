@@ -371,6 +371,8 @@ definePageMeta({
   layout: 'public',
 })
 
+const isPdfImporterOpen = ref(false)
+
 useSeoMeta({
   title: 'Representação Comercial de Joias e Relógios',
   description:
