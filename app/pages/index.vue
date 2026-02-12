@@ -4,17 +4,32 @@
       class="relative overflow-hidden bg-[linear-gradient(180deg,#2E2E2E_0%,#3A3A3A_60%,#E9E4DD_100%)] text-[#F8F6F2]"
     >
       <div class="absolute inset-0 bg-black/40"></div>
-      <NContainer class="relative">
-        <div class="grid min-h-screen items-center gap-10 py-14 md:grid-cols-2 md:py-24">
-          <div class="space-y-6">
-            <img
-              src="/logo.webp"
-              alt="Logo Felssner Representações"
-              class="h-auto w-36 rounded bg-white/5 p-2 backdrop-blur-sm sm:w-44"
-            />
+      <NContainer class="relative pt-6 sm:pt-8 md:pt-10">
+        <div class="flex justify-center md:justify-start">
+          <div class="inline-flex items-center gap-3">
+            <div class="h-11 w-11 overflow-hidden rounded-sm">
+              <img
+                src="/logo.webp"
+                alt="Monograma Felssner"
+                class="h-full w-full object-cover object-left"
+              />
+            </div>
+            <div class="leading-none">
+              <p class="text-sm font-semibold tracking-[0.18em] text-white sm:text-base">
+                FELSSNER
+              </p>
+              <p class="mt-1 text-[10px] uppercase tracking-[0.28em] text-white/90">
+                Representações
+              </p>
+            </div>
+          </div>
+        </div>
 
+        <div
+          class="grid min-h-[calc(100vh-84px)] items-center gap-10 py-10 md:grid-cols-2 md:py-20"
+        >
+          <div class="space-y-6">
             <div class="space-y-3">
-              <p class="text-xs uppercase tracking-[1px] text-[#C6A64B]">Felssner Representações</p>
               <h1
                 class="text-4xl leading-tight [font-family:'Playfair_Display',serif] sm:text-5xl lg:text-6xl"
               >
@@ -62,15 +77,20 @@
             </div>
           </div>
 
-          <div class="relative">
-            <div class="overflow-hidden rounded-2xl border border-white/10 shadow-2xl">
+          <div class="relative w-full md:justify-self-end md:pl-4">
+            <div
+              class="absolute -bottom-6 -left-4 h-40 w-40 rounded-full bg-[#C6A64B]/15 blur-3xl sm:-left-8 sm:h-56 sm:w-56"
+            ></div>
+            <div
+              class="relative mx-auto w-full max-w-[640px] overflow-hidden rounded-2xl border border-white/10 shadow-2xl"
+            >
               <picture>
                 <source media="(max-width: 767px)" srcset="/estojo-frente.png" />
                 <source media="(min-width: 1024px)" srcset="/estojo-vertical.png" />
                 <img
                   src="/estojo.png"
                   alt="Estojo de alianças Felssner Representações"
-                  class="h-[320px] w-full object-cover sm:h-[420px] md:h-[620px]"
+                  class="h-[340px] w-full object-cover object-center sm:h-[430px] md:h-[560px] md:object-[50%_40%] lg:h-[620px]"
                 />
               </picture>
             </div>
