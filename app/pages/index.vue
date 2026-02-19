@@ -145,32 +145,308 @@
             Kits prontos para começar a vender
           </h2>
         </div>
-
+        <div
+          class="mb-8 flex flex-wrap items-center justify-center gap-2"
+          role="tablist"
+          aria-label="Filtrar kits por categoria"
+        >
+          <button
+            v-for="tab in kitFilterTabs"
+            :key="tab.id"
+            type="button"
+            role="tab"
+            :aria-selected="activeKitFilter === tab.id"
+            :tabindex="activeKitFilter === tab.id ? 0 : -1"
+            :class="[
+              'rounded-md border px-4 py-2 text-xs font-semibold uppercase tracking-[1px] transition sm:text-sm',
+              activeKitFilter === tab.id
+                ? 'border-[#A8842F] bg-[#C6A64B] text-[#2A2A2A] shadow-sm'
+                : 'border-[#D8C8A5] bg-white text-[#6A5A3C] hover:border-[#C6A64B] hover:text-[#A8842F]',
+            ]"
+            @click="activeKitFilter = tab.id"
+          >
+            {{ tab.label }}
+          </button>
+        </div>
         <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
           <article
-            v-for="kit in kits"
-            :key="kit.code"
+            v-for="(kit, index) in filteredKits"
+            :key="`${kit.code}-${kit.category}-${index}`"
             class="group overflow-hidden rounded-xl bg-white shadow-md transition-all hover:-translate-y-1 hover:shadow-xl"
           >
             <img :src="kit.image" :alt="kit.alt" class="h-64 w-full object-cover" />
             <div class="space-y-3 p-6">
               <p class="text-xs uppercase tracking-[1px] text-[#A8842F]">{{ kit.code }}</p>
               <h3 class="text-2xl [font-family:'Playfair_Display',serif]">{{ kit.line }}</h3>
-              <p class="text-sm text-[#5A5A5A]">18 alianças do 14 ao 31</p>
-              <p class="text-sm text-[#5A5A5A]">Kit acompanha case</p>
-              <a
-                :href="conditionsLink"
-                target="_blank"
-                rel="noopener"
-                :class="secondaryButtonClass"
-              >
-                Ver Condições
-              </a>
+              <p class="text-lg font-semibold text-[#2A2A2A]">
+                {{ formatCurrency(kit.unitPrice) }}
+                <span class="text-xs font-medium uppercase tracking-[1px] text-[#7A6A48]">
+                  preço unitário
+                </span>
+              </p>
+              <p class="text-sm text-[#5A5A5A]">{{ kit.quickDescription }}</p>
+              <p class="text-sm text-[#5A5A5A]">Numeração do kit: 14 ao 31 (18 alianças)</p>
+              <div class="flex flex-col gap-2 pt-1">
+                <button type="button" :class="secondaryButtonClass" @click="openKitDetails(kit)">
+                  Ver mais informações
+                </button>
+                <a
+                  :href="conditionsLink"
+                  target="_blank"
+                  rel="noopener"
+                  class="text-center text-xs font-semibold uppercase tracking-[1px] text-[#8B7A57] transition hover:text-[#A8842F]"
+                >
+                  Consultar valores no WhatsApp
+                </a>
+              </div>
             </div>
           </article>
         </div>
       </NContainer>
     </section>
+
+    <NModal v-model="isKitDetailsOpen" :title="selectedKitModalTitle" size="lg">
+      <div v-if="selectedKit" class="space-y-5">
+        <div
+          class="grid gap-4 rounded-xl border border-[#E7DBC8] bg-[#FCFAF6] p-4 md:grid-cols-[220px_1fr]"
+        >
+          <div class="overflow-hidden rounded-lg border border-[#E8DECC] bg-white">
+            <img
+              :src="selectedKit.image"
+              :alt="selectedKit.alt"
+              class="h-full w-full object-cover"
+            />
+          </div>
+          <div class="space-y-2">
+            <p class="text-xs uppercase tracking-[1px] text-[#A8842F]">{{ selectedKit.code }}</p>
+            <h3 class="text-2xl [font-family:'Playfair_Display',serif] text-[#2A2A2A]">
+              {{ selectedKit.line }}
+            </h3>
+            <p class="text-base font-semibold text-[#2A2A2A]">
+              {{ formatCurrency(selectedKit.unitPrice) }} por unidade
+            </p>
+            <p class="text-sm text-[#4F4F4F]">{{ selectedKit.fullDescription }}</p>
+            <p class="text-xs leading-relaxed text-[#6A6A6A]">
+              <span class="font-medium text-[#4F4F4F]">Numeração:</span> aro
+              {{ fixedRangeStart }} ao {{ fixedRangeEnd }} ({{ minimumKitQuantity }} peças)
+              <span class="mx-1 text-[#B5A27B]">|</span>
+              <span class="font-medium text-[#4F4F4F]">Altura x Largura:</span>
+              {{ selectedKit.dimensions }}
+              <span class="mx-1 text-[#B5A27B]">|</span>
+              <span class="font-medium text-[#4F4F4F]">Peso:</span>
+              {{ formatWeight(selectedKit.unitWeight) }}
+              <span class="mx-1 text-[#B5A27B]">|</span>
+              <span class="font-medium text-[#4F4F4F]">Case:</span>
+              {{ selectedKit.caseDescription }}
+              <span class="mx-1 text-[#B5A27B]">|</span>
+              <span class="font-medium text-[#4F4F4F]">Caixa:</span>
+              {{ selectedKit.caseSize }}
+            </p>
+          </div>
+        </div>
+
+        <div class="rounded-xl border border-[#E6DCCB] bg-white p-4">
+          <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h4 class="text-base font-semibold text-[#2A2A2A]">
+              Tabela de numeração (aro 10 ao 50)
+            </h4>
+            <p class="text-xs uppercase tracking-[1px] text-[#8B7A57]">
+              Mínimo sugerido: 1 unidade do aro 14 ao 31
+            </p>
+          </div>
+          <div class="overflow-hidden rounded-lg border border-[#EFE5D6] bg-[#FFFCF7]">
+            <div class="overflow-x-auto p-2">
+              <div class="grid grid-cols-[repeat(auto-fill,minmax(86px,1fr))] gap-1.5">
+                <div
+                  v-for="size in ringSizes"
+                  :key="`size-cell-${size}`"
+                  class="grid grid-cols-[18px_1fr_18px] items-center gap-1"
+                >
+                  <button
+                    type="button"
+                    class="inline-flex h-5 w-5 items-center justify-center rounded border border-[#DCCFB6] bg-white text-[#7A6A48] transition hover:border-[#C6A64B] hover:text-[#A8842F] disabled:cursor-not-allowed disabled:opacity-40"
+                    :disabled="getRingQuantity(size) === 0"
+                    :aria-label="`Diminuir aro ${size}`"
+                    @click="decrementRingQuantity(size)"
+                  >
+                    <NIcon name="mdi:minus" class="h-3 w-3" />
+                  </button>
+                  <button
+                    type="button"
+                    :class="[
+                      'inline-flex h-9 w-full items-center justify-center rounded-md border px-1 text-center transition',
+                      getRingQuantity(size) > 0
+                        ? 'border-[#C6A64B] bg-[#FFF3D8] text-[#3D300F] shadow-sm'
+                        : 'border-[#DDCFB3] bg-white text-[#6F6042] hover:border-[#C6A64B]',
+                      getRingQuantity(size) > getDefaultRingQuantity(size)
+                        ? 'ring-2 ring-[#C6A64B]/35'
+                        : '',
+                    ]"
+                    @click="incrementRingQuantity(size)"
+                  >
+                    <span class="text-sm font-semibold leading-none">{{ size }}</span>
+                    <sup
+                      v-if="getRingQuantity(size) > 1"
+                      class="ml-0.5 text-[11px] font-semibold leading-none text-[#7A5E20]"
+                    >
+                      x{{ getRingQuantity(size) }}
+                    </sup>
+                  </button>
+                  <button
+                    type="button"
+                    class="inline-flex h-5 w-5 items-center justify-center rounded border border-[#DCCFB6] bg-white text-[#7A6A48] transition hover:border-[#C6A64B] hover:text-[#A8842F]"
+                    :aria-label="`Aumentar aro ${size}`"
+                    @click="incrementRingQuantity(size)"
+                  >
+                    <NIcon name="mdi:plus" class="h-3 w-3" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="mt-2 text-xs text-[#6E6E6E]">
+            Use os botões − e + em cada aro para ajustar rapidamente.
+          </p>
+        </div>
+
+        <div class="rounded-xl border border-[#E6DCCB] bg-white p-4">
+          <h4 class="text-base font-semibold text-[#2A2A2A]">Frete aproximado (por CEP)</h4>
+          <p class="mt-1 text-xs text-[#6E6E6E]">Origem: São José do Rio Preto - SP</p>
+          <div class="mt-3 flex flex-col gap-2 sm:flex-row">
+            <input
+              v-model="shippingCep"
+              type="text"
+              inputmode="numeric"
+              autocomplete="postal-code"
+              maxlength="9"
+              placeholder="Digite o CEP (00000-000)"
+              class="w-full rounded-md border border-[#DCCFB8] px-3 py-2 text-sm text-[#2E2E2E] outline-none transition focus:border-[#C6A64B] focus:ring-2 focus:ring-[#C6A64B]/20 sm:max-w-[220px]"
+            />
+            <button
+              type="button"
+              class="inline-flex items-center justify-center rounded-md border border-[#C6A64B] bg-[#C6A64B] px-4 py-2 text-xs font-semibold uppercase tracking-[1px] text-[#2A2A2A] transition hover:border-[#A8842F] hover:bg-[#A8842F] hover:text-white disabled:cursor-not-allowed disabled:opacity-70"
+              :disabled="isShippingLoading"
+              @click="calculateShipping"
+            >
+              {{ isShippingLoading ? 'Calculando...' : 'Calcular frete' }}
+            </button>
+          </div>
+          <p v-if="shippingError" class="mt-2 text-xs text-red-600">{{ shippingError }}</p>
+          <div
+            v-if="shippingQuote"
+            class="mt-3 rounded-lg border border-[#E8DECC] bg-[#FCFAF6] p-3 text-sm text-[#4A4A4A]"
+          >
+            <p>
+              <span class="font-semibold text-[#2E2E2E]">Região:</span>
+              {{ shippingQuote.region }}
+            </p>
+            <p>
+              <span class="font-semibold text-[#2E2E2E]">Destino:</span>
+              {{ shippingQuote.destination }}
+            </p>
+            <p>
+              <span class="font-semibold text-[#2E2E2E]">Prazo estimado:</span>
+              {{ shippingQuote.deadline }}
+            </p>
+            <p>
+              <span class="font-semibold text-[#2E2E2E]">Frete estimado:</span>
+              {{ formatCurrency(shippingQuote.value) }}
+            </p>
+          </div>
+        </div>
+
+        <div class="rounded-xl border border-[#E6DCCB] bg-[#FCFAF6] p-4">
+          <div class="grid gap-2 sm:grid-cols-2">
+            <p class="text-sm text-[#4A4A4A]">
+              <span class="font-semibold text-[#2E2E2E]">Mínimo sugerido:</span>
+              {{ minimumKitQuantity }} unidades (1x do aro {{ fixedRangeStart }} ao
+              {{ fixedRangeEnd }})
+            </p>
+            <p class="text-sm text-[#4A4A4A]">
+              <span class="font-semibold text-[#2E2E2E]">Quantidade selecionada:</span>
+              {{ totalSelectedUnits }} unidades
+            </p>
+            <p class="text-sm text-[#4A4A4A]">
+              <span class="font-semibold text-[#2E2E2E]">Frete aproximado:</span>
+              {{ shippingQuote ? formatCurrency(shippingQuote.value) : 'Calcular por CEP' }}
+            </p>
+            <p class="text-sm text-[#4A4A4A]">
+              <span class="font-semibold text-[#2E2E2E]">Preço unitário:</span>
+              {{ formatCurrency(selectedKit.unitPrice) }}
+            </p>
+            <p class="text-sm text-[#4A4A4A]">
+              <span class="font-semibold text-[#2E2E2E]">Subtotal dos itens:</span>
+              {{ formatCurrency(kitSubtotalValue) }}
+            </p>
+          </div>
+          <p class="mt-2 text-xs text-[#6E6E6E]">Seleção atual: {{ selectedRingsSummary }}</p>
+          <div
+            :class="[
+              'mt-2 rounded-lg border p-3',
+              hasCaseBonus
+                ? 'border-emerald-200 bg-emerald-50/80'
+                : 'border-amber-200 bg-amber-50/80',
+            ]"
+          >
+            <div class="flex items-center gap-3">
+              <div
+                :class="[
+                  'h-14 w-14 shrink-0 overflow-hidden rounded-md border bg-white',
+                  hasCaseBonus ? 'border-emerald-200' : 'border-amber-200',
+                ]"
+              >
+                <img
+                  src="/estojo-fechado.png"
+                  alt="Case de alianças"
+                  class="h-full w-full object-cover"
+                />
+              </div>
+              <div class="min-w-0 flex-1">
+                <p class="text-[11px] font-semibold uppercase tracking-[1px] text-[#7A6A48]">
+                  Bônus de Case
+                </p>
+                <p
+                  :class="[
+                    'text-sm font-semibold',
+                    hasCaseBonus ? 'text-emerald-700' : 'text-amber-700',
+                  ]"
+                >
+                  {{
+                    hasCaseBonus
+                      ? 'Parabéns! Você ganhou o case.'
+                      : `Faltam ${piecesToCaseBonus} peça(s) para ganhar o case.`
+                  }}
+                </p>
+                <p class="mt-0.5 text-xs text-[#6E6E6E]">
+                  {{ totalSelectedUnits }} de {{ caseBonusMinimumQuantity }} peças selecionadas.
+                </p>
+              </div>
+              <NIcon
+                :name="hasCaseBonus ? 'mdi:gift-open-outline' : 'mdi:gift-outline'"
+                :class="['h-6 w-6 shrink-0', hasCaseBonus ? 'text-emerald-600' : 'text-amber-600']"
+              />
+            </div>
+          </div>
+          <p class="mt-2 text-sm font-semibold text-[#2E2E2E]">
+            Total estimado com frete: {{ formatCurrency(totalWithShipping) }}
+          </p>
+          <p class="mt-2 text-[11px] text-[#7A7A7A]">{{ selectedKit.note }}</p>
+        </div>
+      </div>
+
+      <template #footer>
+        <button
+          type="button"
+          class="inline-flex items-center justify-center rounded-md border border-[#D7C49E] px-5 py-2 text-xs font-semibold uppercase tracking-[1px] text-[#6B5A38] transition hover:border-[#C6A64B] hover:text-[#A8842F]"
+          @click="isKitDetailsOpen = false"
+        >
+          Fechar
+        </button>
+        <a :href="requestOrderLink" target="_blank" rel="noopener" :class="primaryButtonClass">
+          Solicitar pedido no WhatsApp
+        </a>
+      </template>
+    </NModal>
 
     <section class="bg-white py-16 sm:py-20">
       <NContainer>
@@ -416,6 +692,8 @@
 </template>
 
 <script setup lang="ts">
+import { z } from 'zod'
+
 definePageMeta({
   layout: false,
 })
@@ -480,32 +758,501 @@ const aboutPillars = [
   },
 ]
 
-const kits = [
-  {
+type KitCategory = 'steel-and-gold' | 'silver-and-gold' | 'gold-10k' | 'gold-18k'
+
+type Kit = {
+  code: string
+  line: string
+  image: string
+  alt: string
+  category: KitCategory
+  quickDescription: string
+  fullDescription: string
+  dimensions: string
+  unitWeight: number
+  unitPrice: number
+  caseDescription: string
+  caseSize: string
+  note: string
+}
+
+type KitConfig = {
+  code: string
+  line: string
+  image: string
+  alt: string
+  category: KitCategory
+  quickDescription: string
+  fullDescription: string
+  dimensions: string
+  unitWeight: number
+  unitPrice: number
+  caseDescription?: string
+  caseSize?: string
+}
+
+function createKit(config: KitConfig): Kit {
+  const caseDescription =
+    config.caseDescription ??
+    'Case organizadora com 18 nichos para exposição e transporte das alianças.'
+  const caseSize = config.caseSize ?? 'Aproximadamente 30 cm x 22 cm x 8 cm.'
+
+  return {
+    code: config.code,
+    line: config.line,
+    image: config.image,
+    alt: config.alt,
+    category: config.category,
+    quickDescription: config.quickDescription,
+    fullDescription: config.fullDescription,
+    dimensions: config.dimensions,
+    unitWeight: config.unitWeight,
+    unitPrice: config.unitPrice,
+    caseDescription,
+    caseSize,
+    note: 'Valores unitários e peso podem variar levemente conforme acabamento, aro e personalização.',
+  }
+}
+
+const kits: Kit[] = [
+  createKit({
     code: 'AEX0100',
-    line: 'Kit Aço + Ouro',
+    line: 'Kit Aço + Ouro 4,3mm',
     image: '/aco-e-ouro/AEX0100.png',
-    alt: 'Kit AEX0100 Aço e Ouro',
-  },
-  {
+    alt: 'Kit AEX0100 aliança 4,3mm aço e ouro',
+    category: 'steel-and-gold',
+    quickDescription: 'Especial abaulada anatômica em aço e ouro 416 (10k).',
+    fullDescription: 'Aliança 4,3mm, envelopada aço e ouro 416 (10k) abaulada anatômica.',
+    dimensions: '2,00 mm x 4,30 mm',
+    unitWeight: 2.42,
+    unitPrice: 340,
+  }),
+  createKit({
+    code: 'AEX0101',
+    line: 'Kit Aço + Ouro 5,3mm',
+    image: '/aco-e-ouro/AEX0101.png',
+    alt: 'Kit AEX0101 aliança 5,3mm aço e ouro',
+    category: 'steel-and-gold',
+    quickDescription: 'Especial abaulada anatômica em aço e ouro 416 (10k).',
+    fullDescription: 'Aliança 5,3mm, envelopada aço e ouro 416 (10k) abaulada anatômica.',
+    dimensions: '2,00 mm x 5,30 mm',
+    unitWeight: 2.35,
+    unitPrice: 390,
+  }),
+  createKit({
+    code: 'AEX0102',
+    line: 'Kit Aço + Ouro 6,3mm',
+    image: '/aco-e-ouro/AEX0102.png',
+    alt: 'Kit AEX0102 aliança 6,3mm aço e ouro',
+    category: 'steel-and-gold',
+    quickDescription: 'Especial abaulada anatômica em aço e ouro 416 (10k).',
+    fullDescription: 'Aliança 6,3mm, envelopada aço e ouro 416 (10k) abaulada anatômica.',
+    dimensions: '2,00 mm x 6,30 mm',
+    unitWeight: 2.84,
+    unitPrice: 450,
+  }),
+  createKit({
+    code: 'AEX0105',
+    line: 'Kit Aço + Ouro 7,3mm',
+    image: '/aco-e-ouro/AEX0105.png',
+    alt: 'Kit AEX0105 aliança 7,3mm aço e ouro',
+    category: 'steel-and-gold',
+    quickDescription: 'Especial abaulada anatômica em aço e ouro 416 (10k).',
+    fullDescription: 'Aliança 7,3mm, envelopada aço e ouro 416 (10k) abaulada anatômica.',
+    dimensions: '2,00 mm x 7,30 mm',
+    unitWeight: 3.19,
+    unitPrice: 510,
+  }),
+  createKit({
+    code: 'AEX0112',
+    line: 'Kit Aço + Ouro 5,3mm Chanfrada',
+    image: '/aco-e-ouro/AEX0112.png',
+    alt: 'Kit AEX0112 aliança 5,3mm chanfrada aço e ouro',
+    category: 'steel-and-gold',
+    quickDescription: 'Especial reta chanfrada (desquinada) anatômica em aço e ouro 416 (10k).',
+    fullDescription:
+      'Aliança 5,3mm, envelopada aço e ouro 416 (10k) chanfrada (desquinada) anatômica.',
+    dimensions: '2,00 mm x 5,30 mm',
+    unitWeight: 2.35,
+    unitPrice: 390,
+  }),
+  createKit({
     code: 'AEX0113',
-    line: 'Kit Aço + Ouro',
+    line: 'Kit Aço + Ouro 3,3mm',
     image: '/aco-e-ouro/AEX0113.png',
-    alt: 'Kit AEX0113 Aço e Ouro',
-  },
-  {
+    alt: 'Kit AEX0113 aliança 3,3mm aço e ouro',
+    category: 'steel-and-gold',
+    quickDescription: 'Especial abaulada anatômica em aço e ouro 416 (10k).',
+    fullDescription: 'Aliança 3,3mm, envelopada aço e ouro 416 (10k) abaulada anatômica.',
+    dimensions: '1,90 mm x 3,30 mm',
+    unitWeight: 1.54,
+    unitPrice: 310,
+  }),
+  createKit({
+    code: 'AEX0114',
+    line: 'Kit Aço + Ouro 6mm Reta',
+    image: '/aco-e-ouro/AEX0114.png',
+    alt: 'Kit AEX0114 aliança 6mm reta aço e ouro',
+    category: 'steel-and-gold',
+    quickDescription: 'Especial reta anatômica em aço e ouro 416 (10k).',
+    fullDescription: 'Aliança 6mm, envelopada aço e ouro 416 (10k) reta anatômica.',
+    dimensions: '1,90 mm x 6,00 mm',
+    unitWeight: 2.84,
+    unitPrice: 450,
+  }),
+  createKit({
     code: 'AEX0117',
-    line: 'Kit Aço + Ouro',
+    line: 'Kit Aço + Ouro 4mm Reta',
     image: '/aco-e-ouro/AEX0117.png',
-    alt: 'Kit AEX0117 Aço e Ouro',
-  },
-  {
-    code: 'AVP4001',
-    line: 'Kit Prata + Ouro',
-    image: '/prata-e-ouro/AVP4001.png',
-    alt: 'Kit AVP4001 Prata e Ouro',
-  },
+    alt: 'Kit AEX0117 aliança 4mm reta aço e ouro',
+    category: 'steel-and-gold',
+    quickDescription: 'Especial reta anatômica em aço e ouro 416 (10k).',
+    fullDescription: 'Aliança 4mm, envelopada aço e ouro 416 (10k) reta anatômica.',
+    dimensions: '2,00 mm x 4,00 mm',
+    unitWeight: 1.76,
+    unitPrice: 340,
+  }),
+  createKit({
+    code: 'AEX0213',
+    line: 'Kit Aço + Ouro 3mm Reta',
+    image: '/aco-e-ouro/AEX0213.png',
+    alt: 'Kit AEX0213 aliança 3mm reta aço e ouro',
+    category: 'steel-and-gold',
+    quickDescription: 'Especial reta anatômica em aço e ouro 416 (10k).',
+    fullDescription: 'Aliança 3mm, envelopada aço e ouro 416 (10k) reta anatômica.',
+    dimensions: '1,90 mm x 3,00 mm',
+    unitWeight: 2.24,
+    unitPrice: 310,
+  }),
+  createKit({
+    code: 'AEX0214',
+    line: 'Kit Aço + Ouro 4mm Friso Central',
+    image: '/aco-e-ouro/AEX0214.png',
+    alt: 'Kit AEX0214 aliança 4mm com friso central aço e ouro',
+    category: 'steel-and-gold',
+    quickDescription: 'Especial reta anatômica com friso central em aço e ouro 416 (10k).',
+    fullDescription: 'Aliança 4mm, envelopada aço e ouro 416 (10k) com friso central anatômica.',
+    dimensions: '2,00 mm x 4,00 mm',
+    unitWeight: 2.34,
+    unitPrice: 362,
+  }),
 ]
+
+const kitFilterTabs = [
+  { id: 'all', label: 'Todos os Kits' },
+  { id: 'steel-and-gold', label: 'Aço e Ouro' },
+] as const
+
+type KitFilter = (typeof kitFilterTabs)[number]['id']
+
+const activeKitFilter = ref<KitFilter>('all')
+
+const filteredKits = computed(() => {
+  if (activeKitFilter.value === 'all') {
+    return kits
+  }
+
+  return kits.filter((kit) => kit.category === activeKitFilter.value)
+})
+
+const isKitDetailsOpen = ref(false)
+const selectedKit = ref<Kit | null>(null)
+
+const ringSizeStart = 10
+const ringSizeEnd = 50
+const fixedRangeStart = 14
+const fixedRangeEnd = 31
+const minimumKitQuantity = fixedRangeEnd - fixedRangeStart + 1
+
+const ringSizes = Array.from(
+  { length: ringSizeEnd - ringSizeStart + 1 },
+  (_, index) => ringSizeStart + index
+)
+const caseBonusMinimumQuantity = 18
+
+function getDefaultRingQuantity(size: number) {
+  return size >= fixedRangeStart && size <= fixedRangeEnd ? 1 : 0
+}
+
+function createDefaultRingQuantities() {
+  return ringSizes.reduce<Record<number, number>>((accumulator, size) => {
+    accumulator[size] = getDefaultRingQuantity(size)
+    return accumulator
+  }, {})
+}
+
+const ringQuantities = ref<Record<number, number>>(createDefaultRingQuantities())
+
+function sanitizeRingQuantity(value: number | string) {
+  const parsedValue = Number(value)
+
+  if (!Number.isFinite(parsedValue) || parsedValue <= 0) {
+    return 0
+  }
+
+  return Math.floor(parsedValue)
+}
+
+function getRingQuantity(size: number) {
+  return ringQuantities.value[size] ?? 0
+}
+
+function setRingQuantity(size: number, value: number | string) {
+  ringQuantities.value[size] = sanitizeRingQuantity(value)
+}
+
+function incrementRingQuantity(size: number) {
+  setRingQuantity(size, getRingQuantity(size) + 1)
+}
+
+function decrementRingQuantity(size: number) {
+  setRingQuantity(size, Math.max(getRingQuantity(size) - 1, 0))
+}
+
+const totalSelectedUnits = computed(() => {
+  return ringSizes.reduce((accumulator, size) => accumulator + getRingQuantity(size), 0)
+})
+
+const hasCaseBonus = computed(() => totalSelectedUnits.value >= caseBonusMinimumQuantity)
+
+const piecesToCaseBonus = computed(() => {
+  return Math.max(caseBonusMinimumQuantity - totalSelectedUnits.value, 0)
+})
+
+const selectedRingsSummary = computed(() => {
+  const selectedSizes = ringSizes
+    .map((size) => {
+      return {
+        size,
+        quantity: getRingQuantity(size),
+      }
+    })
+    .filter((item) => item.quantity > 0)
+    .map((item) => `${item.size} (${item.quantity}x)`)
+
+  if (!selectedSizes.length) {
+    return 'Nenhum aro selecionado'
+  }
+
+  return selectedSizes.join(', ')
+})
+
+const currencyFormatter = new Intl.NumberFormat('pt-BR', {
+  style: 'currency',
+  currency: 'BRL',
+})
+
+function formatCurrency(value: number) {
+  return currencyFormatter.format(value)
+}
+
+function formatWeight(value: number) {
+  return `${value.toFixed(2).replace('.', ',')} g`
+}
+
+const kitSubtotalValue = computed(() => {
+  if (!selectedKit.value) {
+    return 0
+  }
+
+  return selectedKit.value.unitPrice * totalSelectedUnits.value
+})
+
+type ShippingQuote = {
+  destination: string
+  region: string
+  deadline: string
+  value: number
+}
+
+const shippingCepRaw = ref('')
+const isShippingLoading = ref(false)
+const shippingError = ref('')
+const shippingQuote = ref<ShippingQuote | null>(null)
+
+const ViaCepSchema = z.object({
+  cep: z.string().optional(),
+  localidade: z.string().optional(),
+  uf: z.string().optional(),
+  erro: z.boolean().optional(),
+})
+
+function normalizeCep(value: string) {
+  return value.replace(/\D/g, '').slice(0, 8)
+}
+
+function formatCepMask(value: string) {
+  const normalized = normalizeCep(value)
+  if (normalized.length <= 5) {
+    return normalized
+  }
+
+  return `${normalized.slice(0, 5)}-${normalized.slice(5)}`
+}
+
+const shippingCep = computed({
+  get: () => shippingCepRaw.value,
+  set: (value: string) => {
+    shippingCepRaw.value = formatCepMask(value)
+  },
+})
+
+function getShippingRuleByUf(uf: string) {
+  const ufUpper = uf.toUpperCase()
+
+  if (ufUpper === 'SP') {
+    return {
+      region: 'Sudeste',
+      base: 22,
+      deadline: '2 a 4 dias úteis',
+    }
+  }
+
+  if (['RJ', 'MG', 'ES'].includes(ufUpper)) {
+    return {
+      region: 'Sudeste',
+      base: 28,
+      deadline: '3 a 5 dias úteis',
+    }
+  }
+
+  if (['PR', 'SC', 'RS'].includes(ufUpper)) {
+    return {
+      region: 'Sul',
+      base: 34,
+      deadline: '4 a 6 dias úteis',
+    }
+  }
+
+  if (['DF', 'GO', 'MT', 'MS'].includes(ufUpper)) {
+    return {
+      region: 'Centro-Oeste',
+      base: 39,
+      deadline: '4 a 7 dias úteis',
+    }
+  }
+
+  if (['AL', 'BA', 'CE', 'MA', 'PB', 'PE', 'PI', 'RN', 'SE'].includes(ufUpper)) {
+    return {
+      region: 'Nordeste',
+      base: 48,
+      deadline: '6 a 10 dias úteis',
+    }
+  }
+
+  return {
+    region: 'Norte',
+    base: 56,
+    deadline: '7 a 12 dias úteis',
+  }
+}
+
+async function calculateShipping() {
+  shippingError.value = ''
+  shippingQuote.value = null
+
+  if (!selectedKit.value) {
+    shippingError.value = 'Selecione um kit para calcular o frete.'
+    return
+  }
+
+  const normalizedCep = normalizeCep(shippingCepRaw.value)
+  if (normalizedCep.length !== 8) {
+    shippingError.value = 'Informe um CEP válido com 8 dígitos.'
+    return
+  }
+
+  isShippingLoading.value = true
+
+  try {
+    const response = await $fetch(`https://viacep.com.br/ws/${normalizedCep}/json/`)
+    const parsedResponse = ViaCepSchema.safeParse(response)
+
+    if (!parsedResponse.success || parsedResponse.data.erro || !parsedResponse.data.uf) {
+      shippingError.value = 'CEP não encontrado. Verifique o número informado.'
+      return
+    }
+
+    const shippingRule = getShippingRuleByUf(parsedResponse.data.uf)
+    const variableFee = kitSubtotalValue.value * 0.004
+    const calculatedValue = Number((shippingRule.base + variableFee).toFixed(2))
+
+    shippingQuote.value = {
+      destination: `${parsedResponse.data.localidade ?? 'Cidade não informada'} - ${parsedResponse.data.uf.toUpperCase()}`,
+      region: shippingRule.region,
+      deadline: shippingRule.deadline,
+      value: calculatedValue,
+    }
+  } catch (error) {
+    console.error('Erro ao calcular frete por CEP:', error)
+    shippingError.value = 'Não foi possível calcular o frete agora. Tente novamente.'
+  } finally {
+    isShippingLoading.value = false
+  }
+}
+
+const totalWithShipping = computed(() => {
+  return kitSubtotalValue.value + (shippingQuote.value?.value ?? 0)
+})
+
+const requestOrderLink = computed(() => {
+  if (!selectedKit.value) {
+    return conditionsLink
+  }
+
+  const normalizedCep = normalizeCep(shippingCepRaw.value)
+  const formattedCep = normalizedCep.length === 8 ? formatCepMask(normalizedCep) : 'Não informado'
+
+  const shippingSummary = shippingQuote.value
+    ? `${formatCurrency(shippingQuote.value.value)} (${shippingQuote.value.deadline} - ${shippingQuote.value.destination})`
+    : 'Não calculado'
+
+  const messageLines = [
+    'Olá! Quero solicitar pedido de kit.',
+    `Modelo: ${selectedKit.value.code} - ${selectedKit.value.line}`,
+    `Descrição: ${selectedKit.value.fullDescription}`,
+    `Faixa mínima sugerida: ${fixedRangeStart} ao ${fixedRangeEnd} (${minimumKitQuantity} unidades)`,
+    `Seleção de aros: ${selectedRingsSummary.value}`,
+    `Quantidade total: ${totalSelectedUnits.value} unidades`,
+    `Case brinde: ${hasCaseBonus.value ? 'Sim' : `Não (faltam ${piecesToCaseBonus.value} peça(s))`}`,
+    `Preço unitário: ${formatCurrency(selectedKit.value.unitPrice)}`,
+    `Subtotal dos itens: ${formatCurrency(kitSubtotalValue.value)}`,
+    `Frete aproximado: ${shippingSummary}`,
+    `CEP: ${formattedCep}`,
+    `Total estimado: ${formatCurrency(totalWithShipping.value)}`,
+  ]
+
+  return `${whatsappBase}?text=${encodeURIComponent(messageLines.join('\n'))}`
+})
+
+const selectedKitModalTitle = computed(() => {
+  if (!selectedKit.value) {
+    return 'Mais informações do kit'
+  }
+
+  return `${selectedKit.value.code} - ${selectedKit.value.line}`
+})
+
+function resetKitOrderState() {
+  ringQuantities.value = createDefaultRingQuantities()
+  shippingCepRaw.value = ''
+  shippingError.value = ''
+  shippingQuote.value = null
+  isShippingLoading.value = false
+}
+
+function openKitDetails(kit: Kit) {
+  selectedKit.value = kit
+  resetKitOrderState()
+  isKitDetailsOpen.value = true
+}
+
+watch(isKitDetailsOpen, (open) => {
+  if (!open) {
+    resetKitOrderState()
+    selectedKit.value = null
+  }
+})
 
 const steps = [
   {
