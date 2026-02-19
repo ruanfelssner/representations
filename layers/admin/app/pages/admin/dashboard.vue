@@ -14,18 +14,12 @@
             variant="outline"
             size="sm"
             leading-icon="mdi:refresh"
-            :disabled="pending"
-            @click="refresh()"
+            :disabled="pending || commercialKpisPending || rankingPending"
+            @click="refreshAll()"
           >
             Atualizar
           </NButton>
-          <NButton
-            as="NuxtLink"
-            to="/"
-            variant="outline"
-            size="sm"
-            leading-icon="mdi:map"
-          >
+          <NButton as="NuxtLink" to="/" variant="outline" size="sm" leading-icon="mdi:map">
             Ver Mapa
           </NButton>
         </div>
@@ -33,8 +27,20 @@
     </NLayer>
 
     <div v-if="error" class="rounded-xl border border-red-200 bg-red-50 p-4">
-      <NTypo size="sm" weight="semibold" class="text-red-700">Falha ao carregar números do dashboard.</NTypo>
-      <NTypo size="xs" tone="muted" class="mt-1">Verifique a API `/api/v1/clients` e o Mongo.</NTypo>
+      <NTypo size="sm" weight="semibold" class="text-red-700"
+        >Falha ao carregar números do dashboard.</NTypo
+      >
+      <NTypo size="xs" tone="muted" class="mt-1"
+        >Verifique a API `/api/v1/clients` e o Mongo.</NTypo
+      >
+    </div>
+    <div v-if="commercialKpisError" class="rounded-xl border border-amber-200 bg-amber-50 p-4">
+      <NTypo size="sm" weight="semibold" class="text-amber-700"
+        >Falha ao carregar KPIs comerciais.</NTypo
+      >
+      <NTypo size="xs" tone="muted" class="mt-1"
+        >Os demais indicadores continuam disponíveis.</NTypo
+      >
     </div>
 
     <!-- KPIs Grid -->
@@ -49,7 +55,9 @@
             </NTypo>
             <div class="mt-2 flex items-center gap-1 text-xs">
               <NIcon name="mdi:account-plus" class="w-4 h-4 text-sky-600" />
-              <span class="font-semibold text-sky-700 tabular-nums">+{{ stats.createdThisMonth }}</span>
+              <span class="font-semibold text-sky-700 tabular-nums"
+                >+{{ stats.createdThisMonth }}</span
+              >
               <span class="text-gray-500">novos no mês</span>
             </div>
           </div>
@@ -104,8 +112,14 @@
               {{ stats.contatosNoMes }}
             </NTypo>
             <div class="mt-2 flex items-center gap-1 text-xs">
-              <NIcon :name="contatosVsMesAnterior.icon" class="w-4 h-4" :class="contatosVsMesAnterior.iconClass" />
-              <span class="font-semibold tabular-nums" :class="contatosVsMesAnterior.textClass">{{ contatosVsMesAnterior.text }}</span>
+              <NIcon
+                :name="contatosVsMesAnterior.icon"
+                class="w-4 h-4"
+                :class="contatosVsMesAnterior.iconClass"
+              />
+              <span class="font-semibold tabular-nums" :class="contatosVsMesAnterior.textClass">{{
+                contatosVsMesAnterior.text
+              }}</span>
               <span class="text-gray-500">vs mês anterior</span>
             </div>
           </div>
@@ -132,13 +146,27 @@
           </NTypo>
           <div class="mt-3 pt-3 border-t space-y-1.5">
             <div class="flex items-center gap-1.5 text-xs">
-              <NIcon :name="mensalVsMesAnterior.icon" class="w-3.5 h-3.5" :class="mensalVsMesAnterior.iconClass" />
-              <span class="font-semibold tabular-nums" :class="mensalVsMesAnterior.textClass">{{ mensalVsMesAnterior.text }}</span>
+              <NIcon
+                :name="mensalVsMesAnterior.icon"
+                class="w-3.5 h-3.5"
+                :class="mensalVsMesAnterior.iconClass"
+              />
+              <span class="font-semibold tabular-nums" :class="mensalVsMesAnterior.textClass">{{
+                mensalVsMesAnterior.text
+              }}</span>
               <span class="text-gray-500">vs mês anterior</span>
             </div>
             <div class="flex items-center gap-1.5 text-xs">
-              <NIcon :name="mensalVsMesmoMesAnoAnterior.icon" class="w-3.5 h-3.5" :class="mensalVsMesmoMesAnoAnterior.iconClass" />
-              <span class="font-semibold tabular-nums" :class="mensalVsMesmoMesAnoAnterior.textClass">{{ mensalVsMesmoMesAnoAnterior.text }}</span>
+              <NIcon
+                :name="mensalVsMesmoMesAnoAnterior.icon"
+                class="w-3.5 h-3.5"
+                :class="mensalVsMesmoMesAnoAnterior.iconClass"
+              />
+              <span
+                class="font-semibold tabular-nums"
+                :class="mensalVsMesmoMesAnoAnterior.textClass"
+                >{{ mensalVsMesmoMesAnoAnterior.text }}</span
+              >
               <span class="text-gray-500">vs mesmo mês (ano anterior)</span>
             </div>
           </div>
@@ -159,13 +187,29 @@
           </NTypo>
           <div class="mt-3 pt-3 border-t space-y-1.5">
             <div class="flex items-center gap-1.5 text-xs">
-              <NIcon :name="trimestralVsTrimestreAnterior.icon" class="w-3.5 h-3.5" :class="trimestralVsTrimestreAnterior.iconClass" />
-              <span class="font-semibold tabular-nums" :class="trimestralVsTrimestreAnterior.textClass">{{ trimestralVsTrimestreAnterior.text }}</span>
+              <NIcon
+                :name="trimestralVsTrimestreAnterior.icon"
+                class="w-3.5 h-3.5"
+                :class="trimestralVsTrimestreAnterior.iconClass"
+              />
+              <span
+                class="font-semibold tabular-nums"
+                :class="trimestralVsTrimestreAnterior.textClass"
+                >{{ trimestralVsTrimestreAnterior.text }}</span
+              >
               <span class="text-gray-500">vs trimestre anterior</span>
             </div>
             <div class="flex items-center gap-1.5 text-xs">
-              <NIcon :name="trimestralVsMesmoTrimestreAnoAnterior.icon" class="w-3.5 h-3.5" :class="trimestralVsMesmoTrimestreAnoAnterior.iconClass" />
-              <span class="font-semibold tabular-nums" :class="trimestralVsMesmoTrimestreAnoAnterior.textClass">{{ trimestralVsMesmoTrimestreAnoAnterior.text }}</span>
+              <NIcon
+                :name="trimestralVsMesmoTrimestreAnoAnterior.icon"
+                class="w-3.5 h-3.5"
+                :class="trimestralVsMesmoTrimestreAnoAnterior.iconClass"
+              />
+              <span
+                class="font-semibold tabular-nums"
+                :class="trimestralVsMesmoTrimestreAnoAnterior.textClass"
+                >{{ trimestralVsMesmoTrimestreAnoAnterior.text }}</span
+              >
               <span class="text-gray-500">vs mesmo trimestre (ano anterior)</span>
             </div>
           </div>
@@ -186,8 +230,14 @@
           </NTypo>
           <div class="mt-3 pt-3 border-t">
             <div class="flex items-center gap-1.5 text-xs">
-              <NIcon :name="anualVsAnoAnterior.icon" class="w-3.5 h-3.5" :class="anualVsAnoAnterior.iconClass" />
-              <span class="font-semibold tabular-nums" :class="anualVsAnoAnterior.textClass">{{ anualVsAnoAnterior.text }}</span>
+              <NIcon
+                :name="anualVsAnoAnterior.icon"
+                class="w-3.5 h-3.5"
+                :class="anualVsAnoAnterior.iconClass"
+              />
+              <span class="font-semibold tabular-nums" :class="anualVsAnoAnterior.textClass">{{
+                anualVsAnoAnterior.text
+              }}</span>
               <span class="text-gray-500">vs mesmo período (ano anterior)</span>
             </div>
           </div>
@@ -278,10 +328,17 @@
     <!-- Comissões Estimadas -->
     <div class="grid !grid-cols-1 md:!grid-cols-5 lg:!grid-cols-5 gap-3 lg:gap-4">
       <!-- Comissão Mês Atual -->
-      <NLayer variant="paper" size="sm" radius="soft" class="shadow-sm bg-gradient-to-br from-green-50 to-emerald-50">
+      <NLayer
+        variant="paper"
+        size="sm"
+        radius="soft"
+        class="shadow-sm bg-gradient-to-br from-green-50 to-emerald-50"
+      >
         <div>
           <div class="flex items-center justify-between mb-2">
-            <NTypo size="xs" tone="muted" weight="medium">Comissão {{ currentMonthName.split(' ')[0] }}</NTypo>
+            <NTypo size="xs" tone="muted" weight="medium"
+              >Comissão {{ currentMonthName.split(' ')[0] }}</NTypo
+            >
             <div class="p-1 bg-emerald-100 rounded">
               <NIcon name="mdi:cash-multiple" class="w-3.5 h-3.5 text-emerald-700" />
             </div>
@@ -289,15 +346,24 @@
           <NTypo size="xl" weight="bold" class="text-emerald-700 tabular-nums lg:text-2xl">
             {{ formatCurrency(commissionMonth) }}
           </NTypo>
-          <NTypo size="xs" tone="muted" class="mt-1">sobre {{ formatCurrency(salesTotals.month) }}</NTypo>
+          <NTypo size="xs" tone="muted" class="mt-1"
+            >sobre {{ formatCurrency(salesTotals.month) }}</NTypo
+          >
         </div>
       </NLayer>
 
       <!-- Comissão Mês Anterior -->
-      <NLayer variant="paper" size="sm" radius="soft" class="shadow-sm bg-gradient-to-br from-green-50 to-emerald-50">
+      <NLayer
+        variant="paper"
+        size="sm"
+        radius="soft"
+        class="shadow-sm bg-gradient-to-br from-green-50 to-emerald-50"
+      >
         <div>
           <div class="flex items-center justify-between mb-2">
-            <NTypo size="xs" tone="muted" weight="medium">Comissão {{ prevMonthName.split(' ')[0] }}</NTypo>
+            <NTypo size="xs" tone="muted" weight="medium"
+              >Comissão {{ prevMonthName.split(' ')[0] }}</NTypo
+            >
             <div class="p-1 bg-emerald-100 rounded">
               <NIcon name="mdi:cash-multiple" class="w-3.5 h-3.5 text-emerald-700" />
             </div>
@@ -305,15 +371,24 @@
           <NTypo size="xl" weight="bold" class="text-emerald-700 tabular-nums lg:text-2xl">
             {{ formatCurrency(commissionMonthPrev) }}
           </NTypo>
-          <NTypo size="xs" tone="muted" class="mt-1">sobre {{ formatCurrency(salesTotals.monthPrev) }}</NTypo>
+          <NTypo size="xs" tone="muted" class="mt-1"
+            >sobre {{ formatCurrency(salesTotals.monthPrev) }}</NTypo
+          >
         </div>
       </NLayer>
 
       <!-- Comissão 2 Meses Atrás -->
-      <NLayer variant="paper" size="sm" radius="soft" class="shadow-sm bg-gradient-to-br from-green-50 to-emerald-50">
+      <NLayer
+        variant="paper"
+        size="sm"
+        radius="soft"
+        class="shadow-sm bg-gradient-to-br from-green-50 to-emerald-50"
+      >
         <div>
           <div class="flex items-center justify-between mb-2">
-            <NTypo size="xs" tone="muted" weight="medium">Comissão {{ twoMonthsAgoName.split(' ')[0] }}</NTypo>
+            <NTypo size="xs" tone="muted" weight="medium"
+              >Comissão {{ twoMonthsAgoName.split(' ')[0] }}</NTypo
+            >
             <div class="p-1 bg-emerald-100 rounded">
               <NIcon name="mdi:cash-multiple" class="w-3.5 h-3.5 text-emerald-700" />
             </div>
@@ -321,15 +396,24 @@
           <NTypo size="xl" weight="bold" class="text-emerald-700 tabular-nums lg:text-2xl">
             {{ formatCurrency(commissionMonth2Ago) }}
           </NTypo>
-          <NTypo size="xs" tone="muted" class="mt-1">sobre {{ formatCurrency(salesTotals.month2Ago) }}</NTypo>
+          <NTypo size="xs" tone="muted" class="mt-1"
+            >sobre {{ formatCurrency(salesTotals.month2Ago) }}</NTypo
+          >
         </div>
       </NLayer>
 
       <!-- Comissão Média Mensal Deste Ano -->
-      <NLayer variant="paper" size="sm" radius="soft" class="shadow-sm bg-gradient-to-br from-green-50 to-emerald-50">
+      <NLayer
+        variant="paper"
+        size="sm"
+        radius="soft"
+        class="shadow-sm bg-gradient-to-br from-green-50 to-emerald-50"
+      >
         <div>
           <div class="flex items-center justify-between mb-2">
-            <NTypo size="xs" tone="muted" weight="medium">Comissão Média/Mês {{ currentYear }}</NTypo>
+            <NTypo size="xs" tone="muted" weight="medium"
+              >Comissão Média/Mês {{ currentYear }}</NTypo
+            >
             <div class="p-1 bg-emerald-100 rounded">
               <NIcon name="mdi:cash-multiple" class="w-3.5 h-3.5 text-emerald-700" />
             </div>
@@ -337,12 +421,19 @@
           <NTypo size="xl" weight="bold" class="text-emerald-700 tabular-nums lg:text-2xl">
             {{ formatCurrency(commissionAvgThisYear) }}
           </NTypo>
-          <NTypo size="xs" tone="muted" class="mt-1">sobre {{ formatCurrency(avgMonthlyThisYear) }}/mês</NTypo>
+          <NTypo size="xs" tone="muted" class="mt-1"
+            >sobre {{ formatCurrency(avgMonthlyThisYear) }}/mês</NTypo
+          >
         </div>
       </NLayer>
 
       <!-- Comissão Média Mensal Ano Passado -->
-      <NLayer variant="paper" size="sm" radius="soft" class="shadow-sm bg-gradient-to-br from-green-50 to-emerald-50">
+      <NLayer
+        variant="paper"
+        size="sm"
+        radius="soft"
+        class="shadow-sm bg-gradient-to-br from-green-50 to-emerald-50"
+      >
         <div>
           <div class="flex items-center justify-between mb-2">
             <NTypo size="xs" tone="muted" weight="medium">Comissão Média/Mês {{ prevYear }}</NTypo>
@@ -353,10 +444,176 @@
           <NTypo size="xl" weight="bold" class="text-emerald-700 tabular-nums lg:text-2xl">
             {{ formatCurrency(commissionAvgLastYear) }}
           </NTypo>
-          <NTypo size="xs" tone="muted" class="mt-1">sobre {{ formatCurrency(avgMonthlyLastYear) }}/mês</NTypo>
+          <NTypo size="xs" tone="muted" class="mt-1"
+            >sobre {{ formatCurrency(avgMonthlyLastYear) }}/mês</NTypo
+          >
         </div>
       </NLayer>
     </div>
+
+    <!-- KPIs Comerciais -->
+    <NLayer variant="paper" size="base" radius="soft" class="shadow-sm">
+      <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between mb-4">
+        <div>
+          <NTypo as="h2" size="lg" weight="bold">KPIs Comerciais (últimos 3 meses)</NTypo>
+          <NTypo size="xs" tone="muted" class="mt-1">
+            {{ commercialKpis.pedidos3m }} pedidos • atualizado em
+            {{ formatDateTime(commercialKpis.computedAt) }}
+          </NTypo>
+        </div>
+        <NButton
+          variant="ghost"
+          size="xs"
+          leading-icon="mdi:refresh"
+          :disabled="commercialKpisPending"
+          @click="refreshCommercialKpis()"
+        />
+      </div>
+
+      <div class="grid !grid-cols-1 md:!grid-cols-2 lg:!grid-cols-4 gap-3">
+        <div class="rounded-lg border border-indigo-100 bg-indigo-50 p-3">
+          <div class="flex items-center justify-between mb-2">
+            <NTypo size="xs" tone="muted" weight="medium">Peças por pedido</NTypo>
+            <NIcon name="mdi:cube-outline" class="w-4 h-4 text-indigo-600" />
+          </div>
+          <NTypo size="xl" weight="bold" class="text-indigo-700 tabular-nums">
+            {{ formatDecimal(commercialKpis.mediaPecasPorPedido) }}
+          </NTypo>
+          <NTypo size="xs" tone="muted" class="mt-1"
+            >P75: {{ formatDecimal(commercialKpis.percentil75PecasPorPedido) }}</NTypo
+          >
+        </div>
+
+        <div class="rounded-lg border border-emerald-100 bg-emerald-50 p-3">
+          <div class="flex items-center justify-between mb-2">
+            <NTypo size="xs" tone="muted" weight="medium">Ticket médio/pedido</NTypo>
+            <NIcon name="mdi:cash" class="w-4 h-4 text-emerald-600" />
+          </div>
+          <NTypo size="xl" weight="bold" class="text-emerald-700 tabular-nums">
+            {{ formatCurrencyPrecise(commercialKpis.ticketMedioPorPedido) }}
+          </NTypo>
+        </div>
+
+        <div class="rounded-lg border border-teal-100 bg-teal-50 p-3">
+          <div class="flex items-center justify-between mb-2">
+            <NTypo size="xs" tone="muted" weight="medium">Ticket médio/peça</NTypo>
+            <NIcon name="mdi:cash-fast" class="w-4 h-4 text-teal-600" />
+          </div>
+          <NTypo size="xl" weight="bold" class="text-teal-700 tabular-nums">
+            {{ formatCurrencyPrecise(commercialKpis.ticketMedioPorPeca) }}
+          </NTypo>
+        </div>
+
+        <div class="rounded-lg border border-violet-100 bg-violet-50 p-3">
+          <div class="flex items-center justify-between mb-2">
+            <NTypo size="xs" tone="muted" weight="medium">Pedidos/cliente ativo/mês</NTypo>
+            <NIcon name="mdi:account-multiple-check" class="w-4 h-4 text-violet-600" />
+          </div>
+          <NTypo size="xl" weight="bold" class="text-violet-700 tabular-nums">
+            {{ formatDecimal(commercialKpis.pedidosPorClienteAtivoMedio, 3) }}
+          </NTypo>
+          <div class="mt-2 space-y-1">
+            <div
+              v-for="mes in commercialKpis.pedidosPorClienteAtivoMes"
+              :key="mes.key"
+              class="flex items-center justify-between text-xs"
+            >
+              <span class="text-gray-500">{{ mes.label }}</span>
+              <span class="font-semibold text-violet-700 tabular-nums">{{
+                formatDecimal(mes.pedidosPorClienteAtivo, 3)
+              }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="rounded-lg border border-orange-100 bg-orange-50 p-3">
+          <div class="flex items-center justify-between mb-2">
+            <NTypo size="xs" tone="muted" weight="medium">Reativação (30 dias)</NTypo>
+            <NIcon name="mdi:account-refresh" class="w-4 h-4 text-orange-600" />
+          </div>
+          <NTypo size="xl" weight="bold" class="text-orange-700 tabular-nums">
+            {{ commercialKpis.reativados30d }}
+          </NTypo>
+          <NTypo size="xs" tone="muted" class="mt-1">
+            {{ formatPercent(commercialKpis.taxaReativacao30d) }} de
+            {{ commercialKpis.clientesComPedido30d }} clientes com pedido
+          </NTypo>
+        </div>
+
+        <div class="rounded-lg border border-sky-100 bg-sky-50 p-3">
+          <div class="flex items-center justify-between mb-2">
+            <NTypo size="xs" tone="muted" weight="medium">Conversão tentativa → pedido</NTypo>
+            <NIcon name="mdi:chart-bell-curve-cumulative" class="w-4 h-4 text-sky-600" />
+          </div>
+          <NTypo size="xl" weight="bold" class="text-sky-700 tabular-nums">
+            {{ formatPercent(commercialKpis.taxaConversaoTentativaPedido) }}
+          </NTypo>
+          <NTypo size="xs" tone="muted" class="mt-1">
+            {{ commercialKpis.tentativasConvertidas3m }} de
+            {{ commercialKpis.tentativas3m }} tentativas
+          </NTypo>
+        </div>
+
+        <div class="rounded-lg border border-amber-100 bg-amber-50 p-3">
+          <div class="flex items-center justify-between mb-2">
+            <NTypo size="xs" tone="muted" weight="medium">Prazo médio</NTypo>
+            <NIcon name="mdi:timer-outline" class="w-4 h-4 text-amber-600" />
+          </div>
+          <NTypo size="xl" weight="bold" class="text-amber-700 tabular-nums">
+            {{ formatDecimal(commercialKpis.prazoMedioDias, 1) }} dias
+          </NTypo>
+          <NTypo size="xs" tone="muted" class="mt-1">tentativa até pedido</NTypo>
+        </div>
+
+        <div class="rounded-lg border border-slate-100 bg-slate-50 p-3">
+          <div class="flex items-center justify-between mb-2">
+            <NTypo size="xs" tone="muted" weight="medium">Clientes ativos (base)</NTypo>
+            <NIcon name="mdi:account-check" class="w-4 h-4 text-slate-600" />
+          </div>
+          <NTypo size="xl" weight="bold" class="text-slate-700 tabular-nums">
+            {{ commercialKpis.clientesAtivos }}
+          </NTypo>
+        </div>
+      </div>
+
+      <div class="grid !grid-cols-1 md:!grid-cols-2 gap-3 mt-3">
+        <div class="rounded-lg border border-gray-200 p-3">
+          <NTypo size="sm" weight="semibold" class="mb-2">Distribuição por tamanho de pedido</NTypo>
+          <div class="space-y-1.5">
+            <div
+              v-for="bucket in commercialKpis.distribuicaoPorPedido"
+              :key="bucket.label"
+              class="flex items-center justify-between text-xs"
+            >
+              <span class="text-gray-600">{{ bucket.label }}</span>
+              <span class="font-semibold tabular-nums text-gray-800">
+                {{ bucket.count }} ({{ formatPercent(bucket.percentage) }})
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="rounded-lg border border-gray-200 p-3">
+          <NTypo size="sm" weight="semibold" class="mb-2">Distribuição por tamanho</NTypo>
+          <div class="space-y-1.5">
+            <div
+              v-for="bucket in commercialKpis.distribuicaoPorTamanho.slice(0, 8)"
+              :key="bucket.label"
+              class="flex items-center justify-between text-xs"
+            >
+              <span class="text-gray-600">{{
+                bucket.label === 'Sem tamanho'
+                  ? 'Sem tamanho identificado'
+                  : `Tamanho ${bucket.label}`
+              }}</span>
+              <span class="font-semibold tabular-nums text-gray-800">
+                {{ bucket.count }} peças ({{ formatPercent(bucket.percentage) }})
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </NLayer>
 
     <!-- Status Distribution & Quick Actions -->
     <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-4 lg:gap-6">
@@ -365,177 +622,204 @@
         <!-- Distribuição por Status -->
         <NLayer variant="paper" size="base" radius="soft" class="shadow-sm">
           <NTypo as="h2" size="lg" weight="bold" class="mb-4">Distribuição por Status</NTypo>
-        <div class="space-y-3">
-          <div>
-            <div class="flex items-center justify-between mb-1.5">
-              <div class="flex items-center gap-2">
-                <span class="w-3 h-3 rounded-full bg-emerald-500" />
-                <NTypo size="sm" weight="medium">Ativos (≤90d)</NTypo>
+          <div class="space-y-3">
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <div class="flex items-center gap-2">
+                  <span class="w-3 h-3 rounded-full bg-emerald-500" />
+                  <NTypo size="sm" weight="medium">Ativos (≤90d)</NTypo>
+                </div>
+                <NTypo size="sm" weight="bold" class="text-emerald-600">{{
+                  stats.activosVerde
+                }}</NTypo>
               </div>
-              <NTypo size="sm" weight="bold" class="text-emerald-600">{{ stats.activosVerde }}</NTypo>
+              <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div class="h-full bg-emerald-500 rounded-full transition-all bar-active" />
+              </div>
             </div>
-            <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
-              <div 
-                class="h-full bg-emerald-500 rounded-full transition-all bar-active"
-              />
-            </div>
-          </div>
 
-          <div>
-            <div class="flex items-center justify-between mb-1.5">
-              <div class="flex items-center gap-2">
-                <span class="w-3 h-3 rounded-full bg-yellow-500" />
-                <NTypo size="sm" weight="medium">Atenção (91-180d)</NTypo>
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <div class="flex items-center gap-2">
+                  <span class="w-3 h-3 rounded-full bg-yellow-500" />
+                  <NTypo size="sm" weight="medium">Atenção (91-180d)</NTypo>
+                </div>
+                <NTypo size="sm" weight="bold" class="text-yellow-600">{{
+                  stats.activosAmarelo
+                }}</NTypo>
               </div>
-              <NTypo size="sm" weight="bold" class="text-yellow-600">{{ stats.activosAmarelo }}</NTypo>
+              <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div class="h-full bg-yellow-500 rounded-full transition-all bar-attention" />
+              </div>
             </div>
-            <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
-              <div 
-                class="h-full bg-yellow-500 rounded-full transition-all bar-attention"
-              />
-            </div>
-          </div>
 
-          <div>
-            <div class="flex items-center justify-between mb-1.5">
-              <div class="flex items-center gap-2">
-                <span class="w-3 h-3 rounded-full bg-red-500" />
-                <NTypo size="sm" weight="medium">Críticos (>180d)</NTypo>
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <div class="flex items-center gap-2">
+                  <span class="w-3 h-3 rounded-full bg-red-500" />
+                  <NTypo size="sm" weight="medium">Críticos (>180d)</NTypo>
+                </div>
+                <NTypo size="sm" weight="bold" class="text-red-600">{{
+                  stats.activosVermelho
+                }}</NTypo>
               </div>
-              <NTypo size="sm" weight="bold" class="text-red-600">{{ stats.activosVermelho }}</NTypo>
+              <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div class="h-full bg-red-500 rounded-full transition-all bar-critical" />
+              </div>
             </div>
-            <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
-              <div 
-                class="h-full bg-red-500 rounded-full transition-all bar-critical"
-              />
-            </div>
-          </div>
 
-          <div>
-            <div class="flex items-center justify-between mb-1.5">
-              <div class="flex items-center gap-2">
-                <span class="w-3 h-3 rounded-full bg-blue-500" />
-                <NTypo size="sm" weight="medium">Potenciais</NTypo>
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <div class="flex items-center gap-2">
+                  <span class="w-3 h-3 rounded-full bg-blue-500" />
+                  <NTypo size="sm" weight="medium">Potenciais</NTypo>
+                </div>
+                <NTypo size="sm" weight="bold" class="text-blue-600">{{ stats.potenciais }}</NTypo>
               </div>
-              <NTypo size="sm" weight="bold" class="text-blue-600">{{ stats.potenciais }}</NTypo>
+              <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div class="h-full bg-blue-500 rounded-full transition-all bar-potential" />
+              </div>
             </div>
-            <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
-              <div 
-                class="h-full bg-blue-500 rounded-full transition-all bar-potential"
-              />
-            </div>
-          </div>
 
-          <div>
-            <div class="flex items-center justify-between mb-1.5">
-              <div class="flex items-center gap-2">
-                <span class="w-3 h-3 rounded-full bg-gray-400" />
-                <NTypo size="sm" weight="medium">Inativos</NTypo>
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <div class="flex items-center gap-2">
+                  <span class="w-3 h-3 rounded-full bg-gray-400" />
+                  <NTypo size="sm" weight="medium">Inativos</NTypo>
+                </div>
+                <NTypo size="sm" weight="bold" class="text-gray-600">{{ stats.inativos }}</NTypo>
               </div>
-              <NTypo size="sm" weight="bold" class="text-gray-600">{{ stats.inativos }}</NTypo>
-            </div>
-            <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
-              <div 
-                class="h-full bg-gray-400 rounded-full transition-all bar-inactive"
-              />
+              <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div class="h-full bg-gray-400 rounded-full transition-all bar-inactive" />
+              </div>
             </div>
           </div>
-        </div>
-      </NLayer>
-      
+        </NLayer>
+
         <!-- Ações Rápidas -->
         <NLayer variant="paper" size="base" radius="soft" class="shadow-sm">
           <NTypo as="h2" size="lg" weight="bold" class="mb-4">Acesso Rápido</NTypo>
           <div class="grid grid-cols-1 gap-3">
-          <NuxtLink 
-            to="/admin/clients" 
-            class="flex items-center gap-3 p-4 rounded-lg border-2 border-gray-100 hover:border-sky-200 hover:bg-sky-50 transition-all group"
-          >
-            <div class="p-2 bg-sky-100 rounded-lg group-hover:bg-sky-200 transition-colors">
-              <NIcon name="mdi:account-group" class="w-5 h-5 text-sky-600" />
-            </div>
-            <div class="flex-1">
-              <NTypo weight="semibold" class="group-hover:text-sky-700">Gerenciar Clientes</NTypo>
-              <NTypo size="xs" tone="muted">Visualizar e editar cadastros</NTypo>
-            </div>
-            <NIcon name="mdi:chevron-right" class="w-5 h-5 text-gray-400 group-hover:text-sky-600" />
-          </NuxtLink>
+            <NuxtLink
+              to="/admin/clients"
+              class="flex items-center gap-3 p-4 rounded-lg border-2 border-gray-100 hover:border-sky-200 hover:bg-sky-50 transition-all group"
+            >
+              <div class="p-2 bg-sky-100 rounded-lg group-hover:bg-sky-200 transition-colors">
+                <NIcon name="mdi:account-group" class="w-5 h-5 text-sky-600" />
+              </div>
+              <div class="flex-1">
+                <NTypo weight="semibold" class="group-hover:text-sky-700">Gerenciar Clientes</NTypo>
+                <NTypo size="xs" tone="muted">Visualizar e editar cadastros</NTypo>
+              </div>
+              <NIcon
+                name="mdi:chevron-right"
+                class="w-5 h-5 text-gray-400 group-hover:text-sky-600"
+              />
+            </NuxtLink>
 
-          <NuxtLink 
-            to="/admin/historico" 
-            class="flex items-center gap-3 p-4 rounded-lg border-2 border-gray-100 hover:border-indigo-200 hover:bg-indigo-50 transition-all group"
-          >
-            <div class="p-2 bg-indigo-100 rounded-lg group-hover:bg-indigo-200 transition-colors">
-              <NIcon name="mdi:history" class="w-5 h-5 text-indigo-600" />
-            </div>
-            <div class="flex-1">
-              <NTypo weight="semibold" class="group-hover:text-indigo-700">Histórico de Atividades</NTypo>
-              <NTypo size="xs" tone="muted">Vendas, visitas e contatos</NTypo>
-            </div>
-            <NIcon name="mdi:chevron-right" class="w-5 h-5 text-gray-400 group-hover:text-indigo-600" />
-          </NuxtLink>
+            <NuxtLink
+              to="/admin/historico"
+              class="flex items-center gap-3 p-4 rounded-lg border-2 border-gray-100 hover:border-indigo-200 hover:bg-indigo-50 transition-all group"
+            >
+              <div class="p-2 bg-indigo-100 rounded-lg group-hover:bg-indigo-200 transition-colors">
+                <NIcon name="mdi:history" class="w-5 h-5 text-indigo-600" />
+              </div>
+              <div class="flex-1">
+                <NTypo weight="semibold" class="group-hover:text-indigo-700"
+                  >Histórico de Atividades</NTypo
+                >
+                <NTypo size="xs" tone="muted">Vendas, visitas e contatos</NTypo>
+              </div>
+              <NIcon
+                name="mdi:chevron-right"
+                class="w-5 h-5 text-gray-400 group-hover:text-indigo-600"
+              />
+            </NuxtLink>
 
-          <NuxtLink 
-            to="/admin/users" 
-            class="flex items-center gap-3 p-4 rounded-lg border-2 border-gray-100 hover:border-violet-200 hover:bg-violet-50 transition-all group"
-          >
-            <div class="p-2 bg-violet-100 rounded-lg group-hover:bg-violet-200 transition-colors">
-              <NIcon name="mdi:account" class="w-5 h-5 text-violet-600" />
-            </div>
-            <div class="flex-1">
-              <NTypo weight="semibold" class="group-hover:text-violet-700">Gerenciar Usuários</NTypo>
-              <NTypo size="xs" tone="muted">Vendedores, gerentes e admins</NTypo>
-            </div>
-            <NIcon name="mdi:chevron-right" class="w-5 h-5 text-gray-400 group-hover:text-violet-600" />
-          </NuxtLink>
+            <NuxtLink
+              to="/admin/users"
+              class="flex items-center gap-3 p-4 rounded-lg border-2 border-gray-100 hover:border-violet-200 hover:bg-violet-50 transition-all group"
+            >
+              <div class="p-2 bg-violet-100 rounded-lg group-hover:bg-violet-200 transition-colors">
+                <NIcon name="mdi:account" class="w-5 h-5 text-violet-600" />
+              </div>
+              <div class="flex-1">
+                <NTypo weight="semibold" class="group-hover:text-violet-700"
+                  >Gerenciar Usuários</NTypo
+                >
+                <NTypo size="xs" tone="muted">Vendedores, gerentes e admins</NTypo>
+              </div>
+              <NIcon
+                name="mdi:chevron-right"
+                class="w-5 h-5 text-gray-400 group-hover:text-violet-600"
+              />
+            </NuxtLink>
 
-          <NuxtLink 
-            to="/admin/produtos" 
-            class="flex items-center gap-3 p-4 rounded-lg border-2 border-gray-100 hover:border-emerald-200 hover:bg-emerald-50 transition-all group"
-          >
-            <div class="p-2 bg-emerald-100 rounded-lg group-hover:bg-emerald-200 transition-colors">
-              <NIcon name="mdi:package-variant" class="w-5 h-5 text-emerald-600" />
-            </div>
-            <div class="flex-1">
-              <NTypo weight="semibold" class="group-hover:text-emerald-700">Catálogo de Produtos</NTypo>
-              <NTypo size="xs" tone="muted">Preços e disponibilidade</NTypo>
-            </div>
-            <NIcon name="mdi:chevron-right" class="w-5 h-5 text-gray-400 group-hover:text-emerald-600" />
-          </NuxtLink>
+            <NuxtLink
+              to="/admin/produtos"
+              class="flex items-center gap-3 p-4 rounded-lg border-2 border-gray-100 hover:border-emerald-200 hover:bg-emerald-50 transition-all group"
+            >
+              <div
+                class="p-2 bg-emerald-100 rounded-lg group-hover:bg-emerald-200 transition-colors"
+              >
+                <NIcon name="mdi:package-variant" class="w-5 h-5 text-emerald-600" />
+              </div>
+              <div class="flex-1">
+                <NTypo weight="semibold" class="group-hover:text-emerald-700"
+                  >Catálogo de Produtos</NTypo
+                >
+                <NTypo size="xs" tone="muted">Preços e disponibilidade</NTypo>
+              </div>
+              <NIcon
+                name="mdi:chevron-right"
+                class="w-5 h-5 text-gray-400 group-hover:text-emerald-600"
+              />
+            </NuxtLink>
 
-          <NuxtLink 
-            to="/" 
-            class="flex items-center gap-3 p-4 rounded-lg border-2 border-gray-100 hover:border-blue-200 hover:bg-blue-50 transition-all group"
-          >
-            <div class="p-2 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
-              <NIcon name="mdi:map" class="w-5 h-5 text-blue-600" />
-            </div>
-            <div class="flex-1">
-              <NTypo weight="semibold" class="group-hover:text-blue-700">Visualizar Mapa</NTypo>
-              <NTypo size="xs" tone="muted">Distribuição geográfica</NTypo>
-            </div>
-            <NIcon name="mdi:chevron-right" class="w-5 h-5 text-gray-400 group-hover:text-blue-600" />
-          </NuxtLink>
+            <NuxtLink
+              to="/"
+              class="flex items-center gap-3 p-4 rounded-lg border-2 border-gray-100 hover:border-blue-200 hover:bg-blue-50 transition-all group"
+            >
+              <div class="p-2 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
+                <NIcon name="mdi:map" class="w-5 h-5 text-blue-600" />
+              </div>
+              <div class="flex-1">
+                <NTypo weight="semibold" class="group-hover:text-blue-700">Visualizar Mapa</NTypo>
+                <NTypo size="xs" tone="muted">Distribuição geográfica</NTypo>
+              </div>
+              <NIcon
+                name="mdi:chevron-right"
+                class="w-5 h-5 text-gray-400 group-hover:text-blue-600"
+              />
+            </NuxtLink>
 
-          <NuxtLink 
-            to="/admin/configuracoes" 
-            class="flex items-center gap-3 p-4 rounded-lg border-2 border-gray-100 hover:border-orange-200 hover:bg-orange-50 transition-all group"
-          >
-            <div class="p-2 bg-orange-100 rounded-lg group-hover:bg-orange-200 transition-colors">
-              <NIcon name="mdi:cog" class="w-5 h-5 text-orange-600" />
-            </div>
-            <div class="flex-1">
-              <NTypo weight="semibold" class="group-hover:text-orange-700">Configurações</NTypo>
-              <NTypo size="xs" tone="muted">Comissão e preferências</NTypo>
-            </div>
-            <NIcon name="mdi:chevron-right" class="w-5 h-5 text-gray-400 group-hover:text-orange-600" />
-          </NuxtLink>
-        </div>
-      </NLayer>
+            <NuxtLink
+              to="/admin/configuracoes"
+              class="flex items-center gap-3 p-4 rounded-lg border-2 border-gray-100 hover:border-orange-200 hover:bg-orange-50 transition-all group"
+            >
+              <div class="p-2 bg-orange-100 rounded-lg group-hover:bg-orange-200 transition-colors">
+                <NIcon name="mdi:cog" class="w-5 h-5 text-orange-600" />
+              </div>
+              <div class="flex-1">
+                <NTypo weight="semibold" class="group-hover:text-orange-700">Configurações</NTypo>
+                <NTypo size="xs" tone="muted">Comissão e preferências</NTypo>
+              </div>
+              <NIcon
+                name="mdi:chevron-right"
+                class="w-5 h-5 text-gray-400 group-hover:text-orange-600"
+              />
+            </NuxtLink>
+          </div>
+        </NLayer>
       </div>
 
       <!-- Ranking de Vendas -->
-      <NLayer variant="paper" size="base" radius="soft" class="shadow-sm md:col-span-3 lg:col-span-2">
+      <NLayer
+        variant="paper"
+        size="base"
+        radius="soft"
+        class="shadow-sm md:col-span-3 lg:col-span-2"
+      >
         <div class="flex items-center justify-between mb-4">
           <NTypo as="h2" size="lg" weight="bold">Ranking de Vendas</NTypo>
           <NButton
@@ -546,7 +830,7 @@
             @click="refreshRanking()"
           />
         </div>
-        
+
         <!-- Filtros de período -->
         <div class="flex gap-2 mb-4">
           <NButton
@@ -598,21 +882,19 @@
             >
               {{ index + 1 }}
             </div>
-            
+
             <!-- Info do produto -->
             <div class="flex-1 min-w-0">
               <NTypo size="sm" weight="semibold" class="truncate">{{ produto.nome }}</NTypo>
               <div class="flex items-center gap-3 mt-0.5">
-                <NTypo size="xs" tone="muted">
-                  {{ produto.quantidade }} unidades
-                </NTypo>
+                <NTypo size="xs" tone="muted"> {{ produto.quantidade }} unidades </NTypo>
                 <span class="text-gray-300">•</span>
                 <NTypo size="xs" tone="muted">
                   {{ produto.numeroVendas }} {{ produto.numeroVendas === 1 ? 'venda' : 'vendas' }}
                 </NTypo>
               </div>
             </div>
-            
+
             <!-- Valor total -->
             <div class="text-right">
               <NTypo size="sm" weight="bold" class="text-indigo-600">
@@ -628,7 +910,9 @@
     <NLayer variant="paper" size="base" radius="soft" class="shadow-sm">
       <NTypo as="h2" size="lg" weight="bold" class="mb-4">Distribuição por Segmento</NTypo>
       <div class="grid !grid-cols-2 md:!grid-cols-4 lg:!grid-cols-4 gap-3">
-        <div class="p-4 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
+        <div
+          class="p-4 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200"
+        >
           <div class="flex items-center gap-2 mb-2">
             <span class="text-2xl">👓</span>
             <NTypo size="sm" weight="semibold" class="text-blue-900">Ótica</NTypo>
@@ -638,7 +922,9 @@
           </NTypo>
         </div>
 
-        <div class="p-4 rounded-lg bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200">
+        <div
+          class="p-4 rounded-lg bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200"
+        >
           <div class="flex items-center gap-2 mb-2">
             <span class="text-2xl">⌚</span>
             <NTypo size="sm" weight="semibold" class="text-purple-900">Relojoaria</NTypo>
@@ -648,7 +934,9 @@
           </NTypo>
         </div>
 
-        <div class="p-4 rounded-lg bg-gradient-to-br from-pink-50 to-pink-100 border border-pink-200">
+        <div
+          class="p-4 rounded-lg bg-gradient-to-br from-pink-50 to-pink-100 border border-pink-200"
+        >
           <div class="flex items-center gap-2 mb-2">
             <span class="text-2xl">💍</span>
             <NTypo size="sm" weight="semibold" class="text-pink-900">Semi-joias</NTypo>
@@ -658,7 +946,9 @@
           </NTypo>
         </div>
 
-        <div class="p-4 rounded-lg bg-gradient-to-br from-amber-50 to-amber-100 border border-amber-200">
+        <div
+          class="p-4 rounded-lg bg-gradient-to-br from-amber-50 to-amber-100 border border-amber-200"
+        >
           <div class="flex items-center gap-2 mb-2">
             <span class="text-2xl">🏪</span>
             <NTypo size="sm" weight="semibold" class="text-amber-900">Multimarcas</NTypo>
@@ -709,12 +999,64 @@ const SettingsResponseSchema = z.object({
   }),
 })
 
+const KpisDistributionSchema = z.object({
+  label: z.string(),
+  count: z.number(),
+  percentage: z.number(),
+})
+
+const CommercialKpisResponseSchema = z.object({
+  success: z.boolean(),
+  data: z.object({
+    janelaInicio: z.string(),
+    janelaFim: z.string(),
+    pedidos3m: z.number(),
+    clientesAtivos: z.number(),
+    mediaPecasPorPedido: z.number(),
+    percentil75PecasPorPedido: z.number(),
+    pedidosPorClienteAtivoMedio: z.number(),
+    pedidosPorClienteAtivoMes: z.array(
+      z.object({
+        key: z.string(),
+        label: z.string(),
+        pedidos: z.number(),
+        pedidosPorClienteAtivo: z.number(),
+      })
+    ),
+    reativados30d: z.number(),
+    clientesComPedido30d: z.number(),
+    taxaReativacao30d: z.number(),
+    tentativas3m: z.number(),
+    tentativasConvertidas3m: z.number(),
+    taxaConversaoTentativaPedido: z.number(),
+    prazoMedioDias: z.number(),
+    ticketMedioPorPedido: z.number(),
+    ticketMedioPorPeca: z.number(),
+    distribuicaoPorPedido: z.array(KpisDistributionSchema),
+    distribuicaoPorTamanho: z.array(KpisDistributionSchema),
+    observacoes: z.object({
+      prazoMedioBase: z.string(),
+      tamanhoBase: z.string(),
+    }),
+    computedAt: z.string(),
+  }),
+})
+
 const { data, pending, error, refresh } = await useFetch('/api/v1/clients', {
   transform: (res) => ClientsResponseSchema.parse(res).data,
 })
 
 const { data: settingsData } = await useFetch('/api/v1/settings', {
   transform: (res) => SettingsResponseSchema.parse(res).data,
+})
+
+const {
+  data: commercialKpisData,
+  pending: commercialKpisPending,
+  error: commercialKpisError,
+  refresh: refreshCommercialKpis,
+} = await useFetch('/api/v1/admin/kpis-comerciais', {
+  transform: (res) => CommercialKpisResponseSchema.parse(res).data,
 })
 
 const commissionRate = computed(() => settingsData.value?.commissionRate || 0)
@@ -750,6 +1092,42 @@ const {
 })
 
 const rankingVendas = computed(() => rankingData.value?.ranking || [])
+
+const commercialKpis = computed(() => {
+  return (
+    commercialKpisData.value || {
+      janelaInicio: '',
+      janelaFim: '',
+      pedidos3m: 0,
+      clientesAtivos: 0,
+      mediaPecasPorPedido: 0,
+      percentil75PecasPorPedido: 0,
+      pedidosPorClienteAtivoMedio: 0,
+      pedidosPorClienteAtivoMes: [] as Array<{
+        key: string
+        label: string
+        pedidos: number
+        pedidosPorClienteAtivo: number
+      }>,
+      reativados30d: 0,
+      clientesComPedido30d: 0,
+      taxaReativacao30d: 0,
+      tentativas3m: 0,
+      tentativasConvertidas3m: 0,
+      taxaConversaoTentativaPedido: 0,
+      prazoMedioDias: 0,
+      ticketMedioPorPedido: 0,
+      ticketMedioPorPeca: 0,
+      distribuicaoPorPedido: [] as Array<{ label: string; count: number; percentage: number }>,
+      distribuicaoPorTamanho: [] as Array<{ label: string; count: number; percentage: number }>,
+      observacoes: {
+        prazoMedioBase: '',
+        tamanhoBase: '',
+      },
+      computedAt: '',
+    }
+  )
+})
 
 const clients = computed(() => data.value?.clients || [])
 const salesTotals = computed(() => {
@@ -878,10 +1256,18 @@ const avgMonthlyLastYear = computed(() => {
 const commissionRateFormatted = computed(() => `${(commissionRate.value * 100).toFixed(0)}%`)
 
 const commissionMonth = computed(() => Math.round(salesTotals.value.month * commissionRate.value))
-const commissionMonthPrev = computed(() => Math.round(salesTotals.value.monthPrev * commissionRate.value))
-const commissionMonth2Ago = computed(() => Math.round(salesTotals.value.month2Ago * commissionRate.value))
-const commissionAvgThisYear = computed(() => Math.round(avgMonthlyThisYear.value * commissionRate.value))
-const commissionAvgLastYear = computed(() => Math.round(avgMonthlyLastYear.value * commissionRate.value))
+const commissionMonthPrev = computed(() =>
+  Math.round(salesTotals.value.monthPrev * commissionRate.value)
+)
+const commissionMonth2Ago = computed(() =>
+  Math.round(salesTotals.value.month2Ago * commissionRate.value)
+)
+const commissionAvgThisYear = computed(() =>
+  Math.round(avgMonthlyThisYear.value * commissionRate.value)
+)
+const commissionAvgLastYear = computed(() =>
+  Math.round(avgMonthlyLastYear.value * commissionRate.value)
+)
 
 function pct(n: number, d: number) {
   if (!d) return 0
@@ -901,14 +1287,10 @@ const criticalPercentage = computed(() =>
 )
 const criticalPercentagePct = computed(() => `${criticalPercentage.value}%`)
 
-const potentialPercentage = computed(() =>
-  pct(stats.value.potenciais, stats.value.totalClients)
-)
+const potentialPercentage = computed(() => pct(stats.value.potenciais, stats.value.totalClients))
 const potentialPercentagePct = computed(() => `${potentialPercentage.value}%`)
 
-const inactivePercentage = computed(() =>
-  pct(stats.value.inativos, stats.value.totalClients)
-)
+const inactivePercentage = computed(() => pct(stats.value.inativos, stats.value.totalClients))
 const inactivePercentagePct = computed(() => `${inactivePercentage.value}%`)
 
 type DeltaMeta = { text: string; textClass: string; icon: string; iconClass: string }
@@ -917,22 +1299,61 @@ function deltaMeta(current: number, previous: number): DeltaMeta {
   const p = Number.isFinite(previous) ? previous : 0
 
   if (p <= 0) {
-    if (c <= 0) return { text: '0%', textClass: 'text-slate-600', icon: 'mdi:minus', iconClass: 'text-slate-500' }
-    return { text: 'novo', textClass: 'text-emerald-700', icon: 'mdi:trending-up', iconClass: 'text-emerald-600' }
+    if (c <= 0)
+      return {
+        text: '0%',
+        textClass: 'text-slate-600',
+        icon: 'mdi:minus',
+        iconClass: 'text-slate-500',
+      }
+    return {
+      text: 'novo',
+      textClass: 'text-emerald-700',
+      icon: 'mdi:trending-up',
+      iconClass: 'text-emerald-600',
+    }
   }
 
   const pct = Math.round(((c - p) / p) * 100)
-  if (pct > 0) return { text: `+${pct}%`, textClass: 'text-emerald-700', icon: 'mdi:trending-up', iconClass: 'text-emerald-600' }
-  if (pct < 0) return { text: `${pct}%`, textClass: 'text-red-700', icon: 'mdi:trending-down', iconClass: 'text-red-600' }
+  if (pct > 0)
+    return {
+      text: `+${pct}%`,
+      textClass: 'text-emerald-700',
+      icon: 'mdi:trending-up',
+      iconClass: 'text-emerald-600',
+    }
+  if (pct < 0)
+    return {
+      text: `${pct}%`,
+      textClass: 'text-red-700',
+      icon: 'mdi:trending-down',
+      iconClass: 'text-red-600',
+    }
   return { text: '0%', textClass: 'text-slate-600', icon: 'mdi:minus', iconClass: 'text-slate-500' }
 }
 
-const contatosVsMesAnterior = computed(() => deltaMeta(contactsThisMonth.value, contactsPrevMonth.value))
-const mensalVsMesAnterior = computed(() => deltaMeta(salesTotals.value.month, salesTotals.value.monthPrev))
-const mensalVsMesmoMesAnoAnterior = computed(() => deltaMeta(salesTotals.value.month, salesTotals.value.monthPrevYear))
-const trimestralVsTrimestreAnterior = computed(() => deltaMeta(salesTotals.value.quarter, salesTotals.value.quarterPrev))
-const trimestralVsMesmoTrimestreAnoAnterior = computed(() => deltaMeta(salesTotals.value.quarter, salesTotals.value.quarterPrevYear))
-const anualVsAnoAnterior = computed(() => deltaMeta(salesTotals.value.year, salesTotals.value.yearPrevYear))
+const contatosVsMesAnterior = computed(() =>
+  deltaMeta(contactsThisMonth.value, contactsPrevMonth.value)
+)
+const mensalVsMesAnterior = computed(() =>
+  deltaMeta(salesTotals.value.month, salesTotals.value.monthPrev)
+)
+const mensalVsMesmoMesAnoAnterior = computed(() =>
+  deltaMeta(salesTotals.value.month, salesTotals.value.monthPrevYear)
+)
+const trimestralVsTrimestreAnterior = computed(() =>
+  deltaMeta(salesTotals.value.quarter, salesTotals.value.quarterPrev)
+)
+const trimestralVsMesmoTrimestreAnoAnterior = computed(() =>
+  deltaMeta(salesTotals.value.quarter, salesTotals.value.quarterPrevYear)
+)
+const anualVsAnoAnterior = computed(() =>
+  deltaMeta(salesTotals.value.year, salesTotals.value.yearPrevYear)
+)
+
+async function refreshAll() {
+  await Promise.all([refresh(), refreshCommercialKpis(), refreshRanking()])
+}
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat('pt-BR', {
@@ -941,6 +1362,39 @@ function formatCurrency(value: number): string {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(value)
+}
+
+function formatCurrencyPrecise(value: number): string {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value)
+}
+
+function formatDecimal(value: number, digits = 2): string {
+  return new Intl.NumberFormat('pt-BR', {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  }).format(value)
+}
+
+function formatPercent(value: number): string {
+  return `${formatDecimal(value, 1)}%`
+}
+
+function formatDateTime(iso: string): string {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return '—'
+  return new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(d)
 }
 </script>
 
