@@ -291,7 +291,7 @@ const offerText = computed(() => {
   const quote = goldQuote.value
   if (!quote || !canGenerateOffer.value) return ''
 
-  return `Para sua peca de ${formatNumber(grams.value, 2)}g no quilate ${karatLabel.value}, com base na cotacao atual do ouro (${formatCurrency(quote.bid)} / onca | ${formatCurrency(goldPricePerGram24k.value)} / g 24k), minha oferta e ${formatCurrency(finalOfferValue.value)}.`
+  return `Para sua peça de ${formatNumber(grams.value, 2)}g no quilate ${karatLabel.value}, com base na cotacao atual do ouro (${formatCurrency(quote.bid)} / onca | ${formatCurrency(goldPricePerGram24k.value)} / g 24k), minha oferta e ${formatCurrency(finalOfferValue.value)}.`
 })
 
 const copyFeedbackMessage = computed(() => {
