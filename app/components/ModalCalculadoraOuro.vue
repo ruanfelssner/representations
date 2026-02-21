@@ -11,8 +11,8 @@
             <div class="rounded-full border border-stone-200 bg-stone-50 px-2 py-1">
               <NTypo size="xs" weight="semibold">
                 {{
-                  goldQuote
-                    ? `${formatCurrency(goldQuote.bid)} / onca`
+                  hasEffectiveBid
+                    ? `${formatCurrency(effectiveBid)} / onca`
                     : isLoadingQuote
                       ? 'Carregando onca...'
                       : '-- / onca'
@@ -22,7 +22,7 @@
             <div class="rounded-full border border-stone-200 bg-stone-50 px-2 py-1">
               <NTypo size="xs" weight="semibold">
                 {{
-                  goldQuote
+                  hasEffectiveBid
                     ? `${formatCurrency(goldPricePerGram24k)} / g 24k`
                     : isLoadingQuote
                       ? 'Carregando grama...'
@@ -35,7 +35,7 @@
               size="xs"
               leading-icon="mdi:refresh"
               :loading="isLoadingQuote"
-              @click="loadQuote"
+              @click="loadQuote(true)"
             >
               Atualizar
             </NButton>
@@ -44,6 +44,52 @@
 
         <div v-if="quoteError" class="rounded-xl border border-red-200 bg-red-50 px-3 py-2">
           <NTypo size="sm" tone="danger">{{ quoteError }}</NTypo>
+        </div>
+
+        <div
+          v-if="quoteError"
+          class="space-y-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2"
+        >
+          <NTypo size="sm" tone="muted">
+            Modo manual: informe o bid da onca para continuar os calculos.
+          </NTypo>
+          <NTypo size="xs" tone="muted">No JSON da fonte, use o campo XAUBRL.bid.</NTypo>
+          <NInput
+            v-model="manualBidInput"
+            type="number"
+            min="0"
+            step="0.01"
+            label="Bid manual (R$ / onca)"
+            placeholder="Ex.: 26433"
+          />
+          <div class="flex flex-wrap gap-2">
+            <NButton
+              variant="outline"
+              size="xs"
+              leading-icon="mdi:open-in-new"
+              href="/api/v1/gold-price"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Abrir JSON interno
+            </NButton>
+            <NButton
+              variant="outline"
+              size="xs"
+              leading-icon="mdi:open-in-new"
+              href="https://economia.awesomeapi.com.br/json/last/XAU-BRL"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Abrir JSON fonte
+            </NButton>
+          </div>
+          <NTypo v-if="isManualBidInvalid" size="xs" tone="danger">
+            Informe um bid manual valido maior que zero.
+          </NTypo>
+          <NTypo v-else-if="hasManualBid" size="xs" tone="muted">
+            Usando bid manual para os calculos.
+          </NTypo>
         </div>
 
         <div
@@ -156,6 +202,7 @@ import { z } from 'zod'
 
 const TROY_OUNCE_GRAMS = 31.1034768
 const PURIFICATION_FACTOR = 0.9
+const CLIENT_QUOTE_CACHE_TTL_MS = 60 * 1000
 
 const GoldQuoteResponseSchema = z.object({
   success: z.boolean(),
@@ -199,6 +246,7 @@ const isOpen = computed({
 const isLoadingQuote = ref(false)
 const quoteError = ref('')
 const goldQuote = ref<z.infer<typeof GoldQuoteResponseSchema>['data'] | null>(null)
+const manualBidInput = ref('')
 
 const gramsInput = ref('')
 const karatSelection = ref<KaratOptionValue>('18')
@@ -252,12 +300,24 @@ const marginPercent = computed(() => {
   return Math.min(200, Math.max(10, parsed))
 })
 
+const manualBid = computed(() => {
+  const parsed = parseInputNumber(manualBidInput.value)
+  return parsed && parsed > 0 ? parsed : 0
+})
+const hasManualBid = computed(() => manualBid.value > 0)
+const isManualBidInvalid = computed(() => {
+  if (!manualBidInput.value.trim()) return false
+  return manualBid.value <= 0
+})
+const effectiveBid = computed(() => goldQuote.value?.bid ?? manualBid.value)
+const hasEffectiveBid = computed(() => effectiveBid.value > 0)
+
 const purityFactor = computed(() => karatValue.value / 24)
 const materialFactor = computed(() => (shouldApplyPurification.value ? PURIFICATION_FACTOR : 1))
 
 const goldPricePerGram24k = computed(() => {
-  if (!goldQuote.value) return 0
-  return goldQuote.value.bid / TROY_OUNCE_GRAMS
+  if (!hasEffectiveBid.value) return 0
+  return effectiveBid.value / TROY_OUNCE_GRAMS
 })
 
 const pureGoldGrams = computed(() => {
@@ -273,12 +333,15 @@ const profitValue = computed(() => Math.max(0, baseGoldValue.value - finalOfferV
 
 const canGenerateOffer = computed(() => {
   return Boolean(
-    goldQuote.value && grams.value > 0 && isKaratValid.value && finalOfferValue.value > 0
+    hasEffectiveBid.value && grams.value > 0 && isKaratValid.value && finalOfferValue.value > 0
   )
 })
 
 const validationMessage = computed(() => {
-  if (!goldQuote.value && !isLoadingQuote.value && !quoteError.value) {
+  if (!hasEffectiveBid.value && !isLoadingQuote.value && quoteError.value) {
+    return 'Informe o bid manual para continuar o calculo.'
+  }
+  if (!hasEffectiveBid.value && !isLoadingQuote.value && !quoteError.value) {
     return 'Atualize a cotacao para calcular.'
   }
   if (grams.value <= 0) return 'Informe a quantidade em gramas.'
@@ -288,10 +351,13 @@ const validationMessage = computed(() => {
 })
 
 const offerText = computed(() => {
-  const quote = goldQuote.value
-  if (!quote || !canGenerateOffer.value) return ''
+  if (!canGenerateOffer.value || !hasEffectiveBid.value) return ''
 
-  return `Para sua peça de ${formatNumber(grams.value, 2)}g no quilate ${karatLabel.value}, com base na cotacao atual do ouro (${formatCurrency(quote.bid)} / onca | ${formatCurrency(goldPricePerGram24k.value)} / g 24k), minha oferta e ${formatCurrency(finalOfferValue.value)}.`
+  const quoteSourceText = goldQuote.value
+    ? 'com base na cotacao atual do ouro'
+    : 'com base no bid manual informado'
+
+  return `Para sua peça de ${formatNumber(grams.value, 2)}g no quilate ${karatLabel.value}, ${quoteSourceText} (${formatCurrency(effectiveBid.value)} / onca | ${formatCurrency(goldPricePerGram24k.value)} / g 24k), minha oferta e ${formatCurrency(finalOfferValue.value)}.`
 })
 
 const copyFeedbackMessage = computed(() => {
@@ -300,7 +366,19 @@ const copyFeedbackMessage = computed(() => {
   return ''
 })
 
-async function loadQuote() {
+async function loadQuote(force = false) {
+  if (isLoadingQuote.value) return
+
+  if (!force && goldQuote.value) {
+    const fetchedAtMs = Date.parse(goldQuote.value.fetchedAt)
+    const isFresh =
+      Number.isFinite(fetchedAtMs) && Date.now() - fetchedAtMs < CLIENT_QUOTE_CACHE_TTL_MS
+    if (isFresh) {
+      quoteError.value = ''
+      return
+    }
+  }
+
   isLoadingQuote.value = true
   quoteError.value = ''
   copyFeedback.value = 'idle'
