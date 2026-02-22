@@ -1,4 +1,5 @@
 import { createError } from 'h3'
+import { z } from 'zod'
 import { getMongoDb } from '../../utils/mongo'
 import { parseWithZod } from '../../utils/validation'
 import { ProdutoSchema } from '~/types/schemas'
@@ -12,8 +13,21 @@ export default defineEventHandler(async (event) => {
       codigo: true,
       nome: true,
       descricao: true,
+      descricaoRapida: true,
+      descricaoCompleta: true,
       valor: true,
       categoria: true,
+      linha: true,
+      imagemAlt: true,
+      dimensoes: true,
+      pesoUnitario: true,
+      nota: true,
+      precoOuro18kReferencia: true,
+      destaque: true,
+    }).extend({
+      codigo: z.string().min(1),
+      nome: z.string().min(1),
+      valor: z.number().min(0),
     }),
     body
   )

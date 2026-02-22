@@ -128,13 +128,40 @@ export type User = z.infer<typeof UserSchema>
 export const UserDtoSchema = UserSchema.omit({ _id: true }).extend({ id: z.string() })
 export type UserDto = z.infer<typeof UserDtoSchema>
 
+export const ProdutoLinhaSchema = z.enum(['steel-and-gold', 'silver-and-gold', 'gold-10k', 'gold-18k'])
+export type ProdutoLinha = z.infer<typeof ProdutoLinhaSchema>
+
 export const ProdutoSchema = z.object({
   _id: z.string(),
   codigo: z.string().min(1),
   nome: z.string().min(1),
   descricao: z.string().optional(),
+  /** Descrição curta exibida no card da home */
+  descricaoRapida: z.string().optional(),
+  /** Descrição completa exibida no modal da home */
+  descricaoCompleta: z.string().optional(),
   valor: z.number().min(0),
   categoria: z.string().optional(),
+  /** Linha comercial (para filtro na home) */
+  linha: ProdutoLinhaSchema.optional(),
+  /** URL da imagem de thumbnail (card da home) */
+  thumbnailUrl: z.string().optional(),
+  /** URLs da galeria de imagens (modal) */
+  galleryUrls: z.array(z.string()).optional(),
+  /** URL do PDF do catálogo */
+  catalogPdfUrl: z.string().optional(),
+  /** Alt text para imagens */
+  imagemAlt: z.string().optional(),
+  /** Dimensões do produto (ex: "2,00 mm x 4,30 mm") */
+  dimensoes: z.string().optional(),
+  /** Peso unitário em gramas */
+  pesoUnitario: z.number().optional(),
+  /** Nota/observação exibida no modal */
+  nota: z.string().optional(),
+  /** Preço de referência do equivalente em ouro 18k (para comparação) */
+  precoOuro18kReferencia: z.number().optional(),
+  /** Exibir na home como destaque */
+  destaque: z.boolean().optional(),
   ativo: z.boolean().default(true),
   createdAt: IsoDateTimeSchema,
   updatedAt: IsoDateTimeSchema,

@@ -178,14 +178,30 @@
             <div class="space-y-3 p-6">
               <p class="text-xs uppercase tracking-[1px] text-[#A8842F]">{{ kit.code }}</p>
               <h3 class="text-2xl [font-family:'Playfair_Display',serif]">{{ kit.line }}</h3>
-              <p class="text-lg font-semibold text-[#2A2A2A]">
-                {{ formatCurrency(kit.unitPrice) }}
-                <span class="text-xs font-medium uppercase tracking-[1px] text-[#7A6A48]">
-                  preço unitário
+              <div class="flex flex-wrap items-start gap-2">
+                <p class="text-lg font-semibold text-[#2A2A2A]">
+                  {{ formatCurrency(kit.unitPrice) }}
+                  <span class="text-xs font-medium uppercase tracking-[1px] text-[#7A6A48]">
+                    preço unitário
+                  </span>
+                </p>
+                <span
+                  v-if="kit.precoOuro18kReferencia && kit.precoOuro18kReferencia > kit.unitPrice"
+                  class="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700"
+                >
+                  {{ Math.round(((kit.precoOuro18kReferencia - kit.unitPrice) / kit.precoOuro18kReferencia) * 100) }}% vs ouro 18k
                 </span>
-              </p>
+              </div>
               <p class="text-sm text-[#5A5A5A]">{{ kit.quickDescription }}</p>
               <p class="text-sm text-[#5A5A5A]">Numeração do kit: 14 ao 31 (18 alianças)</p>
+              <div class="flex flex-wrap gap-1.5 text-[11px] font-medium">
+                <span class="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-emerald-700">
+                  18+ peças → case grátis
+                </span>
+                <span class="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-amber-700">
+                  30+ peças → case + caixa
+                </span>
+              </div>
               <div class="flex flex-col gap-2 pt-1">
                 <button type="button" :class="secondaryButtonClass" @click="openKitDetails(kit)">
                   Ver mais informações
@@ -210,13 +226,36 @@
         <div
           class="grid gap-4 rounded-xl border border-[#E7DBC8] bg-[#FCFAF6] p-4 md:grid-cols-[220px_1fr]"
         >
-          <div class="overflow-hidden rounded-lg border border-[#E8DECC] bg-white">
-            <img
-              :src="selectedKit.image"
-              :alt="selectedKit.alt"
-              class="h-full w-full object-cover"
-            />
-          </div>
+          <div class="space-y-2">
+                <div class="overflow-hidden rounded-lg border border-[#E8DECC] bg-white">
+                  <img
+                    :src="selectedKit.image"
+                    :alt="selectedKit.alt"
+                    class="h-full w-full object-cover"
+                  />
+                </div>
+                <!-- Miniaturas da galeria -->
+                <div v-if="selectedKit.galleryUrls?.length" class="flex flex-wrap gap-1.5">
+                  <img
+                    v-for="(url, idx) in selectedKit.galleryUrls"
+                    :key="idx"
+                    :src="url"
+                    :alt="`${selectedKit.alt} ${(idx as number) + 1}`"
+                    class="h-14 w-14 cursor-pointer rounded border border-[#E8DECC] object-cover transition hover:border-[#C6A64B]"
+                  />
+                </div>
+                <!-- Catálogo PDF -->
+                <a
+                  v-if="selectedKit.catalogPdfUrl"
+                  :href="selectedKit.catalogPdfUrl"
+                  target="_blank"
+                  rel="noopener"
+                  class="inline-flex items-center gap-1.5 text-xs font-semibold text-[#A8842F] underline hover:text-[#7A5E1A]"
+                >
+                  <NIcon name="mdi:file-pdf-box" class="h-4 w-4" />
+                  Ver catálogo PDF
+                </a>
+              </div>
           <div class="space-y-2">
             <p class="text-xs uppercase tracking-[1px] text-[#A8842F]">{{ selectedKit.code }}</p>
             <h3 class="text-2xl [font-family:'Playfair_Display',serif] text-[#2A2A2A]">
@@ -242,6 +281,18 @@
               <span class="font-medium text-[#4F4F4F]">Caixa:</span>
               {{ selectedKit.caseSize }}
             </p>
+            <!-- Comparação com Ouro 18k -->
+            <div
+              v-if="selectedKit.precoOuro18kReferencia && selectedKit.precoOuro18kReferencia > selectedKit.unitPrice"
+              class="mt-2 rounded-lg border border-emerald-100 bg-emerald-50/70 px-3 py-2"
+            >
+              <p class="text-xs text-emerald-800">
+                <span class="font-semibold">Custo {{ Math.round(((selectedKit.precoOuro18kReferencia - selectedKit.unitPrice) / selectedKit.precoOuro18kReferencia) * 100) }}% menor</span>
+                que o equivalente em ouro 18k
+                (ref.: {{ formatCurrency(selectedKit.precoOuro18kReferencia) }}/un.).
+                Mesmo brilho, muito mais margem.
+              </p>
+            </div>
           </div>
         </div>
 
@@ -383,15 +434,18 @@
           <div
             :class="[
               'mt-2 rounded-lg border p-3',
-              hasCaseBonus
-                ? 'border-emerald-200 bg-emerald-50/80'
-                : 'border-amber-200 bg-amber-50/80',
+              hasStorageBonus
+                ? 'border-amber-200 bg-amber-50/80'
+                : hasCaseBonus
+                  ? 'border-emerald-200 bg-emerald-50/80'
+                  : 'border-amber-200 bg-amber-50/40',
             ]"
           >
-            <div class="flex items-center gap-3">
+            <!-- Nível 1: case (18+ peças) -->
+            <div class="flex items-center gap-3 pb-2">
               <div
                 :class="[
-                  'h-14 w-14 shrink-0 overflow-hidden rounded-md border bg-white',
+                  'h-12 w-12 shrink-0 overflow-hidden rounded-md border bg-white',
                   hasCaseBonus ? 'border-emerald-200' : 'border-amber-200',
                 ]"
               >
@@ -403,7 +457,7 @@
               </div>
               <div class="min-w-0 flex-1">
                 <p class="text-[11px] font-semibold uppercase tracking-[1px] text-[#7A6A48]">
-                  Bônus de Case
+                  Bônus 1 — Case de Mostruário
                 </p>
                 <p
                   :class="[
@@ -413,17 +467,50 @@
                 >
                   {{
                     hasCaseBonus
-                      ? 'Parabéns! Você ganhou o case.'
-                      : `Faltam ${piecesToCaseBonus} peça(s) para ganhar o case.`
+                      ? 'Conquistado! Case mostruário incluído.'
+                      : `Faltam ${piecesToCaseBonus} peça(s) (mín. ${caseBonusMinimumQuantity} un.)`
                   }}
-                </p>
-                <p class="mt-0.5 text-xs text-[#6E6E6E]">
-                  {{ totalSelectedUnits }} de {{ caseBonusMinimumQuantity }} peças selecionadas.
                 </p>
               </div>
               <NIcon
-                :name="hasCaseBonus ? 'mdi:gift-open-outline' : 'mdi:gift-outline'"
-                :class="['h-6 w-6 shrink-0', hasCaseBonus ? 'text-emerald-600' : 'text-amber-600']"
+                :name="hasCaseBonus ? 'mdi:check-circle' : 'mdi:gift-outline'"
+                :class="['h-5 w-5 shrink-0', hasCaseBonus ? 'text-emerald-600' : 'text-amber-500']"
+              />
+            </div>
+            <!-- Nível 2: caixa de estoque (30+ peças) -->
+            <div class="flex items-center gap-3 border-t border-[#E8DECC]/60 pt-2">
+              <div
+                :class="[
+                  'h-12 w-12 shrink-0 overflow-hidden rounded-md border bg-white',
+                  hasStorageBonus ? 'border-amber-300' : 'border-gray-200',
+                ]"
+              >
+                <img
+                  src="/estojo-fechado.png"
+                  alt="Caixa de estoque"
+                  class="h-full w-full object-cover opacity-70"
+                />
+              </div>
+              <div class="min-w-0 flex-1">
+                <p class="text-[11px] font-semibold uppercase tracking-[1px] text-[#7A6A48]">
+                  Bônus 2 — Caixa de Estoque
+                </p>
+                <p
+                  :class="[
+                    'text-sm font-semibold',
+                    hasStorageBonus ? 'text-amber-700' : 'text-gray-400',
+                  ]"
+                >
+                  {{
+                    hasStorageBonus
+                      ? 'Conquistado! Caixa de estoque incluída.'
+                      : `Faltam ${piecesToStorageBonus} peça(s) para a caixa de estoque (mín. ${storageBonusMinimumQuantity} un.)`
+                  }}
+                </p>
+              </div>
+              <NIcon
+                :name="hasStorageBonus ? 'mdi:check-circle' : 'mdi:package-variant-closed'"
+                :class="['h-5 w-5 shrink-0', hasStorageBonus ? 'text-amber-600' : 'text-gray-300']"
               />
             </div>
           </div>
@@ -447,6 +534,99 @@
         </a>
       </template>
     </NModal>
+
+    <!-- Seção: Linha do tempo comercial -->
+    <section class="bg-[#2A2A2A] py-14 text-[#F8F6F2] sm:py-16">
+      <NContainer>
+        <div class="mx-auto max-w-3xl text-center">
+          <p class="text-xs uppercase tracking-[1px] text-[#C6A64B]">Sem barreira de entrada</p>
+          <h2 class="mt-2 text-3xl [font-family:'Playfair_Display',serif] sm:text-4xl">
+            Faz o pedido hoje,<br />começa a pagar depois de receber
+          </h2>
+          <p class="mt-3 text-sm text-[#F8F6F2]/75 sm:text-base">
+            Sujeito a aprovação cadastral. Condições para boleto à vista ou parcelado.
+          </p>
+        </div>
+
+        <div class="mt-10 grid gap-0 md:grid-cols-4">
+          <!-- Step 1 -->
+          <div class="relative flex flex-col items-center text-center">
+            <div class="z-10 flex h-12 w-12 items-center justify-center rounded-full border-2 border-[#C6A64B] bg-[#C6A64B] text-[#2A2A2A]">
+              <NIcon name="mdi:cart-outline" class="h-6 w-6" />
+            </div>
+            <div class="absolute top-6 left-1/2 hidden h-0.5 w-full bg-[#C6A64B]/30 md:block" aria-hidden="true" />
+            <div class="mt-4 px-4">
+              <p class="text-[11px] font-semibold uppercase tracking-[1px] text-[#C6A64B]">Dia 0</p>
+              <p class="mt-1 text-base font-semibold">Faz o pedido</p>
+              <p class="mt-1 text-xs text-[#F8F6F2]/60">Escolhe o kit, confirma pelo WhatsApp e aguarda confirmação.</p>
+            </div>
+          </div>
+          <!-- Step 2 -->
+          <div class="relative flex flex-col items-center text-center">
+            <div class="z-10 flex h-12 w-12 items-center justify-center rounded-full border-2 border-[#C6A64B] bg-[#3A3A3A] text-[#C6A64B]">
+              <NIcon name="mdi:cog-sync-outline" class="h-6 w-6" />
+            </div>
+            <div class="absolute top-6 left-1/2 hidden h-0.5 w-full bg-[#C6A64B]/30 md:block" aria-hidden="true" />
+            <div class="mt-4 px-4">
+              <p class="text-[11px] font-semibold uppercase tracking-[1px] text-[#C6A64B]">Até ~15 dias</p>
+              <p class="mt-1 text-base font-semibold">Produção e envio</p>
+              <p class="mt-1 text-xs text-[#F8F6F2]/60">Produção média de 15 dias corridos + frete pelos Correios (Sedex).</p>
+            </div>
+          </div>
+          <!-- Step 3 -->
+          <div class="relative flex flex-col items-center text-center">
+            <div class="z-10 flex h-12 w-12 items-center justify-center rounded-full border-2 border-[#C6A64B] bg-[#3A3A3A] text-[#C6A64B]">
+              <NIcon name="mdi:package-variant" class="h-6 w-6" />
+            </div>
+            <div class="absolute top-6 left-1/2 hidden h-0.5 w-full bg-[#C6A64B]/30 md:block" aria-hidden="true" />
+            <div class="mt-4 px-4">
+              <p class="text-[11px] font-semibold uppercase tracking-[1px] text-[#C6A64B]">~20 dias</p>
+              <p class="mt-1 text-base font-semibold">Recebe o kit</p>
+              <p class="mt-1 text-xs text-[#F8F6F2]/60">Kit completo na sua porta, pronto para colocar no balcão e vender.</p>
+            </div>
+          </div>
+          <!-- Step 4 -->
+          <div class="relative flex flex-col items-center text-center">
+            <div class="z-10 flex h-12 w-12 items-center justify-center rounded-full border-2 border-[#C6A64B] bg-[#3A3A3A] text-[#C6A64B]">
+              <NIcon name="mdi:cash-multiple" class="h-6 w-6" />
+            </div>
+            <div class="mt-4 px-4">
+              <p class="text-[11px] font-semibold uppercase tracking-[1px] text-[#C6A64B]">~30 dias</p>
+              <p class="mt-1 text-base font-semibold">Começa a pagar</p>
+              <p class="mt-1 text-xs text-[#F8F6F2]/60">1ª parcela ~10 dias após o recebimento. Boleto sem juros.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Destaque condições de pagamento -->
+        <div class="mx-auto mt-10 max-w-2xl rounded-2xl border border-[#C6A64B]/30 bg-[#3A3A3A] p-6">
+          <div class="grid gap-4 sm:grid-cols-2">
+            <div class="rounded-xl border border-[#C6A64B]/20 bg-[#2A2A2A] p-4 text-center">
+              <p class="text-[11px] font-semibold uppercase tracking-[1px] text-[#C6A64B]">Boleto parcelado</p>
+              <p class="mt-2 text-2xl font-bold text-[#F8F6F2]">4x</p>
+              <p class="mt-1 text-sm text-[#F8F6F2]/70">Parcelas nos dias 30 · 60 · 90 · 120</p>
+              <p class="mt-1 text-xs text-[#F8F6F2]/45">Sem juros · sujeito a aprovação</p>
+            </div>
+            <div class="rounded-xl border border-[#C6A64B]/20 bg-[#2A2A2A] p-4 text-center">
+              <p class="text-[11px] font-semibold uppercase tracking-[1px] text-[#C6A64B]">Boleto à vista</p>
+              <p class="mt-2 text-2xl font-bold text-[#F8F6F2]">30d</p>
+              <p class="mt-1 text-sm text-[#F8F6F2]/70">Vencimento único após recebimento</p>
+              <p class="mt-1 text-xs text-[#F8F6F2]/45">Sem juros · sujeito a aprovação</p>
+            </div>
+          </div>
+          <p class="mt-4 text-center text-xs text-[#F8F6F2]/40">
+            Condições sujeitas a aprovação cadastral. Cartão de crédito em implantação. Mínimo R$ 500 para parcelamento em boleto.
+          </p>
+        </div>
+
+        <div class="mt-8 text-center">
+          <a :href="firstKitLink" target="_blank" rel="noopener" :class="primaryButtonClass">
+            Quero Montar Meu Primeiro Kit
+          </a>
+          <p class="mt-2 text-xs text-[#F8F6F2]/50">Resposta rápida no horário comercial</p>
+        </div>
+      </NContainer>
+    </section>
 
     <section class="bg-white py-16 sm:py-20">
       <NContainer>
@@ -504,6 +684,43 @@
               class="h-72 w-full object-cover sm:h-96"
             />
           </div>
+        </div>
+      </NContainer>
+    </section>
+
+    <!-- Seção: Por que não Ouro 18k? -->
+    <section class="bg-[#FAF7F1] py-16 sm:py-20">
+      <NContainer>
+        <div class="mx-auto max-w-4xl">
+          <div class="text-center">
+            <p class="text-xs uppercase tracking-[1px] text-[#A8842F]">Vantagem competitiva</p>
+            <h2 class="mt-2 text-3xl [font-family:'Playfair_Display',serif] sm:text-4xl">
+              Por que envelopado e não ouro 18k?
+            </h2>
+            <p class="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-[#5A5A5A] sm:text-base">
+              O cliente final ganha o mesmo brilho e acabamento premium — você ganha a diferença como margem.
+            </p>
+          </div>
+          <div class="mt-8 grid gap-4 sm:grid-cols-3">
+            <div class="rounded-xl border border-[#E8DECC] bg-white p-5 text-center shadow-sm">
+              <p class="text-[11px] font-semibold uppercase tracking-[1px] text-[#A8842F]">Preço de custo típico</p>
+              <p class="mt-2 text-3xl font-bold text-[#2A2A2A]">~5–10×</p>
+              <p class="mt-1 text-sm text-[#5A5A5A]">Ouro 18k custa de 5 a 10× mais que o equivalente envelopado de mesma largura.</p>
+            </div>
+            <div class="rounded-xl border border-emerald-100 bg-emerald-50 p-5 text-center shadow-sm">
+              <p class="text-[11px] font-semibold uppercase tracking-[1px] text-emerald-700">Capital imobilizado</p>
+              <p class="mt-2 text-3xl font-bold text-emerald-800">Muito menos</p>
+              <p class="mt-1 text-sm text-emerald-700">Estoque maior, mais numerações disponíveis, com o mesmo orçamento.</p>
+            </div>
+            <div class="rounded-xl border border-[#E8DECC] bg-white p-5 text-center shadow-sm">
+              <p class="text-[11px] font-semibold uppercase tracking-[1px] text-[#A8842F]">Margem para o lojista</p>
+              <p class="mt-2 text-3xl font-bold text-[#2A2A2A]">+alta</p>
+              <p class="mt-1 text-sm text-[#5A5A5A]">Ticket de venda competitivo e margem mais atrativa — ideal para revendas e joalherias.</p>
+            </div>
+          </div>
+          <p class="mt-5 text-center text-xs text-[#8A8A8A]">
+            * Comparativo de referência com alianças de ouro 18k de mesma largura. Valores reais variam. Consulte nosso atendimento.
+          </p>
         </div>
       </NContainer>
     </section>
@@ -693,6 +910,7 @@
 
 <script setup lang="ts">
 import { z } from 'zod'
+import { ProdutoDtoSchema } from '~/types/schemas'
 
 definePageMeta({
   layout: false,
@@ -774,6 +992,12 @@ type Kit = {
   caseDescription: string
   caseSize: string
   note: string
+  /** Preço do equivalente em ouro 18k para comparação (vindo do DB) */
+  precoOuro18kReferencia?: number
+  /** Imagens da galeria (vindas do DB) */
+  galleryUrls?: string[]
+  /** Link do catálogo PDF (vindo do DB) */
+  catalogPdfUrl?: string
 }
 
 type KitConfig = {
@@ -947,12 +1171,40 @@ type KitFilter = (typeof kitFilterTabs)[number]['id']
 
 const activeKitFilter = ref<KitFilter>('all')
 
-const filteredKits = computed(() => {
-  if (activeKitFilter.value === 'all') {
-    return kits
-  }
+// Fetch DB products to enrich hardcoded kit data (thumbnail, gallery, PDF, 18k ref price)
+const ProdutosResponseSchema = z.object({ success: z.boolean(), data: z.array(ProdutoDtoSchema) })
+const { data: dbProducts } = await useFetch('/api/v1/produtos', {
+  transform: (res: unknown) => ProdutosResponseSchema.parse(res).data,
+})
 
-  return kits.filter((kit) => kit.category === activeKitFilter.value)
+/** Merge hardcoded kits with DB data where codes match */
+const enrichedKits = computed<Kit[]>(() => {
+  return kits.map((kit) => {
+  const db = dbProducts.value?.find((p: { codigo: string }) => p.codigo === kit.code)
+    if (!db) return kit
+    return {
+      ...kit,
+      image: db.thumbnailUrl || kit.image,
+      alt: db.imagemAlt || kit.alt,
+      quickDescription: db.descricaoRapida || kit.quickDescription,
+      fullDescription: db.descricaoCompleta || kit.fullDescription,
+      dimensions: db.dimensoes || kit.dimensions,
+      unitWeight: db.pesoUnitario ?? kit.unitWeight,
+      unitPrice: db.valor ?? kit.unitPrice,
+      note: db.nota || kit.note,
+      precoOuro18kReferencia: db.precoOuro18kReferencia,
+      galleryUrls: db.galleryUrls?.length ? db.galleryUrls : undefined,
+      catalogPdfUrl: db.catalogPdfUrl,
+    }
+  })
+})
+
+const filteredKits = computed(() => {
+  const source = enrichedKits.value
+  if (activeKitFilter.value === 'all') {
+    return source
+  }
+  return source.filter((kit: Kit) => kit.category === activeKitFilter.value)
 })
 
 const isKitDetailsOpen = ref(false)
@@ -969,6 +1221,8 @@ const ringSizes = Array.from(
   (_, index) => ringSizeStart + index
 )
 const caseBonusMinimumQuantity = 18
+/** 30+ peças ganham caixa de estoque adicional além do case de mostruário */
+const storageBonusMinimumQuantity = 30
 
 function getDefaultRingQuantity(size: number) {
   return size >= fixedRangeStart && size <= fixedRangeEnd ? 1 : 0
@@ -1014,9 +1268,14 @@ const totalSelectedUnits = computed(() => {
 })
 
 const hasCaseBonus = computed(() => totalSelectedUnits.value >= caseBonusMinimumQuantity)
+const hasStorageBonus = computed(() => totalSelectedUnits.value >= storageBonusMinimumQuantity)
 
 const piecesToCaseBonus = computed(() => {
   return Math.max(caseBonusMinimumQuantity - totalSelectedUnits.value, 0)
+})
+
+const piecesToStorageBonus = computed(() => {
+  return Math.max(storageBonusMinimumQuantity - totalSelectedUnits.value, 0)
 })
 
 const selectedRingsSummary = computed(() => {
@@ -1273,13 +1532,13 @@ const steps = [
 ]
 
 const conditions = [
-  'Produtos direto da fábrica',
+  'Produtos direto da fábrica com certificado',
   'Produção média: até 15 dias corridos',
-  'Envio: Correios (Sedex)',
-  'Origem: São José do Rio Preto – SP',
+  'Envio: Correios (Sedex), origem São José do Rio Preto – SP',
+  '1ª parcela ~10 dias após recebimento do kit',
+  '4x no boleto sem juros: 30/60/90/120 dias (sujeito a aprovação)',
+  'Boleto à vista: vencimento 30 dias (sujeito a aprovação)',
   'Pedido mínimo: não há',
-  'Boleto até 4x (mínimo R$ 500)',
-  'Cartão até 10x (em implantação)',
   'Garantia: 1 ano contra defeito de fabricação',
 ]
 
