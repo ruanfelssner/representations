@@ -172,6 +172,107 @@
                     </div>
                   </div>
                 </div>
+
+                <div class="border-t pt-5">
+                  <h4 class="text-sm font-bold text-gray-900 mb-3">Fluxo de atendimento</h4>
+
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label class="block text-sm font-semibold text-gray-700 mb-2">Nome fantasia</label>
+                      <input
+                        v-model="form.nomeFantasia"
+                        type="text"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                      />
+                    </div>
+
+                    <div>
+                      <label class="block text-sm font-semibold text-gray-700 mb-2">Instagram da loja</label>
+                      <input
+                        v-model="form.instagram"
+                        type="text"
+                        placeholder="@nomedaloja"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                      />
+                    </div>
+
+                    <div>
+                      <label class="block text-sm font-semibold text-gray-700 mb-2">Primeiro contato</label>
+                      <select
+                        v-model="form.firstContactChannel"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                      >
+                        <option value="">(não definido)</option>
+                        <option value="whatsapp">WhatsApp</option>
+                        <option value="telefone">Telefone</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label class="block text-sm font-semibold text-gray-700 mb-2">Resultado do primeiro contato</label>
+                      <select
+                        v-model="form.firstContactOutcome"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                      >
+                        <option value="">(não definido)</option>
+                        <option value="agendado_online">Agendou reunião online</option>
+                        <option value="agendado_presencial">Agendou atendimento presencial</option>
+                        <option value="sem_retorno">Sem retorno</option>
+                        <option value="nao_tem_interesse">Sem interesse</option>
+                      </select>
+                    </div>
+
+                    <div class="md:col-span-2">
+                      <label class="block text-sm font-semibold text-gray-700 mb-2">Observações do primeiro contato</label>
+                      <textarea
+                        v-model="form.firstContactNotes"
+                        rows="2"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent resize-none"
+                        placeholder="Resumo da conversa e próximos passos..."
+                      />
+                    </div>
+
+                    <div class="md:col-span-2 rounded-lg border border-gray-200 p-3">
+                      <label class="inline-flex items-center gap-2 text-sm font-semibold text-gray-700">
+                        <input v-model="form.buyerContatado" type="checkbox" class="h-4 w-4" />
+                        Conseguiu contato com o comprador
+                      </label>
+                      <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <input
+                          v-model="form.buyerNome"
+                          type="text"
+                          placeholder="Nome do comprador"
+                          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                        />
+                        <input
+                          v-model="form.buyerTelefone"
+                          type="text"
+                          placeholder="Telefone do comprador"
+                          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                        />
+                      </div>
+                    </div>
+
+                    <div class="md:col-span-2">
+                      <label class="block text-sm font-semibold text-gray-700 mb-2">Produtos que a loja vende hoje</label>
+                      <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+                        <label
+                          v-for="product in storeProductOptions"
+                          :key="product.value"
+                          class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm"
+                        >
+                          <input
+                            type="checkbox"
+                            :value="product.value"
+                            v-model="form.storeProducts"
+                            class="h-4 w-4"
+                          />
+                          {{ product.label }}
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </form>
             </div>
 
@@ -229,7 +330,27 @@ const form = ref({
   priorityScore: undefined as number | undefined,
   nextActionType: '' as '' | 'ligar' | 'visitar' | 'enviar_catalogo' | 'cobrar',
   nextActionAt: '',
+
+  nomeFantasia: '',
+  instagram: '',
+  firstContactChannel: '' as '' | 'whatsapp' | 'telefone',
+  firstContactOutcome:
+    '' as '' | 'agendado_online' | 'agendado_presencial' | 'sem_retorno' | 'nao_tem_interesse',
+  firstContactNotes: '',
+  buyerContatado: false,
+  buyerNome: '',
+  buyerTelefone: '',
+  storeProducts: [] as Array<'joia' | 'relogio' | 'oculos' | 'caneta' | 'perfume' | 'prata'>,
 })
+
+const storeProductOptions: Array<{ value: 'joia' | 'relogio' | 'oculos' | 'caneta' | 'perfume' | 'prata'; label: string }> = [
+  { value: 'joia', label: 'Joia' },
+  { value: 'relogio', label: 'Relógio' },
+  { value: 'oculos', label: 'Óculos' },
+  { value: 'caneta', label: 'Caneta' },
+  { value: 'perfume', label: 'Perfume' },
+  { value: 'prata', label: 'Prata' },
+]
 
 const buscandoCoordenadas = ref(false)
 const coordenadasAtualizadas = ref(false)
@@ -276,6 +397,17 @@ watch(
       priorityScore: typeof cliente.sales?.priorityScore === 'number' ? cliente.sales.priorityScore : undefined,
       nextActionType: (cliente.sales?.nextActionType as any) || '',
       nextActionAt: cliente.sales?.nextActionAt ? cliente.sales.nextActionAt.slice(0, 16) : '',
+      nomeFantasia: (cliente as any)?.company?.nomeFantasia || '',
+      instagram: (cliente as any)?.social?.instagram || '',
+      firstContactChannel: ((cliente as any)?.serviceFlow?.firstContact?.channel as any) || '',
+      firstContactOutcome: ((cliente as any)?.serviceFlow?.firstContact?.outcome as any) || '',
+      firstContactNotes: (cliente as any)?.serviceFlow?.firstContact?.notes || '',
+      buyerContatado: Boolean((cliente as any)?.buyerContact?.contatado),
+      buyerNome: (cliente as any)?.buyerContact?.nome || '',
+      buyerTelefone: (cliente as any)?.buyerContact?.telefone || '',
+      storeProducts: Array.isArray((cliente as any)?.storeProducts)
+        ? ((cliente as any).storeProducts as any[])
+        : [],
     }
     coordenadasAtualizadas.value = false
     erroGeocoding.value = ''
@@ -334,6 +466,29 @@ function handleSubmit() {
       nextActionType: form.value.nextActionType || undefined,
       nextActionAt: form.value.nextActionAt ? new Date(form.value.nextActionAt).toISOString() : undefined,
     },
+    company: {
+      nomeFantasia: form.value.nomeFantasia.trim() || undefined,
+    },
+    buyerContact: {
+      contatado: Boolean(form.value.buyerContatado),
+      nome: form.value.buyerNome.trim() || undefined,
+      telefone: form.value.buyerTelefone.trim() || undefined,
+    },
+    storeProducts: form.value.storeProducts,
+    social: {
+      instagram: form.value.instagram.trim() || undefined,
+    },
+    serviceFlow: {
+      firstContact: {
+        channel: form.value.firstContactChannel || undefined,
+        outcome: form.value.firstContactOutcome || undefined,
+        notes: form.value.firstContactNotes.trim() || undefined,
+        happenedAt:
+          form.value.firstContactChannel || form.value.firstContactOutcome || form.value.firstContactNotes.trim()
+            ? new Date().toISOString()
+            : undefined,
+      },
+    },
   }
 
   if (form.value.endereco_completo.trim()) {
@@ -366,6 +521,15 @@ watch(
       priorityScore: undefined,
       nextActionType: '',
       nextActionAt: '',
+      nomeFantasia: '',
+      instagram: '',
+      firstContactChannel: '',
+      firstContactOutcome: '',
+      firstContactNotes: '',
+      buyerContatado: false,
+      buyerNome: '',
+      buyerTelefone: '',
+      storeProducts: [],
     }
     coordenadasAtualizadas.value = false
     erroGeocoding.value = ''

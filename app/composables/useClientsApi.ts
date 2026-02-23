@@ -19,10 +19,16 @@ export function useClientsApi() {
   const fetchClients = async (opts?: {
     scope?: 'all' | 'portfolio'
     exclude?: Array<'ativo' | 'potencial' | 'inativo'>
+    stateId?: string
+    cityId?: string
+    regionId?: string
   }) => {
     const params = new URLSearchParams()
     if (opts?.scope) params.set('scope', opts.scope)
     for (const v of opts?.exclude || []) params.append('exclude', v)
+    if (opts?.stateId) params.set('stateId', opts.stateId)
+    if (opts?.cityId) params.set('cityId', opts.cityId)
+    if (opts?.regionId) params.set('regionId', opts.regionId)
     const query = params.size ? `?${params.toString()}` : ''
     const res = await $fetch<
       ApiResponse<{

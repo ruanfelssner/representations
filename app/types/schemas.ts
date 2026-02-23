@@ -7,6 +7,27 @@ export const GeoJsonPointSchema = z.object({
   coordinates: z.tuple([z.number(), z.number()]), // [lng, lat]
 })
 
+export const GeoJsonPolygonSchema = z.object({
+  type: z.literal('Polygon'),
+  coordinates: z.array(z.array(z.tuple([z.number(), z.number()]))).min(1),
+})
+
+export const GeoJsonMultiPolygonSchema = z.object({
+  type: z.literal('MultiPolygon'),
+  coordinates: z.array(z.array(z.array(z.tuple([z.number(), z.number()])))).min(1),
+})
+
+export const GeoJsonGeometrySchema = z.union([
+  GeoJsonPointSchema,
+  GeoJsonPolygonSchema,
+  GeoJsonMultiPolygonSchema,
+])
+
+export const MapCentroidSchema = z.object({
+  lat: z.number(),
+  lng: z.number(),
+})
+
 export const ClientSalesStageSchema = z.enum([
   'lead',
   'ativo',
@@ -23,6 +44,74 @@ export const ClientNextActionTypeSchema = z.enum([
 ])
 
 export const ClientStatusSchema = z.enum(['ativo', 'inativo', 'potencial'])
+export const ClientStoreProductSchema = z.enum([
+  'joia',
+  'relogio',
+  'oculos',
+  'caneta',
+  'perfume',
+  'prata',
+])
+
+export const ClientFirstContactChannelSchema = z.enum(['whatsapp', 'telefone'])
+export const ClientFirstContactOutcomeSchema = z.enum([
+  'agendado_online',
+  'agendado_presencial',
+  'sem_retorno',
+  'nao_tem_interesse',
+])
+
+export const TerritoryStateSchema = z.object({
+  _id: z.string(),
+  uf: z.string().trim().toUpperCase().length(2),
+  nome: z.string().min(1),
+  geometry: z.union([GeoJsonPolygonSchema, GeoJsonMultiPolygonSchema]),
+  centroid: MapCentroidSchema.optional(),
+  ativo: z.boolean().default(true),
+  createdAt: IsoDateTimeSchema.optional(),
+  updatedAt: IsoDateTimeSchema.optional(),
+})
+
+export type TerritoryState = z.infer<typeof TerritoryStateSchema>
+
+export const TerritoryStateDtoSchema = TerritoryStateSchema.omit({ _id: true }).extend({ id: z.string() })
+export type TerritoryStateDto = z.infer<typeof TerritoryStateDtoSchema>
+
+export const TerritoryCitySchema = z.object({
+  _id: z.string(),
+  stateId: z.string(),
+  nome: z.string().min(1),
+  normalizedName: z.string().optional(),
+  ibgeCode: z.string().optional(),
+  geometry: z.union([GeoJsonPolygonSchema, GeoJsonMultiPolygonSchema]).optional(),
+  centroid: MapCentroidSchema.optional(),
+  ativo: z.boolean().default(true),
+  createdAt: IsoDateTimeSchema.optional(),
+  updatedAt: IsoDateTimeSchema.optional(),
+})
+
+export type TerritoryCity = z.infer<typeof TerritoryCitySchema>
+
+export const TerritoryCityDtoSchema = TerritoryCitySchema.omit({ _id: true }).extend({ id: z.string() })
+export type TerritoryCityDto = z.infer<typeof TerritoryCityDtoSchema>
+
+export const TerritoryRegionSchema = z.object({
+  _id: z.string(),
+  nome: z.string().min(1),
+  stateIds: z.array(z.string()).default([]),
+  geometry: z.union([GeoJsonPolygonSchema, GeoJsonMultiPolygonSchema]),
+  color: z.string().optional(),
+  priority: z.number().int().min(0).default(0),
+  representanteUserId: z.string().optional(),
+  ativo: z.boolean().default(true),
+  createdAt: IsoDateTimeSchema.optional(),
+  updatedAt: IsoDateTimeSchema.optional(),
+})
+
+export type TerritoryRegion = z.infer<typeof TerritoryRegionSchema>
+
+export const TerritoryRegionDtoSchema = TerritoryRegionSchema.omit({ _id: true }).extend({ id: z.string() })
+export type TerritoryRegionDto = z.infer<typeof TerritoryRegionDtoSchema>
 
 // DB schema (segmento é livre no banco; UI pode usar um enum próprio)
 export const ClientSchema = z.object({
@@ -52,6 +141,44 @@ export const ClientSchema = z.object({
     .optional(),
 
   telefone: z.string().optional(),
+  stateId: z.string().optional(),
+  cityId: z.string().optional(),
+  regionId: z.string().optional(),
+
+  company: z
+    .object({
+      nomeFantasia: z.string().optional(),
+    })
+    .optional(),
+
+  buyerContact: z
+    .object({
+      contatado: z.boolean().default(false),
+      nome: z.string().optional(),
+      telefone: z.string().optional(),
+    })
+    .optional(),
+
+  storeProducts: z.array(ClientStoreProductSchema).optional(),
+
+  social: z
+    .object({
+      instagram: z.string().optional(),
+    })
+    .optional(),
+
+  serviceFlow: z
+    .object({
+      firstContact: z
+        .object({
+          channel: ClientFirstContactChannelSchema.optional(),
+          outcome: ClientFirstContactOutcomeSchema.optional(),
+          happenedAt: IsoDateTimeSchema.optional(),
+          notes: z.string().optional(),
+        })
+        .optional(),
+    })
+    .optional(),
 
   objectives: z
     .object({

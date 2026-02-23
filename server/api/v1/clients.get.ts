@@ -2,12 +2,16 @@ import { createError } from 'h3'
 import { getMongoDb } from '../../utils/mongo'
 import { toClientApi } from '../../utils/dto'
 import { z } from 'zod'
+import { ensureTerritoryIndexes } from '../../utils/territory'
 
 const SALES_TYPES = ['venda_fisica', 'venda_online', 'venda_telefone']
 const CLIENT_STATUS = ['ativo', 'potencial', 'inativo'] as const
 
 const ClientsQuerySchema = z.object({
   exclude: z.union([z.string(), z.array(z.string())]).optional(),
+  stateId: z.string().optional(),
+  cityId: z.string().optional(),
+  regionId: z.string().optional(),
 })
 
 function normalizeExcludeStatuses(input: string | string[] | undefined) {
@@ -432,14 +436,21 @@ export default defineEventHandler(async (event) => {
   const url = new URL((event as any)?.node?.req?.url || (event as any)?.req?.url || '', 'http://localhost')
   const queryParsed = ClientsQuerySchema.safeParse({
     exclude: url.searchParams.getAll('exclude'),
+    stateId: url.searchParams.get('stateId') || undefined,
+    cityId: url.searchParams.get('cityId') || undefined,
+    regionId: url.searchParams.get('regionId') || undefined,
   })
   if (!queryParsed.success) {
     throw createError({ statusCode: 400, statusMessage: 'Query inválida.' })
   }
   const exclude = normalizeExcludeStatuses(queryParsed.data.exclude)
   const excludeInactive = exclude.includes('inativo')
+  const stateIdFilter = queryParsed.data.stateId
+  const cityIdFilter = queryParsed.data.cityId
+  const regionIdFilter = queryParsed.data.regionId
 
   const db = await getMongoDb()
+  await ensureTerritoryIndexes(db)
   const { byClientId: summaryByClientId, salesTotals, contactsThisMonth, contactsPrevMonth } = await getHistoricoSummary(db)
   const clients = await db
     .collection('clients')
@@ -470,7 +481,10 @@ export default defineEventHandler(async (event) => {
     return c
   })
 
-  const filtered = excludeInactive ? mapped.filter((c: any) => c?.status !== 'inativo') : mapped
+  let filtered = excludeInactive ? mapped.filter((c: any) => c?.status !== 'inativo') : mapped
+  if (stateIdFilter) filtered = filtered.filter((c: any) => String(c?.stateId || '') === stateIdFilter)
+  if (cityIdFilter) filtered = filtered.filter((c: any) => String(c?.cityId || '') === cityIdFilter)
+  if (regionIdFilter) filtered = filtered.filter((c: any) => String(c?.regionId || '') === regionIdFilter)
 
   const center = filtered.reduce(
     (acc: { lat: number; lng: number; n: number }, c: any) => {

@@ -31,6 +31,7 @@
                   'shadow-[0_10px_24px_rgba(0,0,0,0.2)] hover:scale-110 transition-transform duration-200 ease-in-out',
                   markerTextClass(marker),
                   markerRingClass(marker),
+                  markerBounceClass(marker),
                 ]"
                 @pointerdown.stop
                 @mousedown.stop
@@ -94,6 +95,7 @@ type MapMarker = {
   color?: string
   size?: number
   categoria?: string
+  bounce?: boolean
   cluster?: boolean
   count?: number
   clusterId?: string
@@ -121,6 +123,8 @@ type HeatmapOptions = { radius?: number; opacity?: number }
 type Props = {
   markers?: MapMarker[]
   polygons?: MapPolygon[]
+  selectedPolygonId?: string | null
+  clusterMode?: 'off' | 'prospects' | 'all'
   heatmapData?: HeatmapPoint[]
   heatmapOptions?: HeatmapOptions
   centerLat?: number
@@ -134,6 +138,8 @@ type Props = {
 const props = withDefaults(defineProps<Props>(), {
   markers: () => [],
   polygons: () => [],
+  selectedPolygonId: null,
+  clusterMode: 'prospects',
   heatmapData: () => [],
   heatmapOptions: () => ({ radius: 20, opacity: 0.6 }),
   centerLat: -15.7942,
@@ -249,11 +255,19 @@ function markerRingClass(marker: MapMarker) {
   return 'ring-2 ring-white/80'
 }
 
+function markerBounceClass(marker: MapMarker) {
+  return marker.bounce ? 'animate-bounce' : ''
+}
+
 function isLightColor(hexColor: string) {
   const hex = hexColor.replace('#', '')
-  const normalized = hex.length === 3
-    ? hex.split('').map((c) => c + c).join('')
-    : hex
+  const normalized =
+    hex.length === 3
+      ? hex
+          .split('')
+          .map((c) => c + c)
+          .join('')
+      : hex
   const r = parseInt(normalized.slice(0, 2), 16)
   const g = parseInt(normalized.slice(2, 4), 16)
   const b = parseInt(normalized.slice(4, 6), 16)
@@ -263,13 +277,22 @@ function isLightColor(hexColor: string) {
 }
 
 function polygonOptions(polygon: MapPolygon) {
+  const isSelected =
+    typeof props.selectedPolygonId === 'string' &&
+    props.selectedPolygonId.trim() !== '' &&
+    String(polygon.id || '') === props.selectedPolygonId
+
+  const strokeOpacity = polygon.strokeOpacity ?? 0.8
+  const strokeWeight = polygon.strokeWeight ?? 2
+  const fillOpacity = polygon.fillOpacity ?? 0.15
+
   return {
     paths: polygon.paths,
     strokeColor: polygon.strokeColor || '#6B7280',
-    strokeOpacity: polygon.strokeOpacity || 0.8,
-    strokeWeight: polygon.strokeWeight || 2,
+    strokeOpacity: isSelected ? Math.max(strokeOpacity, 1) : strokeOpacity,
+    strokeWeight: isSelected ? Math.max(3, strokeWeight) : strokeWeight,
     fillColor: polygon.fillColor || polygon.strokeColor || '#6B7280',
-    fillOpacity: polygon.fillOpacity || 0.15,
+    fillOpacity: fillOpacity,
   }
 }
 
@@ -345,7 +368,9 @@ const fitBoundsKey = computed(() => {
   const polygonsKey = props.polygons
     .map((p) => {
       const first = p.paths?.[0]
-      const firstKey = first ? `${Number(first.lat).toFixed(6)},${Number(first.lng).toFixed(6)}` : ''
+      const firstKey = first
+        ? `${Number(first.lat).toFixed(6)},${Number(first.lng).toFixed(6)}`
+        : ''
       return `${p.id || ''}:${p.paths?.length || 0}:${firstKey}`
     })
     .join('|')
@@ -378,13 +403,22 @@ watch(
 
 const renderedMarkers = computed(() => {
   const list = props.markers || []
+  if (!list.length) return list
+
+  const clusterMode = props.clusterMode
+  if (clusterMode === 'off') return list
+
   const zoom = currentZoom.value || props.zoom
-  if (list.length < 1200 || zoom >= 11) return list
+  if (zoom >= 11) return list
+
+  if (clusterMode === 'all') {
+    return buildClusters(list, zoom)
+  }
 
   const prospects = list.filter((m) => m.categoria === 'prospecto')
-  const nonProspects = list.filter((m) => m.categoria !== 'prospecto')
   if (!prospects.length) return list
 
+  const nonProspects = list.filter((m) => m.categoria !== 'prospecto')
   return [...nonProspects, ...buildClusters(prospects, zoom)]
 })
 
@@ -444,7 +478,9 @@ function formatCount(count: number) {
 }
 
 function markerKey(marker: MapMarker) {
-  const base = marker.cluster ? `cluster-${marker.clusterId || ''}` : `client-${(marker as any).clientId || ''}`
+  const base = marker.cluster
+    ? `cluster-${marker.clusterId || ''}`
+    : `client-${(marker as any).clientId || ''}`
   return `${base}-${marker.lat}-${marker.lng}-${marker.value || ''}`
 }
 </script>

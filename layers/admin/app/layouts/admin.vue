@@ -55,6 +55,12 @@
                 @click="closeMenu"
               />
               <NNavItem 
+                to="/admin/regioes" 
+                icon="mdi:vector-polygon" 
+                label="Regiões" 
+                @click="closeMenu"
+              />
+              <NNavItem 
                 to="/admin/produtos" 
                 icon="mdi:package-variant" 
                 label="Produtos" 
@@ -97,4 +103,3 @@ function closeMenu() {
   isMenuOpen.value = false
 }
 </script>
-
