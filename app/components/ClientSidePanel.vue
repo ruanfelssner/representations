@@ -167,14 +167,14 @@
                 <NBigNumber
                   :value="ultimaVisitaFormatted"
                   label="Último contato"
-                  description=""
+                  :description="ultimaVisitaHoraFormatted"
                   icon="mdi:calendar"
                   compact
                 />
                 <NBigNumber
                   :value="proximaVisitaFormatted"
                   label="Próxima"
-                  description=""
+                  :description="proximaVisitaHoraFormatted"
                   icon="mdi:calendar"
                   compact
                 />
@@ -227,33 +227,21 @@
                 :key="evento.id"
                 class="rounded-xl border bg-white p-3 hover:shadow-sm transition-shadow"
               >
-                <div class="flex items-start justify-between gap-2">
-                  <div class="min-w-0 flex-1">
-                    <NTypo size="sm" weight="semibold" class="tabular-nums">
-                      {{ formatDate(evento.data) }}
-                    </NTypo>
-                    <NTypo v-if="evento.descricao" size="xs" tone="muted" class="mt-1 clamp-2">
-                      {{ evento.descricao }}
-                    </NTypo>
-                    <NTypo v-if="evento.duracao" size="xs" tone="muted" class="mt-1">
-                      ⏱️ {{ evento.duracao }} min
-                    </NTypo>
-                  </div>
-
-                  <div class="flex items-center gap-1.5 shrink-0">
-                    <NTypo
-                      as="span"
-                      size="xs"
-                      weight="semibold"
-                      :class="[
-                        'px-2 py-1 rounded-full text-[11px]',
-                        isVenda(evento.tipo)
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-gray-100 text-gray-800',
-                      ]"
-                    >
-                      {{ labelTipo(evento.tipo) }}
-                    </NTypo>
+                <div class="flex justify-between items-center gap-1.5 shrink-0">
+                  <NTypo
+                    as="span"
+                    size="xs"
+                    weight="semibold"
+                    :class="[
+                      'px-2 py-1 rounded-full text-[11px]',
+                      isVenda(evento.tipo)
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-gray-100 text-gray-800',
+                    ]"
+                  >
+                    {{ labelTipo(evento.tipo) }}
+                  </NTypo>
+                  <div>
                     <button
                       @click="handleEditEvento(evento)"
                       class="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 hover:text-blue-600 transition-colors"
@@ -268,6 +256,19 @@
                     >
                       <NIcon name="mdi:trash-can" class="w-3.5 h-3.5" />
                     </button>
+                  </div>
+                </div>
+                <div class="flex items-start justify-between gap-2">
+                  <div class="min-w-0 flex-1">
+                    <NTypo size="sm" weight="semibold" class="tabular-nums">
+                      {{ formatDate(evento.data) }}
+                    </NTypo>
+                    <NTypo v-if="evento.descricao" size="xs" tone="muted" class="mt-1 clamp-2">
+                      {{ evento.descricao }}
+                    </NTypo>
+                    <NTypo v-if="evento.duracao" size="xs" tone="muted" class="mt-1">
+                      ⏱️ {{ evento.duracao }} min
+                    </NTypo>
                   </div>
                 </div>
 
@@ -471,17 +472,68 @@ const sortedEventos = computed(() => {
     : []
 })
 
+const PRESENTATION_TYPES = new Set(['visita_fisica', 'atendimento_online'])
+
+function parseValidDate(value: unknown): Date | null {
+  if (!value) return null
+  const date = new Date(String(value))
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
+const ultimaVisitaDate = computed<Date | null>(() => {
+  if (!sortedEventos.value.length) return null
+  return parseValidDate(sortedEventos.value[0]?.data)
+})
+
 const ultimaVisitaFormatted = computed(() => {
-  if (!sortedEventos.value.length) return '--'
-  return formatDate(sortedEventos.value[0].data)
+  if (!ultimaVisitaDate.value) return '--'
+  return formatDate(ultimaVisitaDate.value.toISOString())
+})
+
+const ultimaVisitaHoraFormatted = computed(() => {
+  if (!ultimaVisitaDate.value) return ''
+  return `às ${formatTime(ultimaVisitaDate.value.toISOString())}`
+})
+
+const proximaVisitaDate = computed<Date | null>(() => {
+  const now = new Date()
+  const candidates: Date[] = []
+
+  const salesNextAction = parseValidDate(props.clientData?.sales?.nextActionAt)
+  if (salesNextAction && salesNextAction >= now) {
+    candidates.push(salesNextAction)
+  }
+
+  for (const evento of sortedEventos.value as any[]) {
+    const nextContact = parseValidDate(evento?.proximoContato)
+    if (nextContact && nextContact >= now) {
+      candidates.push(nextContact)
+    }
+
+    const tipo = String(evento?.tipo || '')
+    if (!PRESENTATION_TYPES.has(tipo)) continue
+
+    const scheduledPresentation = parseValidDate(evento?.data)
+    if (scheduledPresentation && scheduledPresentation >= now) {
+      candidates.push(scheduledPresentation)
+    }
+  }
+
+  if (!candidates.length) return null
+
+  return candidates.reduce((closest, current) =>
+    current.getTime() < closest.getTime() ? current : closest
+  )
 })
 
 const proximaVisitaFormatted = computed(() => {
-  const next =
-    props.clientData?.sales?.nextActionAt ||
-    sortedEventos.value.find((e: any) => e?.proximoContato)?.proximoContato
-  if (!next) return 'Não agendada'
-  return formatDate(next)
+  if (!proximaVisitaDate.value) return 'Não agendada'
+  return formatDate(proximaVisitaDate.value.toISOString())
+})
+
+const proximaVisitaHoraFormatted = computed(() => {
+  if (!proximaVisitaDate.value) return ''
+  return `às ${formatTime(proximaVisitaDate.value.toISOString())}`
 })
 
 const totalVendido90Dias = computed(() => {
@@ -539,6 +591,14 @@ function formatDate(dateString: string): string {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
+  }).format(date)
+}
+
+function formatTime(dateString: string): string {
+  const date = new Date(dateString)
+  return new Intl.DateTimeFormat('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit',
   }).format(date)
 }
 

@@ -112,6 +112,27 @@
                     placeholder="https://meet.google.com/..."
                     class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                   />
+                  <div class="mt-2 flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      :disabled="isFindingNextSlot || !form.userId"
+                      class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                      @click="suggestNextAvailableSlot"
+                    >
+                      {{ isFindingNextSlot ? 'Buscando horario...' : 'Proximo horario disponivel' }}
+                    </button>
+                    <a
+                      href="https://meet.google.com/new"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100"
+                    >
+                      Abrir Meet
+                    </a>
+                  </div>
+                  <p class="mt-1 text-[11px] text-slate-500">
+                    Abra o Meet, copie o link da sala e cole aqui.
+                  </p>
                 </div>
 
                 <!-- Descrição -->
@@ -363,17 +384,31 @@ const form = ref({
     precoUnitario: number
   }>,
   meetingLink: '',
-  duracao: undefined as number | undefined,
+  duracao: 30 as number | undefined,
   proximoContato: '',
 })
 
 const sellers = ref<Array<{ id: string; nome: string }>>([])
+const isFindingNextSlot = ref(false)
 
 const novoProduto = ref({
   produtoId: '',
   quantidade: 1,
   preco: 0,
 })
+
+type SellerAgendaEvent = {
+  tipo?: string
+  data?: string
+  duracao?: number
+}
+
+const SCHEDULED_PRESENTATION_TYPES = new Set(['visita_fisica', 'atendimento_online'])
+const DEFAULT_SLOT_DURATION_MINUTES = 30
+const SLOT_STEP_MINUTES = 30
+const WORKDAY_START_HOUR = 8
+const WORKDAY_END_HOUR = 18
+const LOOKAHEAD_DAYS = 30
 
 const actionMeta = computed(() => {
   switch (form.value.actionType) {
@@ -537,6 +572,156 @@ function normalizeMeetingLink(value: string) {
   return `https://${trimmed}`
 }
 
+function toDateTimeLocalInput(date: Date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  return `${year}-${month}-${day}T${hours}:${minutes}`
+}
+
+function addMinutes(date: Date, minutes: number) {
+  const next = new Date(date)
+  next.setMinutes(next.getMinutes() + minutes)
+  return next
+}
+
+function isWeekend(date: Date) {
+  const day = date.getDay()
+  return day === 0 || day === 6
+}
+
+function roundUpToSlot(date: Date, slotMinutes = SLOT_STEP_MINUTES) {
+  const rounded = new Date(date)
+  rounded.setSeconds(0, 0)
+  const minutes = rounded.getMinutes()
+  const remainder = minutes % slotMinutes
+  if (remainder > 0) {
+    rounded.setMinutes(minutes + (slotMinutes - remainder))
+  }
+  return rounded
+}
+
+function nextBusinessStart(base: Date) {
+  const next = new Date(base)
+  next.setHours(WORKDAY_START_HOUR, 0, 0, 0)
+  while (isWeekend(next)) {
+    next.setDate(next.getDate() + 1)
+    next.setHours(WORKDAY_START_HOUR, 0, 0, 0)
+  }
+  return next
+}
+
+function toBusyIntervals(events: SellerAgendaEvent[], now: Date) {
+  return events
+    .filter((event) => SCHEDULED_PRESENTATION_TYPES.has(String(event?.tipo || '')))
+    .map((event) => {
+      const start = new Date(String(event?.data || ''))
+      if (Number.isNaN(start.getTime())) return null
+      const durationRaw = Number(event?.duracao)
+      const durationMinutes =
+        Number.isFinite(durationRaw) && durationRaw > 0
+          ? durationRaw
+          : DEFAULT_SLOT_DURATION_MINUTES
+      const end = addMinutes(start, durationMinutes)
+      return { start, end }
+    })
+    .filter((interval): interval is { start: Date; end: Date } => !!interval && interval.end > now)
+    .sort((a, b) => a.start.getTime() - b.start.getTime())
+}
+
+function findNextAvailableSlot(
+  busyIntervals: Array<{ start: Date; end: Date }>,
+  durationMinutes: number,
+  baseDate: Date
+) {
+  let candidate = roundUpToSlot(baseDate)
+  const searchDeadline = addMinutes(baseDate, LOOKAHEAD_DAYS * 24 * 60)
+
+  for (let guard = 0; guard < 2000; guard += 1) {
+    if (candidate > searchDeadline) return null
+
+    if (isWeekend(candidate)) {
+      const nextDay = new Date(candidate)
+      nextDay.setDate(nextDay.getDate() + 1)
+      candidate = nextBusinessStart(nextDay)
+      continue
+    }
+
+    const dayStart = new Date(candidate)
+    dayStart.setHours(WORKDAY_START_HOUR, 0, 0, 0)
+    const dayEnd = new Date(candidate)
+    dayEnd.setHours(WORKDAY_END_HOUR, 0, 0, 0)
+
+    if (candidate < dayStart) {
+      candidate = new Date(dayStart)
+    }
+
+    candidate = roundUpToSlot(candidate)
+    const slotEnd = addMinutes(candidate, durationMinutes)
+
+    if (slotEnd > dayEnd) {
+      const nextDay = new Date(candidate)
+      nextDay.setDate(nextDay.getDate() + 1)
+      candidate = nextBusinessStart(nextDay)
+      continue
+    }
+
+    const conflict = busyIntervals.find(
+      (interval) => interval.end > candidate && interval.start < slotEnd
+    )
+    if (conflict) {
+      candidate = roundUpToSlot(conflict.end)
+      continue
+    }
+
+    return candidate
+  }
+
+  return null
+}
+
+async function suggestNextAvailableSlot() {
+  if (!import.meta.client) return
+  if (!form.value.userId) return
+
+  isFindingNextSlot.value = true
+  try {
+    const now = new Date()
+    const query = new URLSearchParams({
+      userId: String(form.value.userId),
+      from: now.toISOString(),
+      limit: '500',
+    })
+    const res = await $fetch<{ success: boolean; data: SellerAgendaEvent[] }>(
+      `/api/v1/historico-cliente?${query.toString()}`
+    )
+
+    const events = Array.isArray(res?.data) ? res.data : []
+    const busyIntervals = toBusyIntervals(events, now)
+    const durationRaw = Number(form.value.duracao)
+    const durationMinutes =
+      Number.isFinite(durationRaw) && durationRaw > 0 ? durationRaw : DEFAULT_SLOT_DURATION_MINUTES
+    const nextSlot = findNextAvailableSlot(busyIntervals, durationMinutes, now)
+
+    if (!nextSlot) {
+      alert('Não encontrei horário livre nos próximos 30 dias para este vendedor.')
+      return
+    }
+
+    form.value.data = toDateTimeLocalInput(nextSlot)
+    if (!form.value.duracao) {
+      form.value.duracao = durationMinutes
+    }
+  } catch (error) {
+    console.error('Erro ao sugerir próximo horário disponível:', error)
+    alert('Não foi possível buscar o próximo horário disponível agora.')
+  } finally {
+    isFindingNextSlot.value = false
+  }
+}
+
 function handleSubmit() {
   if (!isFormValid.value) return
 
@@ -627,7 +812,7 @@ function resetForm() {
     valorVenda: 0,
     produtos: [],
     meetingLink: '',
-    duracao: undefined,
+    duracao: DEFAULT_SLOT_DURATION_MINUTES,
     proximoContato: '',
   }
 }
@@ -654,7 +839,10 @@ watch(
             precoUnitario: item.valorUnitario,
           })),
           meetingLink: props.evento.meetingLink || '',
-          duracao: props.evento.duracao,
+          duracao:
+            typeof props.evento.duracao === 'number' && props.evento.duracao > 0
+              ? props.evento.duracao
+              : DEFAULT_SLOT_DURATION_MINUTES,
           proximoContato: props.evento.proximoContato
             ? new Date(props.evento.proximoContato).toISOString().slice(0, 16)
             : '',
