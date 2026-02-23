@@ -2,7 +2,7 @@
   <Transition name="slide">
     <aside
       v-if="isOpen"
-      class="h-full w-full overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-lg"
+      class="relative h-full w-full overflow-visible rounded-2xl border border-gray-100 bg-white shadow-lg"
     >
       <div class="flex h-full flex-col">
         <div class="bg-gradient-to-r from-sky-400 to-violet-400 px-4 py-3 space-y-2">
@@ -10,17 +10,18 @@
             <div class="min-w-0">
               <NTypo as="h2" size="base" weight="bold" class="text-white leading-tight truncate">
                 {{ clientData?.nome || 'Selecione um cliente' }}
+              </NTypo>
+
+              <div v-if="clientData" class="mt-1 flex items-center gap-2">
                 <NTypo
                   v-if="clientData?.cnpj"
                   as="span"
                   size="xs"
                   weight="semibold"
-                  class="tabular-nums"
+                  class="tabular-nums text-white/90"
                 >
                   {{ clientData.cnpj }}
                 </NTypo>
-              </NTypo>
-              <div v-if="clientData" class="mt-1 flex items-center gap-2">
                 <span
                   class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold"
                   :class="statusMeta.chipClass"
@@ -29,28 +30,46 @@
                   {{ statusMeta.emoji }} {{ statusMeta.label }}
                 </span>
               </div>
-              <NTypo v-if="clientData?.endereco" size="xs" class="text-white/90 truncate mt-1">
+              <NTypo v-if="clientData?.endereco" size="xs" class="text-white/90 mt-1">
                 {{ clientData.endereco }}
+              </NTypo>
+              
+              <NTypo v-if="clientData?.email" size="xs" class="text-white/90 mt-1">
+                {{ clientData.email }}
+              </NTypo>
+              
+              <NTypo v-if="clientData?.telefone" size="xs" class="text-white/90 mt-1">
+                {{ clientData.telefone }}
               </NTypo>
             </div>
           </div>
 
-          <div class="flex gap-2">
+          <div class="flex flex-wrap gap-1">
             <NButton
               v-if="clientData?.telefone"
               @click="abrirWhatsApp"
               variant="success"
+              size="xs"
               leading-icon="mdi:whatsapp"
-            >
-              {{ clientData.telefone }}
-            </NButton>
+            />
 
             <template v-if="!isProspect">
-              <NButton @click="removerCliente" variant="danger" leading-icon="mdi:trash-can-outline" />
-              <NButton @click="$emit('edit-client')" leading-icon="mdi:pencil" variant="secondary" />
+              <NButton
+                @click="removerCliente"
+                variant="danger"
+                size="xs"
+                leading-icon="mdi:trash-can-outline"
+              />
+              <NButton
+                @click="$emit('edit-client')"
+                leading-icon="mdi:pencil"
+                size="xs"
+                variant="secondary"
+              />
               <div class="relative">
                 <NButton
                   variant="primary"
+                  size="xs"
                   leading-icon="mdi:plus"
                   label="Acao"
                   @click="toggleActionMenu"
@@ -60,7 +79,7 @@
                   variant="solid"
                   size="xs"
                   radius="soft"
-                  class="absolute right-0 mt-2 w-48 border border-[color:var(--layer-border)] bg-[color:var(--layer-solid)] p-2 shadow-lg"
+                  class="absolute right-0 z-30 mt-2 w-48 border border-[color:var(--layer-border)] bg-[color:var(--layer-solid)] p-2 shadow-lg"
                 >
                   <button
                     class="w-full rounded-lg px-3 py-2 text-left text-sm text-[color:var(--ntypo-default)] hover:bg-[color:var(--layer-muted)]"
@@ -104,7 +123,7 @@
           </div>
         </div>
 
-        <div v-if="!clientData" class="flex-1 flex items-center justify-center p-6">
+        <div v-if="!clientData" class="px-4 py-5">
           <NTypo size="sm" tone="muted">Clique em um pin no mapa para ver detalhes.</NTypo>
         </div>
 
@@ -144,112 +163,148 @@
           <!-- Cliente real: histórico completo -->
           <template v-else>
             <div class="p-4 space-y-3">
-            <div class="grid grid-cols-2 gap-2">
-              <NBigNumber :value="ultimaVisitaFormatted" label="Último contato" description="" icon="mdi:calendar" />
-              <NBigNumber :value="proximaVisitaFormatted" label="Próxima" description="" icon="mdi:calendar" />
-              <NBigNumber :value="produtoMaisConsumido || '--'" label="Produto top" description="" icon="mdi:shopping" />
-              <NBigNumber :value="formatCurrency(totalVendido90Dias)" label="90 dias" description="" icon="mdi:currency-usd" />
+              <div class="grid grid-cols-2 gap-2">
+                <NBigNumber
+                  :value="ultimaVisitaFormatted"
+                  label="Último contato"
+                  description=""
+                  icon="mdi:calendar"
+                  compact
+                />
+                <NBigNumber
+                  :value="proximaVisitaFormatted"
+                  label="Próxima"
+                  description=""
+                  icon="mdi:calendar"
+                  compact
+                />
+                <NBigNumber
+                  :value="produtoMaisConsumido || '--'"
+                  label="Produto top"
+                  description=""
+                  icon="mdi:shopping"
+                  compact
+                />
+                <NBigNumber
+                  :value="formatCurrency(totalVendido90Dias)"
+                  label="90 dias"
+                  description=""
+                  icon="mdi:currency-usd"
+                  compact
+                />
+              </div>
+
+              <!-- Seletor de Templates WhatsApp -->
+              <WhatsAppTemplateSelector
+                v-if="clientData.telefone && whatsappTemplates.length > 0"
+                :client="clientData"
+                :templates="whatsappTemplates"
+              />
             </div>
 
-            <!-- Seletor de Templates WhatsApp -->
-            <WhatsAppTemplateSelector
-              v-if="clientData.telefone && whatsappTemplates.length > 0"
-              :client="clientData"
-              :templates="whatsappTemplates"
-            />
-          </div>
-
-          <div class="border-t border-gray-100 px-4 py-2 flex items-center justify-between">
-            <NTypo as="h3" size="sm" weight="bold">Histórico</NTypo>
-            <NTypo as="div" size="xs" tone="muted" class="tabular-nums">
-              {{ sortedEventos.length }}
-            </NTypo>
-          </div>
-
-          <div class="flex-1 min-h-0 overflow-auto px-4 pb-4 space-y-3">
-            <div v-if="isLoadingHistorico" class="text-center py-10">
-              <NTypo size="sm" tone="muted">Carregando histórico...</NTypo>
+            <div class="border-t border-gray-100 px-4 py-2 flex items-center justify-between">
+              <NTypo as="h3" size="sm" weight="bold">Histórico</NTypo>
+              <NTypo as="div" size="xs" tone="muted" class="tabular-nums">
+                {{ sortedEventos.length }}
+              </NTypo>
             </div>
 
-            <div v-else-if="historicoErrorMessage" class="text-center py-10">
-              <NTypo size="sm" tone="danger">{{ historicoErrorMessage }}</NTypo>
-            </div>
+            <div class="flex-1 min-h-0 overflow-auto px-4 pb-4 space-y-3">
+              <div v-if="isLoadingHistorico" class="text-center py-4">
+                <NTypo size="sm" tone="muted">Carregando histórico...</NTypo>
+              </div>
 
-            <div v-else-if="!sortedEventos.length" class="text-center py-10">
-              <NTypo size="sm" tone="muted">Nenhum evento registrado ainda</NTypo>
-            </div>
+              <div v-else-if="historicoErrorMessage" class="text-center py-4">
+                <NTypo size="sm" tone="danger">{{ historicoErrorMessage }}</NTypo>
+              </div>
 
-            <div
-              v-for="evento in sortedEventos"
-              :key="evento.id"
-              class="rounded-xl border bg-white p-3 hover:shadow-sm transition-shadow"
-            >
-              <div class="flex items-start justify-between gap-2">
-                <div class="min-w-0 flex-1">
-                  <NTypo size="sm" weight="semibold" class="tabular-nums">
-                    {{ formatDate(evento.data) }}
-                  </NTypo>
-                  <NTypo v-if="evento.descricao" size="xs" tone="muted" class="mt-1 clamp-2">
-                    {{ evento.descricao }}
-                  </NTypo>
-                  <NTypo v-if="evento.duracao" size="xs" tone="muted" class="mt-1">
-                    ⏱️ {{ evento.duracao }} min
-                  </NTypo>
+              <div v-else-if="!sortedEventos.length" class="text-center py-4">
+                <NTypo size="sm" tone="muted">Nenhum evento registrado ainda</NTypo>
+              </div>
+
+              <div
+                v-for="evento in sortedEventos"
+                :key="evento.id"
+                class="rounded-xl border bg-white p-3 hover:shadow-sm transition-shadow"
+              >
+                <div class="flex items-start justify-between gap-2">
+                  <div class="min-w-0 flex-1">
+                    <NTypo size="sm" weight="semibold" class="tabular-nums">
+                      {{ formatDate(evento.data) }}
+                    </NTypo>
+                    <NTypo v-if="evento.descricao" size="xs" tone="muted" class="mt-1 clamp-2">
+                      {{ evento.descricao }}
+                    </NTypo>
+                    <NTypo v-if="evento.duracao" size="xs" tone="muted" class="mt-1">
+                      ⏱️ {{ evento.duracao }} min
+                    </NTypo>
+                  </div>
+
+                  <div class="flex items-center gap-1.5 shrink-0">
+                    <NTypo
+                      as="span"
+                      size="xs"
+                      weight="semibold"
+                      :class="[
+                        'px-2 py-1 rounded-full text-[11px]',
+                        isVenda(evento.tipo)
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-gray-100 text-gray-800',
+                      ]"
+                    >
+                      {{ labelTipo(evento.tipo) }}
+                    </NTypo>
+                    <button
+                      @click="handleEditEvento(evento)"
+                      class="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 hover:text-blue-600 transition-colors"
+                      title="Editar"
+                    >
+                      <NIcon name="mdi:pencil" class="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      @click="handleDeleteEvento(evento.id)"
+                      class="p-1.5 rounded-lg hover:bg-red-50 text-gray-600 hover:text-red-600 transition-colors"
+                      title="Excluir"
+                    >
+                      <NIcon name="mdi:trash-can" class="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
 
-                <div class="flex items-center gap-1.5 shrink-0">
+                <div v-if="isVenda(evento.tipo)" class="mt-2 space-y-2">
                   <NTypo
-                    as="span"
+                    v-if="evento.totalVenda"
+                    size="sm"
+                    weight="semibold"
+                    class="text-green-700 tabular-nums"
+                  >
+                    💵 {{ formatCurrency(evento.totalVenda) }}
+                  </NTypo>
+
+                  <NTypo
+                    v-else-if="evento.items && evento.items.length"
                     size="xs"
                     weight="semibold"
-                    :class="[
-                      'px-2 py-1 rounded-full text-[11px]',
-                      isVenda(evento.tipo) ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800',
-                    ]"
+                    class="text-green-700"
                   >
-                    {{ labelTipo(evento.tipo) }}
+                    🧾 {{ getTotalItens(evento) }} itens (sem valor)
                   </NTypo>
-                  <button
-                    @click="handleEditEvento(evento)"
-                    class="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 hover:text-blue-600 transition-colors"
-                    title="Editar"
-                  >
-                    <NIcon name="mdi:pencil" class="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    @click="handleDeleteEvento(evento.id)"
-                    class="p-1.5 rounded-lg hover:bg-red-50 text-gray-600 hover:text-red-600 transition-colors"
-                    title="Excluir"
-                  >
-                    <NIcon name="mdi:trash-can" class="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
 
-              <div v-if="isVenda(evento.tipo)" class="mt-2 space-y-2">
-                <NTypo v-if="evento.totalVenda" size="sm" weight="semibold" class="text-green-700 tabular-nums">
-                  💵 {{ formatCurrency(evento.totalVenda) }}
-                </NTypo>
-
-                <NTypo v-else-if="evento.items && evento.items.length" size="xs" weight="semibold" class="text-green-700">
-                  🧾 {{ getTotalItens(evento) }} itens (sem valor)
-                </NTypo>
-
-                <div v-if="evento.items && evento.items.length" class="flex flex-wrap gap-1.5">
-                  <NTypo
-                    v-for="(item, idx) in evento.items"
-                    :key="`${evento.id}-${idx}`"
-                    as="span"
-                    size="xs"
-                    weight="medium"
-                    class="rounded bg-blue-50 px-2 py-1 text-[11px] text-blue-700"
-                  >
-                    {{ item.quantidade }}x {{ item.nome }}
-                  </NTypo>
+                  <div v-if="evento.items && evento.items.length" class="flex flex-wrap gap-1.5">
+                    <NTypo
+                      v-for="(item, idx) in evento.items"
+                      :key="`${evento.id}-${idx}`"
+                      as="span"
+                      size="xs"
+                      weight="medium"
+                      class="rounded bg-blue-50 px-2 py-1 text-[11px] text-blue-700"
+                    >
+                      {{ item.quantidade }}x {{ item.nome }}
+                    </NTypo>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
           </template>
         </div>
       </div>
@@ -272,7 +327,16 @@ interface Props {
 
 interface Emits {
   (e: 'close'): void
-  (e: 'add-action', action: 'visita_fisica' | 'atendimento_online' | 'ligacao' | 'venda_fisica' | 'venda_online' | 'venda_telefone'): void
+  (
+    e: 'add-action',
+    action:
+      | 'visita_fisica'
+      | 'atendimento_online'
+      | 'ligacao'
+      | 'venda_fisica'
+      | 'venda_online'
+      | 'venda_telefone'
+  ): void
   (e: 'edit-client'): void
   (e: 'remove-client'): void
   (e: 'edit-evento', evento: any): void
@@ -339,7 +403,10 @@ watch(
       console.error('Erro ao carregar histórico:', err)
       historico.value = []
       historicoErrorMessage.value =
-        err?.data?.statusMessage || err?.data?.message || err?.message || 'Falha ao carregar histórico.'
+        err?.data?.statusMessage ||
+        err?.data?.message ||
+        err?.message ||
+        'Falha ao carregar histórico.'
     } finally {
       isLoadingHistorico.value = false
     }
@@ -356,7 +423,15 @@ const toggleActionMenu = () => {
   isActionMenuOpen.value = !isActionMenuOpen.value
 }
 
-const selectAction = (action: 'visita_fisica' | 'atendimento_online' | 'ligacao' | 'venda_fisica' | 'venda_online' | 'venda_telefone') => {
+const selectAction = (
+  action:
+    | 'visita_fisica'
+    | 'atendimento_online'
+    | 'ligacao'
+    | 'venda_fisica'
+    | 'venda_online'
+    | 'venda_telefone'
+) => {
   isActionMenuOpen.value = false
   emit('add-action', action)
 }
@@ -414,7 +489,8 @@ const totalVendido90Dias = computed(() => {
   return sortedEventos.value
     .filter(
       (e: any) =>
-        (e.tipo === 'venda_fisica' || e.tipo === 'venda_online' || e.tipo === 'venda_telefone') && new Date(e.data) >= dias90Atras
+        (e.tipo === 'venda_fisica' || e.tipo === 'venda_online' || e.tipo === 'venda_telefone') &&
+        new Date(e.data) >= dias90Atras
     )
     .reduce((sum: number, e: any) => sum + (Number(e.totalVenda) || 0), 0)
 })

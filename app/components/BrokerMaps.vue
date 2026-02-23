@@ -76,6 +76,7 @@
           icon-button
           @click="toggleFullscreen"
         />
+        <slot name="after-controls" />
       </div>
     </div>
   </div>
