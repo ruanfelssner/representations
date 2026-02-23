@@ -100,6 +100,9 @@ type MapMarker = {
   cluster?: boolean
   count?: number
   clusterId?: string
+  clientId?: string | number
+  cityScopeId?: string
+  kind?: string
 }
 
 type MapPolygon = {
@@ -131,6 +134,7 @@ type Props = {
   centerLat?: number
   centerLng?: number
   zoom?: number
+  focusMarkerKey?: string
   disableDefaultUI?: boolean
   onMarkerClick?: (marker: MapMarker) => void
   onPolygonClick?: (polygon: MapPolygon) => void
@@ -146,6 +150,7 @@ const props = withDefaults(defineProps<Props>(), {
   centerLat: -15.7942,
   centerLng: -47.8822,
   zoom: 5,
+  focusMarkerKey: '',
   disableDefaultUI: false,
 })
 
@@ -317,6 +322,63 @@ function handlePolygonClick(polygon: MapPolygon) {
   zoomToPolygon(polygon.paths)
 }
 
+function resolveFocusEntityKey(rawKey: string) {
+  const key = String(rawKey || '').trim()
+  if (!key) return ''
+  return key.split('#')[0] || ''
+}
+
+function markerEntityKey(marker: MapMarker) {
+  if (marker.clientId !== undefined && marker.clientId !== null && marker.clientId !== '') {
+    return `client:${String(marker.clientId)}`
+  }
+  if (marker.cityScopeId) {
+    return `city:${String(marker.cityScopeId)}`
+  }
+  return ''
+}
+
+const lastHandledFocusRequestKey = ref('')
+
+function focusRequestedMarker() {
+  const requestKey = String(props.focusMarkerKey || '').trim()
+  if (!requestKey) {
+    lastHandledFocusRequestKey.value = ''
+    return
+  }
+  if (requestKey === lastHandledFocusRequestKey.value) return
+
+  const entityKey = resolveFocusEntityKey(requestKey)
+  if (!entityKey) return
+
+  const marker = (props.markers || []).find((item) => markerEntityKey(item) === entityKey)
+  if (!marker) return
+
+  const mapInstance = googleMapsRef.value?.map
+  const apiInstance = googleMapsRef.value?.api
+  if (!mapInstance) return
+
+  if (apiInstance) {
+    const bounds = new apiInstance.LatLngBounds()
+    const padding = 0.03
+    bounds.extend({ lat: marker.lat - padding, lng: marker.lng - padding })
+    bounds.extend({ lat: marker.lat + padding, lng: marker.lng + padding })
+    mapInstance.fitBounds(bounds)
+
+    const listener = mapInstance.addListener('bounds_changed', () => {
+      const current = mapInstance.getZoom()
+      if (current && current > 13) {
+        mapInstance.setZoom(13)
+      }
+      apiInstance.event.removeListener(listener)
+    })
+  } else {
+    mapInstance.panTo({ lat: marker.lat, lng: marker.lng })
+  }
+
+  lastHandledFocusRequestKey.value = requestKey
+}
+
 function zoomToPolygon(paths: LatLng[]) {
   const mapInstance = googleMapsRef.value?.map
   const apiInstance = googleMapsRef.value?.api
@@ -400,6 +462,14 @@ watch(
     })
   },
   { immediate: true }
+)
+
+watch(
+  () => [props.focusMarkerKey, props.markers.length, (googleMapsRef.value as any)?.ready],
+  () => {
+    nextTick(() => focusRequestedMarker())
+  },
+  { flush: 'post' }
 )
 
 const renderedMarkers = computed(() => {

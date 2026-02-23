@@ -16,6 +16,7 @@
             :polygons="activeMapPolygons"
             :selected-polygon-id="selectedPolygonId"
             :cluster-mode="mapClusterMode"
+            :focus-marker-key="mapFocusMarkerKey"
             :center-lat="visitedMapData.mapSettings.center.lat"
             :center-lng="visitedMapData.mapSettings.center.lng"
             :zoom="visitedMapData.mapSettings.zoom"
@@ -719,7 +720,7 @@ const filterSegmento = ref('')
 const filterTipo = ref('')
 const mostrarClientes = ref(true)
 const mostrarComerciais = ref(true)
-const mostrarProspectos = ref(true)
+const mostrarProspectos = ref(false)
 const DEFAULT_TOP_RANK = 50
 const topRankLimit = ref<number | null>(DEFAULT_TOP_RANK)
 const {
@@ -947,6 +948,17 @@ const selectedClientId = computed(() => String(selectedClient.value?.id || ''))
 const selectedClientCityScopeId = computed(() => {
   if (!selectedClient.value) return ''
   return resolveCityScopeIdForClient(selectedClient.value as any)
+})
+
+const mapFocusMarkerKey = computed(() => {
+  if (!selectedClientId.value) return ''
+
+  if (mapViewMode.value === 'city' && cityModeState.value === 'overview') {
+    if (!selectedClientCityScopeId.value) return ''
+    return `city:${selectedClientCityScopeId.value}#${selectedClientId.value}`
+  }
+
+  return `client:${selectedClientId.value}#${selectedClientId.value}`
 })
 
 const activeMapPolygons = computed<MapPolygon[]>(() => {
