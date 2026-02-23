@@ -263,6 +263,9 @@
                     <NTypo size="sm" weight="semibold" class="tabular-nums">
                       {{ formatDate(evento.data) }}
                     </NTypo>
+                    <NTypo size="xs" tone="muted" class="mt-1">
+                      Vendedor: {{ sellerLabelForEvent(evento) }}
+                    </NTypo>
                     <NTypo v-if="evento.descricao" size="xs" tone="muted" class="mt-1 clamp-2">
                       {{ evento.descricao }}
                     </NTypo>
@@ -355,6 +358,8 @@ const isLoadingHistorico = ref(false)
 const historicoErrorMessage = ref('')
 const whatsappTemplates = ref<WhatsAppTemplateDto[]>([])
 const isActionMenuOpen = ref(false)
+const usersById = ref<Record<string, { nome: string; ativo?: boolean }>>({})
+const isLoadingUsers = ref(false)
 
 const isProspect = computed(() => (props.clientData as any)?._isProspect === true)
 
@@ -381,8 +386,37 @@ async function loadWhatsAppTemplates() {
   }
 }
 
+async function loadUsersLookup() {
+  if (!import.meta.client) return
+  if (isLoadingUsers.value) return
+  if (Object.keys(usersById.value).length > 0) return
+
+  isLoadingUsers.value = true
+  try {
+    const res = await $fetch<{
+      success: boolean
+      data: Array<{ id: string; nome: string; ativo?: boolean }>
+    }>('/api/v1/users')
+    const map: Record<string, { nome: string; ativo?: boolean }> = {}
+    for (const user of Array.isArray(res.data) ? res.data : []) {
+      const id = String(user?.id || '').trim()
+      if (!id) continue
+      map[id] = {
+        nome: String(user?.nome || 'Usuário sem nome'),
+        ativo: user?.ativo,
+      }
+    }
+    usersById.value = map
+  } catch (error) {
+    console.error('Erro ao carregar usuários para histórico:', error)
+  } finally {
+    isLoadingUsers.value = false
+  }
+}
+
 // Carregar templates ao montar componente
 if (import.meta.client) {
+  loadUsersLookup()
   loadWhatsAppTemplates()
 }
 
@@ -399,6 +433,7 @@ watch(
     isLoadingHistorico.value = true
     historicoErrorMessage.value = ''
     try {
+      void loadUsersLookup()
       historico.value = await fetchHistorico(clientId, { limit: 200 })
     } catch (err: any) {
       console.error('Erro ao carregar histórico:', err)
@@ -414,6 +449,15 @@ watch(
   },
   { immediate: true }
 )
+
+function sellerLabelForEvent(evento: any): string {
+  const rawUserId = typeof evento?.userId === 'string' ? evento.userId : ''
+  const userId = rawUserId.trim()
+  if (!userId) return 'Sem vendedor'
+  const user = usersById.value[userId]
+  if (user?.nome) return user.nome
+  return 'Vendedor não listado'
+}
 
 function getTotalItens(evento: any) {
   const items = Array.isArray(evento?.items) ? evento.items : []

@@ -83,7 +83,7 @@
                         Vendedor atual (nao listado)
                       </option>
                       <option v-for="seller in sellers" :key="seller.id" :value="seller.id">
-                        {{ seller.nome }}
+                        {{ seller.nome }}{{ seller.ativo === false ? ' (inativo)' : '' }}
                       </option>
                     </select>
                   </div>
@@ -388,7 +388,7 @@ const form = ref({
   proximoContato: '',
 })
 
-const sellers = ref<Array<{ id: string; nome: string }>>([])
+const sellers = ref<Array<{ id: string; nome: string; ativo?: boolean }>>([])
 const isFindingNextSlot = ref(false)
 
 const novoProduto = ref({
@@ -446,8 +446,11 @@ const loadSellers = async () => {
   if (!import.meta.client) return
   isLoadingSellers.value = true
   try {
-    const res = await $fetch<{ success: boolean; data: Array<{ id: string; nome: string }> }>(
-      '/api/v1/users?role=vendedor&ativo=true'
+    const res = await $fetch<{
+      success: boolean
+      data: Array<{ id: string; nome: string; ativo?: boolean }>
+    }>(
+      '/api/v1/users?role=vendedor'
     )
     sellers.value = Array.isArray(res.data) ? res.data : []
 
@@ -455,10 +458,11 @@ const loadSellers = async () => {
     const hasSelectedSeller = sellers.value.some((seller) => seller.id === selectedSellerId)
 
     if (!selectedSellerId || (!props.evento && !hasSelectedSeller)) {
+      const activeSellers = sellers.value.filter((seller) => seller.ativo !== false)
       const preferredFromDefault = props.defaultUserId
         ? sellers.value.find((seller) => seller.id === props.defaultUserId)
         : null
-      form.value.userId = preferredFromDefault?.id || sellers.value[0]?.id || ''
+      form.value.userId = preferredFromDefault?.id || activeSellers[0]?.id || sellers.value[0]?.id || ''
     }
   } catch (error) {
     console.error('Erro ao carregar vendedores:', error)

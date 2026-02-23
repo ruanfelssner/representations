@@ -813,7 +813,7 @@
         </NLayer>
       </div>
 
-      <!-- Ranking de Vendas -->
+      <!-- Ranking de Vendedores -->
       <NLayer
         variant="paper"
         size="base"
@@ -821,7 +821,7 @@
         class="shadow-sm md:col-span-3 lg:col-span-2"
       >
         <div class="flex items-center justify-between mb-4">
-          <NTypo as="h2" size="lg" weight="bold">Ranking de Vendas</NTypo>
+          <NTypo as="h2" size="lg" weight="bold">Ranking de Vendedores</NTypo>
           <NButton
             variant="ghost"
             size="xs"
@@ -832,42 +832,55 @@
         </div>
 
         <!-- Filtros de período -->
-        <div class="flex gap-2 mb-4">
+        <div class="mb-3 flex flex-wrap items-center gap-2">
           <NButton
-            :variant="rankingPeriod === 'year' ? 'primary' : 'outline'"
+            :variant="rankingScope === 'month' ? 'primary' : 'outline'"
             size="xs"
-            @click="rankingPeriod = 'year'"
+            @click="rankingScope = 'month'"
           >
-            {{ currentYear }}
+            Mês
           </NButton>
           <NButton
-            :variant="rankingPeriod === 'lastYear' ? 'primary' : 'outline'"
+            :variant="rankingScope === 'year' ? 'primary' : 'outline'"
             size="xs"
-            @click="rankingPeriod = 'lastYear'"
+            @click="rankingScope = 'year'"
           >
-            {{ prevYear }}
+            Ano
           </NButton>
-          <NButton
-            :variant="rankingPeriod === 'all' ? 'primary' : 'outline'"
-            size="xs"
-            @click="rankingPeriod = 'all'"
-          >
-            Todos
-          </NButton>
-        </div>
 
-        <!-- Lista de produtos -->
+          <select
+            v-model.number="rankingYear"
+            class="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+          >
+            <option v-for="year in rankingYearOptions" :key="year" :value="year">
+              {{ year }}
+            </option>
+          </select>
+
+          <select
+            v-if="rankingScope === 'month'"
+            v-model.number="rankingMonth"
+            class="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-200"
+          >
+            <option v-for="month in rankingMonthOptions" :key="month.value" :value="month.value">
+              {{ month.label }}
+            </option>
+          </select>
+        </div>
+        <NTypo size="xs" tone="muted" class="mb-4">{{ rankingPeriodLabel }}</NTypo>
+
+        <!-- Lista de vendedores -->
         <div v-if="rankingPending" class="space-y-3">
           <div v-for="i in 5" :key="i" class="h-16 bg-gray-100 rounded-lg animate-pulse" />
         </div>
-        <div v-else-if="rankingVendas.length === 0" class="py-8 text-center">
-          <NIcon name="mdi:package-variant-closed" class="w-12 h-12 mx-auto text-gray-300 mb-2" />
+        <div v-else-if="rankingVendedores.length === 0" class="py-8 text-center">
+          <NIcon name="mdi:account-off-outline" class="w-12 h-12 mx-auto text-gray-300 mb-2" />
           <NTypo size="sm" tone="muted">Nenhuma venda registrada neste período</NTypo>
         </div>
         <div v-else class="space-y-2">
           <div
-            v-for="(produto, index) in rankingVendas"
-            :key="produto.produtoId"
+            v-for="(seller, index) in rankingVendedores"
+            :key="seller.userId"
             class="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-indigo-200 hover:bg-indigo-50/50 transition-all"
           >
             <!-- Posição -->
@@ -883,14 +896,35 @@
               {{ index + 1 }}
             </div>
 
-            <!-- Info do produto -->
+            <!-- Info do vendedor -->
             <div class="flex-1 min-w-0">
-              <NTypo size="sm" weight="semibold" class="truncate">{{ produto.nome }}</NTypo>
+              <div class="flex items-center gap-2">
+                <NTypo size="sm" weight="semibold" class="truncate">{{ seller.nome }}</NTypo>
+                <NTypo
+                  v-if="seller.ativo === false"
+                  as="span"
+                  size="xs"
+                  class="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800"
+                >
+                  inativo
+                </NTypo>
+                <NTypo
+                  v-if="!seller.encontrado"
+                  as="span"
+                  size="xs"
+                  class="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-800"
+                >
+                  não listado
+                </NTypo>
+              </div>
               <div class="flex items-center gap-3 mt-0.5">
-                <NTypo size="xs" tone="muted"> {{ produto.quantidade }} unidades </NTypo>
+                <NTypo size="xs" tone="muted">
+                  {{ seller.numeroVendas }} {{ seller.numeroVendas === 1 ? 'venda' : 'vendas' }}
+                </NTypo>
                 <span class="text-gray-300">•</span>
                 <NTypo size="xs" tone="muted">
-                  {{ produto.numeroVendas }} {{ produto.numeroVendas === 1 ? 'venda' : 'vendas' }}
+                  {{ seller.clientesUnicos }}
+                  {{ seller.clientesUnicos === 1 ? 'cliente' : 'clientes' }}
                 </NTypo>
               </div>
             </div>
@@ -898,8 +932,9 @@
             <!-- Valor total -->
             <div class="text-right">
               <NTypo size="sm" weight="bold" class="text-indigo-600">
-                {{ formatCurrency(produto.totalVendido) }}
+                {{ formatCurrency(seller.totalVendido) }}
               </NTypo>
+              <NTypo size="xs" tone="muted">Ticket {{ formatCurrency(seller.ticketMedio) }}</NTypo>
             </div>
           </div>
         </div>
@@ -1061,37 +1096,66 @@ const {
 
 const commissionRate = computed(() => settingsData.value?.commissionRate || 0)
 
-// Ranking de vendas
-const rankingPeriod = ref<'year' | 'lastYear' | 'all'>('year')
+// Ranking de vendedores
+const rankingScope = ref<'month' | 'year'>('month')
+const rankingYear = ref(new Date().getFullYear())
+const rankingMonth = ref(new Date().getMonth() + 1)
 
-const RankingResponseSchema = z.object({
+const RankingSellersResponseSchema = z.object({
   success: z.boolean(),
   data: z.object({
     ranking: z.array(
       z.object({
-        produtoId: z.string(),
+        userId: z.string(),
         nome: z.string(),
-        quantidade: z.number(),
+        ativo: z.union([z.boolean(), z.null()]),
+        encontrado: z.boolean(),
+        clientesUnicos: z.number(),
         totalVendido: z.number(),
-        numeroVendas: z.number(),
+        ticketMedio: z.number(),
+        numeroVendas: z.number().int().min(0),
       })
     ),
-    period: z.string(),
-    totalEventos: z.number(),
+    scope: z.enum(['month', 'year']),
+    year: z.number(),
+    month: z.number().nullable(),
+    periodLabel: z.string(),
+    totalEventos: z.number().int().min(0),
   }),
+})
+
+const rankingQuery = computed(() => {
+  const base: Record<string, string | number> = {
+    scope: rankingScope.value,
+    year: rankingYear.value,
+  }
+  if (rankingScope.value === 'month') base.month = rankingMonth.value
+  return base
 })
 
 const {
   data: rankingData,
   pending: rankingPending,
   refresh: refreshRanking,
-} = await useFetch('/api/v1/admin/ranking-vendas', {
-  query: { period: rankingPeriod },
-  transform: (res) => RankingResponseSchema.parse(res).data,
-  watch: [rankingPeriod],
+} = await useFetch('/api/v1/admin/ranking-vendedores', {
+  query: rankingQuery,
+  transform: (res) => RankingSellersResponseSchema.parse(res).data,
+  watch: [rankingScope, rankingYear, rankingMonth],
 })
 
-const rankingVendas = computed(() => rankingData.value?.ranking || [])
+const rankingVendedores = computed(() => rankingData.value?.ranking || [])
+const rankingPeriodLabel = computed(() => rankingData.value?.periodLabel || 'Período selecionado')
+const rankingMonthOptions = Array.from({ length: 12 }, (_, index) => {
+  const value = index + 1
+  const label = new Intl.DateTimeFormat('pt-BR', {
+    month: 'long',
+    timeZone: 'UTC',
+  }).format(new Date(Date.UTC(2020, index, 1)))
+  return { value, label }
+})
+const rankingYearOptions = computed(() =>
+  Array.from({ length: 6 }, (_, offset) => new Date().getFullYear() - offset)
+)
 
 const commercialKpis = computed(() => {
   return (
