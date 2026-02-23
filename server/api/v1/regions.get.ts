@@ -36,21 +36,15 @@ export default defineEventHandler(async (event) => {
 
   if (stateId) filter.stateIds = stateId
   if (representativeUserId) filter.representanteUserId = representativeUserId
-  if (active === 'true') filter.ativo = true
+  if (active === 'true') filter.ativo = { $ne: false }
   if (active === 'false') filter.ativo = false
 
   if (search) {
     const normalized = normalizeText(search)
-    filter.$or = [
-      { nome: { $regex: search, $options: 'i' } },
-      { normalizedName: normalized },
-    ]
+    filter.$or = [{ nome: { $regex: search, $options: 'i' } }, { normalizedName: normalized }]
   }
 
-  const projection =
-    withGeometry === 'false'
-      ? { projection: { geometry: 0 } }
-      : undefined
+  const projection = withGeometry === 'false' ? { projection: { geometry: 0 } } : undefined
 
   const rows = await db
     .collection('regions')

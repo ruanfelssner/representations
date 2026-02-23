@@ -2,13 +2,17 @@ import { z } from 'zod'
 import { getMongoDb } from '../../utils/mongo'
 import { parseWithZod } from '../../utils/validation'
 import { toSimpleIdApi } from '../../utils/dto'
-import { GeoJsonMultiPolygonSchema, GeoJsonPolygonSchema } from '~/types/schemas'
 import { ensureTerritoryIndexes, normalizeText } from '../../utils/territory'
+import {
+  assertNoActiveRegionCityConflicts,
+  buildRegionGeometryFromCities,
+  loadCitiesByIds,
+  normalizeCityIds,
+} from '../../utils/regions'
 
 const RegionCreateSchema = z.object({
   nome: z.string().trim().min(1),
-  stateIds: z.array(z.string().trim().min(1)).default([]),
-  geometry: z.union([GeoJsonPolygonSchema, GeoJsonMultiPolygonSchema]),
+  cityIds: z.array(z.string().trim().min(1)).min(1),
   color: z.string().trim().optional(),
   priority: z.number().int().min(0).default(0),
   representanteUserId: z.string().trim().optional(),
@@ -27,9 +31,14 @@ function toSlug(input: string) {
 export default defineEventHandler(async (event) => {
   const body = (await readBody(event).catch(() => ({}))) as unknown
   const parsed = parseWithZod(RegionCreateSchema, body)
+  const cityIds = normalizeCityIds(parsed.cityIds)
 
   const db = await getMongoDb()
   await ensureTerritoryIndexes(db)
+  await assertNoActiveRegionCityConflicts(db, cityIds)
+
+  const cities = await loadCitiesByIds(db, cityIds)
+  const { geometry, stateIds } = buildRegionGeometryFromCities(cities)
 
   const now = new Date().toISOString()
   const base = toSlug(parsed.nome) || 'region'
@@ -39,8 +48,9 @@ export default defineEventHandler(async (event) => {
     _id: id,
     nome: parsed.nome,
     normalizedName: normalizeText(parsed.nome),
-    stateIds: parsed.stateIds,
-    geometry: parsed.geometry,
+    stateIds,
+    cityIds,
+    geometry,
     color: parsed.color || undefined,
     priority: parsed.priority,
     representanteUserId: parsed.representanteUserId || undefined,

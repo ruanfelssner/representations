@@ -24,20 +24,28 @@
               }"
               @click.stop="handleMarkerClick(marker)"
             >
-              <div
-                :style="markerStyle(marker)"
-                :class="[
-                  'flex items-center justify-center font-bold border border-white/70 rounded-full',
-                  'shadow-[0_10px_24px_rgba(0,0,0,0.2)] hover:scale-110 transition-transform duration-200 ease-in-out',
-                  markerTextClass(marker),
-                  markerRingClass(marker),
-                  markerBounceClass(marker),
-                ]"
-                @pointerdown.stop
-                @mousedown.stop
-                @touchstart.stop
-              >
-                {{ marker.value }}
+              <div class="flex flex-col items-center gap-1">
+                <div
+                  :style="markerStyle(marker)"
+                  :class="[
+                    'flex items-center justify-center font-bold border border-white/70 rounded-full',
+                    'shadow-[0_10px_24px_rgba(0,0,0,0.2)] hover:scale-110 transition-transform duration-200 ease-in-out',
+                    markerTextClass(marker),
+                    markerRingClass(marker),
+                    markerBounceClass(marker),
+                  ]"
+                  @pointerdown.stop
+                  @mousedown.stop
+                  @touchstart.stop
+                >
+                  {{ marker.value }}
+                </div>
+                <div
+                  v-if="showMarkerBottomLabel(marker)"
+                  class="pointer-events-none max-w-[156px] truncate rounded-md border border-slate-200 bg-white/95 px-2 py-0.5 text-[10px] font-semibold text-slate-700 shadow-sm"
+                >
+                  {{ marker.bottomLabel }}
+                </div>
               </div>
             </CustomMarker>
           </template>
@@ -92,6 +100,7 @@ type MapMarker = {
   lat: number
   lng: number
   title?: string
+  bottomLabel?: string
   value?: number | string
   color?: string
   size?: number
@@ -102,6 +111,7 @@ type MapMarker = {
   clusterId?: string
   clientId?: string | number
   cityScopeId?: string
+  regionScopeId?: string
   kind?: string
 }
 
@@ -135,6 +145,7 @@ type Props = {
   centerLng?: number
   zoom?: number
   focusMarkerKey?: string
+  zoomOnPolygonClick?: boolean
   disableDefaultUI?: boolean
   onMarkerClick?: (marker: MapMarker) => void
   onPolygonClick?: (polygon: MapPolygon) => void
@@ -151,6 +162,7 @@ const props = withDefaults(defineProps<Props>(), {
   centerLng: -47.8822,
   zoom: 5,
   focusMarkerKey: '',
+  zoomOnPolygonClick: true,
   disableDefaultUI: false,
 })
 
@@ -167,6 +179,7 @@ const showPins = ref(true)
 const showPolygons = ref(true)
 const isFullscreen = ref(false)
 const currentZoom = ref(props.zoom)
+const lastPolygonClick = ref<{ key: string; at: number }>({ key: '', at: 0 })
 
 function zoomIn() {
   const mapInstance = googleMapsRef.value?.map
@@ -265,6 +278,11 @@ function markerBounceClass(marker: MapMarker) {
   return marker.bounce ? 'animate-bounce' : ''
 }
 
+function showMarkerBottomLabel(marker: MapMarker) {
+  if (marker.cluster) return false
+  return typeof marker.bottomLabel === 'string' && marker.bottomLabel.trim().length > 0
+}
+
 function isLightColor(hexColor: string) {
   const hex = hexColor.replace('#', '')
   const normalized =
@@ -299,6 +317,7 @@ function polygonOptions(polygon: MapPolygon) {
     strokeWeight: isSelected ? Math.max(3, strokeWeight) : strokeWeight,
     fillColor: polygon.fillColor || polygon.strokeColor || '#6B7280',
     fillOpacity: fillOpacity,
+    clickable: true,
   }
 }
 
@@ -317,9 +336,26 @@ function handleMarkerClick(marker: MapMarker) {
 }
 
 function handlePolygonClick(polygon: MapPolygon) {
+  console.log('Polygon clicked:', polygon)
+  const baseKey = String(polygon.id || '').trim()
+  const firstPoint = polygon.paths?.[0]
+  const fallbackKey = firstPoint ? `${firstPoint.lat.toFixed(6)}:${firstPoint.lng.toFixed(6)}` : ''
+  const clickKey = baseKey || fallbackKey
+  const now = Date.now()
+  if (
+    clickKey &&
+    lastPolygonClick.value.key === clickKey &&
+    now - lastPolygonClick.value.at < 250
+  ) {
+    return
+  }
+  lastPolygonClick.value = { key: clickKey, at: now }
+
   emit('polygon-click', polygon)
   props.onPolygonClick?.(polygon)
-  zoomToPolygon(polygon.paths)
+  if (props.zoomOnPolygonClick) {
+    zoomToPolygon(polygon.paths)
+  }
 }
 
 function resolveFocusEntityKey(rawKey: string) {
@@ -334,6 +370,9 @@ function markerEntityKey(marker: MapMarker) {
   }
   if (marker.cityScopeId) {
     return `city:${String(marker.cityScopeId)}`
+  }
+  if (marker.regionScopeId) {
+    return `region:${String(marker.regionScopeId)}`
   }
   return ''
 }
@@ -552,6 +591,6 @@ function markerKey(marker: MapMarker) {
   const base = marker.cluster
     ? `cluster-${marker.clusterId || ''}`
     : `client-${(marker as any).clientId || ''}`
-  return `${base}-${marker.lat}-${marker.lng}-${marker.value || ''}`
+  return `${base}-${marker.lat}-${marker.lng}-${marker.value || ''}-${marker.bottomLabel || ''}`
 }
 </script>

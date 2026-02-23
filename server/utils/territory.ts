@@ -38,7 +38,10 @@ export function normalizeText(input: string | undefined) {
 
 export function normalizeUf(input: string | undefined) {
   if (!input) return ''
-  return input.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 2)
+  return input
+    .toUpperCase()
+    .replace(/[^A-Z]/g, '')
+    .slice(0, 2)
 }
 
 export function geoPointFromLatLng(lat?: number, lng?: number): Point | null {
@@ -75,17 +78,25 @@ export async function ensureTerritoryIndexes(db: any) {
     db.collection('states').createIndex({ uf: 1 }, { name: 'uf_1' }),
     db.collection('states').createIndex({ geometry: '2dsphere' }, { name: 'geometry_2dsphere' }),
     db.collection('cities').createIndex({ stateId: 1, nome: 1 }, { name: 'stateId_1_nome_1' }),
-    db.collection('cities').createIndex(
-      { stateId: 1, normalizedName: 1 },
-      { name: 'stateId_1_normalizedName_1' }
-    ),
+    db
+      .collection('cities')
+      .createIndex({ stateId: 1, normalizedName: 1 }, { name: 'stateId_1_normalizedName_1' }),
     db.collection('cities').createIndex({ geometry: '2dsphere' }, { name: 'geometry_2dsphere' }),
     db.collection('regions').createIndex({ stateIds: 1, ativo: 1 }, { name: 'stateIds_1_ativo_1' }),
-    db.collection('regions').createIndex({ representanteUserId: 1, ativo: 1 }, { name: 'representanteUserId_1_ativo_1' }),
+    db.collection('regions').createIndex({ cityIds: 1, ativo: 1 }, { name: 'cityIds_1_ativo_1' }),
+    db
+      .collection('regions')
+      .createIndex({ representanteUserId: 1, ativo: 1 }, { name: 'representanteUserId_1_ativo_1' }),
     db.collection('regions').createIndex({ geometry: '2dsphere' }, { name: 'geometry_2dsphere' }),
-    db.collection('clients').createIndex({ 'localizacao.geo': '2dsphere' }, { name: 'localizacao.geo_2dsphere' }),
-    db.collection('clients').createIndex({ stateId: 1, cityId: 1, status: 1 }, { name: 'stateId_1_cityId_1_status_1' }),
-    db.collection('clients').createIndex({ regionId: 1, status: 1 }, { name: 'regionId_1_status_1' }),
+    db
+      .collection('clients')
+      .createIndex({ 'localizacao.geo': '2dsphere' }, { name: 'localizacao.geo_2dsphere' }),
+    db
+      .collection('clients')
+      .createIndex({ stateId: 1, cityId: 1, status: 1 }, { name: 'stateId_1_cityId_1_status_1' }),
+    db
+      .collection('clients')
+      .createIndex({ regionId: 1, status: 1 }, { name: 'regionId_1_status_1' }),
   ])
   ;(globalThis as any)[cacheKey] = now
 }
@@ -94,7 +105,9 @@ async function findStateByGeoOrHint(db: any, point: Point | null, opts: ResolveT
   const ufHint = normalizeUf(opts.stateCodeHint)
 
   if (opts.stateIdHint) {
-    const byId = await db.collection('states').findOne({ _id: opts.stateIdHint, ativo: { $ne: false } })
+    const byId = await db
+      .collection('states')
+      .findOne({ _id: opts.stateIdHint, ativo: { $ne: false } })
     if (byId) return byId
   }
 
@@ -122,7 +135,12 @@ async function findStateByGeoOrHint(db: any, point: Point | null, opts: ResolveT
   return null
 }
 
-async function findCityByGeoOrHint(db: any, point: Point | null, stateId: string | undefined, cityNameHint?: string) {
+async function findCityByGeoOrHint(
+  db: any,
+  point: Point | null,
+  stateId: string | undefined,
+  cityNameHint?: string
+) {
   if (point) {
     const byGeo = await db.collection('cities').findOne(
       {
@@ -157,7 +175,11 @@ async function findRegionByGeo(db: any, point: Point | null, stateId: string | u
   }
 
   if (stateId) {
-    query.$or = [{ stateIds: stateId }, { stateIds: { $size: 0 } }, { stateIds: { $exists: false } }]
+    query.$or = [
+      { stateIds: stateId },
+      { stateIds: { $size: 0 } },
+      { stateIds: { $exists: false } },
+    ]
   }
 
   return db
@@ -174,7 +196,10 @@ export async function resolveTerritoryByPoint(
   opts: ResolveTerritoryOptions = {}
 ): Promise<ResolveTerritoryResult> {
   if (!db) {
-    throw createError({ statusCode: 500, statusMessage: 'MongoDB indisponível para resolver território.' })
+    throw createError({
+      statusCode: 500,
+      statusMessage: 'MongoDB indisponível para resolver território.',
+    })
   }
 
   const state = await findStateByGeoOrHint(db, point, opts)

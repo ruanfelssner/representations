@@ -34,7 +34,7 @@ export default defineEventHandler(async (event) => {
   const { stateId, ids, search, active, withGeometry, limit } = parsed.data
   const filter: Record<string, unknown> = {}
   if (stateId) filter.stateId = stateId
-  if (active === 'true') filter.ativo = true
+  if (active === 'true') filter.ativo = { $ne: false }
   if (active === 'false') filter.ativo = false
 
   if (ids) {
@@ -47,16 +47,10 @@ export default defineEventHandler(async (event) => {
 
   if (search) {
     const normalized = normalizeText(search)
-    filter.$or = [
-      { nome: { $regex: search, $options: 'i' } },
-      { normalizedName: normalized },
-    ]
+    filter.$or = [{ nome: { $regex: search, $options: 'i' } }, { normalizedName: normalized }]
   }
 
-  const projection =
-    withGeometry === 'false'
-      ? { projection: { geometry: 0 } }
-      : undefined
+  const projection = withGeometry === 'false' ? { projection: { geometry: 0 } } : undefined
 
   const rows = await db
     .collection('cities')

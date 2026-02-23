@@ -32,7 +32,7 @@ export default defineEventHandler(async (event) => {
   const { uf, ids, active, withGeometry, limit } = parsed.data
   const filter: Record<string, unknown> = {}
   if (uf) filter.uf = uf
-  if (active === 'true') filter.ativo = true
+  if (active === 'true') filter.ativo = { $ne: false }
   if (active === 'false') filter.ativo = false
   if (ids) {
     const idList = ids
@@ -42,10 +42,7 @@ export default defineEventHandler(async (event) => {
     if (idList.length) filter._id = { $in: idList }
   }
 
-  const projection =
-    withGeometry === 'false'
-      ? { projection: { geometry: 0 } }
-      : undefined
+  const projection = withGeometry === 'false' ? { projection: { geometry: 0 } } : undefined
 
   const rows = await db
     .collection('states')

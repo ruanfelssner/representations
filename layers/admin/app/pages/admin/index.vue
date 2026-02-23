@@ -86,6 +86,25 @@
               {{ selectedCityLabel }}
             </span>
           </div>
+          <div
+            v-if="mapViewMode === 'representative' && representativeModeState === 'detail'"
+            class="absolute top-4 left-4 z-20 flex items-center gap-2"
+          >
+            <NButton
+              variant="outline"
+              size="zs"
+              leading-icon="mdi:arrow-left"
+              class="bg-white"
+              @click="backToRepresentativeOverview"
+            >
+              Voltar para áreas
+            </NButton>
+            <span
+              class="rounded-full bg-white/95 px-2 py-1 text-[11px] font-semibold text-slate-700 shadow-sm"
+            >
+              {{ selectedRepresentativeLabel }}
+            </span>
+          </div>
           <div v-if="!visitedMapData" class="h-full flex items-center justify-center">
             <div class="text-center">
               <div class="text-6xl mb-4">🗺️</div>
@@ -358,7 +377,7 @@
                     :options="rankPresets"
                     size="md"
                     class="w-full"
-                    :disabled="!maxRankLimit || mapViewMode === 'city'"
+                    :disabled="!maxRankLimit || mapViewMode !== 'clients'"
                     @update:modelValue="handleTopRankSelect"
                   />
                 </div>
@@ -733,7 +752,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import type { Cliente } from '~/types/client'
-import type { TerritoryCityDto, TerritoryStateDto } from '~/types/schemas'
+import type { TerritoryCityDto, TerritoryRegionDto, TerritoryStateDto } from '~/types/schemas'
 import type { CityGeoFeature } from '~/composables/useCityGeo'
 import { useCityGeo } from '~/composables/useCityGeo'
 import { useClientsApi } from '~/composables/useClientsApi'
@@ -758,6 +777,7 @@ type MapPolygon = {
   fillColor?: string
   fillOpacity?: number
   label?: string
+  regionScopeId?: string
 }
 
 type CityMapBucket = 'blue' | 'yellow' | 'red' | 'gray'
@@ -771,6 +791,16 @@ type CityAggregate = {
   centroid: { lat: number; lng: number }
   bucket: CityMapBucket
   colorHex: string
+}
+
+type RepresentativeAreaMeta = {
+  id: string
+  name: string
+  representativeName: string
+  clientCount: number
+  colorHex: string
+  centroid: { lat: number; lng: number }
+  pathsList: Array<{ lat: number; lng: number }[]>
 }
 
 type ClientMapPosition = {
@@ -797,9 +827,12 @@ const loadedCityUfKey = ref('')
 const clientes = ref<Cliente[]>([])
 const territoryStates = ref<TerritoryStateDto[]>([])
 const territoryCities = ref<TerritoryCityDto[]>([])
-const mapViewMode = ref<'clients' | 'city'>('city')
+const territoryRegions = ref<TerritoryRegionDto[]>([])
+const mapViewMode = ref<'clients' | 'city' | 'representative'>('city')
 const cityModeState = ref<'overview' | 'detail'>('overview')
 const selectedCityId = ref('')
+const representativeModeState = ref<'overview' | 'detail'>('overview')
+const selectedRepresentativeRegionId = ref('')
 const isMapExpanded = ref(false)
 const salesTotals = ref<{
   month: number
@@ -853,7 +886,7 @@ const {
   extractCityFeatures,
   fetchCityGeoJsonByUf,
 } = useCityGeo()
-const { fetchStates, fetchCities } = useTerritoryApi()
+const { fetchStates, fetchCities, fetchRegions } = useTerritoryApi()
 
 const { fetchClients, patchClient, deleteClient } = useClientsApi()
 const { createEvento, updateEvento, deleteEvento } = useHistoricoClienteApi()
@@ -889,6 +922,7 @@ const goalProgress = computed(() => {
 const mapViewOptions = [
   { value: 'clients', label: 'Clientes' },
   { value: 'city', label: 'Cidade' },
+  { value: 'representative', label: 'Representantes' },
 ]
 
 function normalizeCityNameForMatch(value: string | undefined) {
@@ -957,6 +991,153 @@ const territoryCityById = computed(() => {
   }
   return map
 })
+
+const territoryRegionById = computed(() => {
+  const map = new Map<string, TerritoryRegionDto>()
+  for (const region of territoryRegions.value) {
+    map.set(String(region.id), region)
+  }
+  return map
+})
+
+const regionCityIdSetByRegionId = computed(() => {
+  const map = new Map<string, Set<string>>()
+
+  for (const region of territoryRegions.value) {
+    const set = new Set<string>()
+    const cityIds = Array.isArray((region as any)?.cityIds) ? (region as any).cityIds : []
+    for (const cityIdRaw of cityIds) {
+      const cityId = String(cityIdRaw || '').trim()
+      if (!cityId) continue
+      set.add(cityId)
+      const numeric = normalizeNumericId(cityId)
+      if (numeric) set.add(numeric)
+    }
+    map.set(String(region.id), set)
+  }
+
+  return map
+})
+
+const regionCityNameSetByRegionId = computed(() => {
+  const map = new Map<string, Set<string>>()
+
+  for (const region of territoryRegions.value) {
+    const set = new Set<string>()
+    const cityIds = Array.isArray((region as any)?.cityIds) ? (region as any).cityIds : []
+    for (const cityIdRaw of cityIds) {
+      const cityId = String(cityIdRaw || '').trim()
+      if (!cityId) continue
+      const numericCityId = normalizeNumericId(cityId)
+      const city =
+        territoryCityById.value.get(cityId) ||
+        (numericCityId ? territoryCityById.value.get(numericCityId) : undefined)
+
+      const geoFeature =
+        scCityFeatureById.value.get(cityId) ||
+        (numericCityId ? scCityFeatureById.value.get(numericCityId) : undefined)
+
+      const cityName = String(city?.nome || geoFeature?.name || '').trim()
+      if (!cityName) continue
+
+      const normalizedName = normalizeCityNameForMatch(cityName)
+      if (normalizedName) set.add(normalizedName)
+    }
+    map.set(String(region.id), set)
+  }
+
+  return map
+})
+
+const REPRESENTATIVE_POLYGON_COLORS = [
+  '#3B82F6',
+  '#16A34A',
+  '#EA580C',
+  '#7C3AED',
+  '#0E7490',
+  '#BE185D',
+  '#CA8A04',
+  '#4F46E5',
+]
+
+function parsePolygonPathsFromGeometry(geometry: any) {
+  if (!geometry || typeof geometry !== 'object') return [] as Array<{ lat: number; lng: number }[]>
+
+  const toPath = (ring: any) => {
+    if (!Array.isArray(ring)) return [] as Array<{ lat: number; lng: number }>
+    return ring
+      .filter((coord: any) => Array.isArray(coord) && coord.length >= 2)
+      .map((coord: any) => ({ lat: Number(coord[1]), lng: Number(coord[0]) }))
+      .filter((coord) => Number.isFinite(coord.lat) && Number.isFinite(coord.lng))
+  }
+
+  if (geometry.type === 'Polygon' && Array.isArray(geometry.coordinates?.[0])) {
+    const path = toPath(geometry.coordinates[0])
+    return path.length ? [path] : []
+  }
+
+  if (geometry.type === 'MultiPolygon' && Array.isArray(geometry.coordinates)) {
+    return geometry.coordinates
+      .map((polygon: any) => toPath(Array.isArray(polygon) ? polygon[0] : null))
+      .filter((path: Array<{ lat: number; lng: number }>) => path.length)
+  }
+
+  return [] as Array<{ lat: number; lng: number }[]>
+}
+
+function centerFromPathList(pathList: Array<{ lat: number; lng: number }[]>) {
+  const allPoints = pathList.flat()
+  if (!allPoints.length) return null
+  const latValues = allPoints.map((point) => point.lat)
+  const lngValues = allPoints.map((point) => point.lng)
+  return {
+    lat: (Math.min(...latValues) + Math.max(...latValues)) / 2,
+    lng: (Math.min(...lngValues) + Math.max(...lngValues)) / 2,
+  }
+}
+
+function representativeColorForRegion(regionId: string, customColor?: string) {
+  const normalizedCustom = String(customColor || '').trim()
+  if (normalizedCustom) return normalizedCustom
+  const seed = Math.abs(stableHash(regionId))
+  return REPRESENTATIVE_POLYGON_COLORS[seed % REPRESENTATIVE_POLYGON_COLORS.length]
+}
+
+function representativeNameForRegion(region: TerritoryRegionDto) {
+  const userId = String((region as any)?.representanteUserId || '').trim()
+  if (!userId) return 'Sem representante'
+  const seller = presentationSellers.value.find((item) => String(item.id) === userId)
+  return seller?.nome || `Representante ${userId}`
+}
+
+function resolveRepresentativeRegionScopeId(rawValue: unknown) {
+  const raw = String(rawValue || '').trim()
+  if (!raw) return ''
+  if (territoryRegionById.value.has(raw)) return raw
+  const base = raw.split('::')[0] || ''
+  if (base && territoryRegionById.value.has(base)) return base
+  return ''
+}
+
+function matchesRepresentativeScope(cliente: any, regionId: string) {
+  if (!regionId) return true
+
+  const regionCityIds = regionCityIdSetByRegionId.value.get(regionId)
+  if (!regionCityIds?.size) return false
+
+  const clientCityIdRaw = String(cliente?.cityId || '').trim()
+  if (clientCityIdRaw) {
+    if (regionCityIds.has(clientCityIdRaw)) return true
+    const numericCityId = normalizeNumericId(clientCityIdRaw)
+    if (numericCityId && regionCityIds.has(numericCityId)) return true
+  }
+
+  const cityName = normalizeCityNameForMatch(cliente?.cidade || cliente?.endereco?.cidade || '')
+  if (!cityName) return false
+  const regionCityNames = regionCityNameSetByRegionId.value.get(regionId)
+  if (!regionCityNames?.size) return false
+  return regionCityNames.has(cityName)
+}
 
 function resolveCityFeatureForClient(client: any) {
   const cityIdRaw = String(client?.cityId || '').trim()
@@ -1061,15 +1242,82 @@ const cityPolygons = computed<MapPolygon[]>(() => {
   return fromDb
 })
 
+const representativeAreaMetaList = computed<RepresentativeAreaMeta[]>(() => {
+  return territoryRegions.value
+    .filter((region) => region.ativo !== false)
+    .map((region) => {
+      const regionId = String(region.id || '').trim()
+      if (!regionId) return null
+
+      const pathsList = parsePolygonPathsFromGeometry((region as any).geometry)
+      if (!pathsList.length) return null
+      const centroid = centerFromPathList(pathsList)
+      if (!centroid) return null
+
+      let clientCount = 0
+      for (const cliente of clientes.value as any[]) {
+        if (!isCategoryVisible(cliente)) continue
+        if (matchesRepresentativeScope(cliente, regionId)) clientCount += 1
+      }
+
+      return {
+        id: regionId,
+        name: String(region.nome || regionId),
+        representativeName: representativeNameForRegion(region),
+        clientCount,
+        colorHex: representativeColorForRegion(regionId, (region as any).color),
+        centroid,
+        pathsList,
+      } as RepresentativeAreaMeta
+    })
+    .filter((item): item is RepresentativeAreaMeta => !!item)
+})
+
+const representativeAreaMetaById = computed(() => {
+  const map = new Map<string, RepresentativeAreaMeta>()
+  for (const area of representativeAreaMetaList.value) {
+    map.set(area.id, area)
+  }
+  return map
+})
+
+const representativePolygons = computed<MapPolygon[]>(() => {
+  const out: MapPolygon[] = []
+  for (const area of representativeAreaMetaList.value) {
+    for (let index = 0; index < area.pathsList.length; index += 1) {
+      out.push({
+        id: area.pathsList.length > 1 ? `${area.id}::${index}` : area.id,
+        regionScopeId: area.id,
+        paths: area.pathsList[index],
+        strokeColor: area.colorHex,
+        strokeOpacity: 0.45,
+        strokeWeight: 1.6,
+        fillColor: area.colorHex,
+        fillOpacity: 0.22,
+        label: `${area.representativeName} • ${area.name} • ${area.clientCount} clientes`,
+      })
+    }
+  }
+  return out
+})
+
 const selectedPolygonId = computed(() => {
-  if (mapViewMode.value !== 'city') return null
-  return selectedCityId.value || null
+  if (mapViewMode.value === 'city') return selectedCityId.value || null
+  return null
 })
 
 const selectedClientId = computed(() => String(selectedClient.value?.id || ''))
 const selectedClientCityScopeId = computed(() => {
   if (!selectedClient.value) return ''
   return resolveCityScopeIdForClient(selectedClient.value as any)
+})
+const selectedClientRepresentativeRegionScopeId = computed(() => {
+  if (!selectedClient.value) return ''
+  const client = selectedClient.value as any
+  for (const area of representativeAreaMetaList.value) {
+    if (matchesRepresentativeScope(client, area.id)) return area.id
+  }
+  return ''
 })
 
 const mapFocusMarkerKey = computed(() => {
@@ -1079,34 +1327,62 @@ const mapFocusMarkerKey = computed(() => {
     if (!selectedClientCityScopeId.value) return ''
     return `city:${selectedClientCityScopeId.value}#${selectedClientId.value}`
   }
+  if (mapViewMode.value === 'representative' && representativeModeState.value === 'overview') {
+    if (!selectedClientRepresentativeRegionScopeId.value) return ''
+    return `region:${selectedClientRepresentativeRegionScopeId.value}#${selectedClientId.value}`
+  }
 
   return `client:${selectedClientId.value}#${selectedClientId.value}`
 })
 
 const activeMapPolygons = computed<MapPolygon[]>(() => {
-  if (mapViewMode.value !== 'city') return []
+  if (mapViewMode.value === 'city') {
+    if (cityModeState.value === 'overview') {
+      return cityPolygons.value
+    }
 
-  if (cityModeState.value === 'overview') {
-    return cityPolygons.value
+    if (!selectedCityId.value) return []
+
+    const selected = cityPolygons.value.find(
+      (polygon) => String(polygon.id || '') === selectedCityId.value
+    )
+    if (!selected) return []
+
+    return [
+      {
+        ...selected,
+        strokeColor: '#9CA3AF',
+        fillColor: '#9CA3AF',
+        fillOpacity: 0,
+        strokeOpacity: 1,
+        strokeWeight: Math.max(3, selected.strokeWeight || 2),
+      },
+    ]
   }
 
-  if (!selectedCityId.value) return []
+  if (mapViewMode.value === 'representative') {
+    if (representativeModeState.value === 'overview') {
+      return representativePolygons.value
+    }
 
-  const selected = cityPolygons.value.find(
-    (polygon) => String(polygon.id || '') === selectedCityId.value
-  )
-  if (!selected) return []
+    if (!selectedRepresentativeRegionId.value) return []
 
-  return [
-    {
-      ...selected,
-      strokeColor: '#9CA3AF',
-      fillColor: '#9CA3AF',
-      fillOpacity: 0,
-      strokeOpacity: 1,
-      strokeWeight: Math.max(3, selected.strokeWeight || 2),
-    },
-  ]
+    return representativePolygons.value
+      .filter((polygon) => {
+        const regionId = resolveRepresentativeRegionScopeId(
+          polygon.regionScopeId || polygon.id || ''
+        )
+        return regionId === selectedRepresentativeRegionId.value
+      })
+      .map((polygon) => ({
+        ...polygon,
+        fillOpacity: 0,
+        strokeOpacity: 1,
+        strokeWeight: Math.max(3, polygon.strokeWeight || 2),
+      }))
+  }
+
+  return []
 })
 
 const mapClusterMode = computed<'all' | 'off'>(() => {
@@ -1160,7 +1436,7 @@ async function loadTerritories() {
 
     territoryStates.value = await fetchStates({
       active: true,
-      withGeometry: false,
+      withGeometry: true,
       ids: statesInPortfolio.length ? statesInPortfolio : undefined,
       limit: 200,
     })
@@ -1172,10 +1448,17 @@ async function loadTerritories() {
       limit: 6000,
       ...(stateIds.length === 1 ? { stateId: stateIds[0] } : {}),
     })
+
+    territoryRegions.value = await fetchRegions({
+      active: true,
+      withGeometry: true,
+      limit: 1000,
+    })
   } catch (error) {
     console.error('Erro ao carregar territórios:', error)
     territoryStates.value = []
     territoryCities.value = []
+    territoryRegions.value = []
   }
 }
 
@@ -1194,7 +1477,12 @@ async function loadPresentationSellers() {
 watch(mapViewMode, () => {
   selectedCityId.value = ''
   cityModeState.value = 'overview'
-  if (mapViewMode.value === 'city' && !territoryCities.value.length) {
+  selectedRepresentativeRegionId.value = ''
+  representativeModeState.value = 'overview'
+  if (
+    mapViewMode.value !== 'clients' &&
+    (!territoryCities.value.length || !territoryRegions.value.length)
+  ) {
     loadTerritories()
   }
 })
@@ -1267,7 +1555,11 @@ async function loadClients() {
       selectedClient.value = clientes.value.find((c) => c.id === selectedClient.value?.id) || null
     }
 
-    if (mapViewMode.value === 'city' || !territoryCities.value.length) {
+    if (
+      mapViewMode.value !== 'clients' ||
+      !territoryCities.value.length ||
+      !territoryRegions.value.length
+    ) {
       await loadTerritories()
     }
   } catch (err: any) {
@@ -1279,7 +1571,7 @@ async function loadClients() {
 }
 
 const portfolioClientes = computed(() => {
-  if (mapViewMode.value === 'city') {
+  if (mapViewMode.value !== 'clients') {
     return clientes.value
   }
   if (filterTipo.value === 'inativo') {
@@ -1356,14 +1648,26 @@ const mapScopedClientes = computed(() => {
     return cityClientesBase.value
   }
 
-  let result = filteredClientes.value
-  return result
+  if (mapViewMode.value === 'representative') {
+    if (representativeModeState.value === 'detail' && selectedRepresentativeRegionId.value) {
+      return cityClientesBase.value.filter((cliente) =>
+        matchesRepresentativeScope(cliente as any, selectedRepresentativeRegionId.value)
+      )
+    }
+    return cityClientesBase.value
+  }
+
+  return filteredClientes.value
 })
 
 const mapPositionByClientId = computed(() => {
   const map = new Map<string, ClientMapPosition>()
-  const allowApproximate =
-    mapViewMode.value === 'city' && cityModeState.value === 'detail' && !!selectedCityId.value
+  const allowApproximate = Boolean(
+    (mapViewMode.value === 'city' && cityModeState.value === 'detail' && selectedCityId.value) ||
+    (mapViewMode.value === 'representative' &&
+      representativeModeState.value === 'detail' &&
+      selectedRepresentativeRegionId.value)
+  )
   for (const cliente of mapScopedClientes.value as any[]) {
     const clientId = String(cliente?.id || '')
     if (!clientId) continue
@@ -1410,12 +1714,24 @@ const cityDetailClients = computed(() => {
   )
 })
 
+const representativeDetailClients = computed(() => {
+  if (!selectedRepresentativeRegionId.value) return [] as Cliente[]
+  return mapScopedClientes.value.filter((cliente) => isCategoryVisible(cliente))
+})
+
 const visibleClientesForMapMode = computed(() => {
   if (mapViewMode.value === 'city') {
     if (cityModeState.value === 'detail') {
       return cityDetailClients.value
     }
     return cityAggregationSourceClientes.value
+  }
+
+  if (mapViewMode.value === 'representative') {
+    if (representativeModeState.value === 'detail') {
+      return representativeDetailClients.value
+    }
+    return mapScopedClientes.value.filter((cliente) => isCategoryVisible(cliente))
   }
 
   const source = clientesParaPins.value
@@ -1658,6 +1974,12 @@ const maxRankLimit = computed(() => {
   if (mapViewMode.value === 'city') {
     return cityAggregates.value.length || 0
   }
+  if (mapViewMode.value === 'representative') {
+    if (representativeModeState.value === 'overview') {
+      return representativeAreaMetaList.value.length || 0
+    }
+    return visibleClientesForMapMode.value.length || 0
+  }
   return pinMetricByClientId.value.rank.size || 0
 })
 const topRankLabel = computed(() => {
@@ -1726,11 +2048,13 @@ function handleClearFilters() {
 }
 
 function handleMapViewModeChange(value: string | number) {
-  const next = String(value) as 'clients' | 'city'
-  if (next !== 'clients' && next !== 'city') return
+  const next = String(value) as 'clients' | 'city' | 'representative'
+  if (next !== 'clients' && next !== 'city' && next !== 'representative') return
   mapViewMode.value = next
   cityModeState.value = 'overview'
   selectedCityId.value = ''
+  representativeModeState.value = 'overview'
+  selectedRepresentativeRegionId.value = ''
 }
 
 function toggleMapExpanded() {
@@ -1738,27 +2062,49 @@ function toggleMapExpanded() {
 }
 
 function handleMapPolygonClick(polygon: any) {
-  if (mapViewMode.value !== 'city') return
-  const directId = String(polygon?.id || '').trim()
-  const id =
-    directId ||
-    (() => {
-      const label = String(polygon?.label || '').trim()
-      if (!label) return ''
-      const byLabel = scCityFeatureByName.value.get(cityMatchKey(label))
-      return byLabel?.id || ''
-    })()
-  if (!id) return
-  if (cityModeState.value === 'overview') {
+  if (mapViewMode.value === 'city') {
+    const directId = String(polygon?.id || '').trim()
+    const id =
+      directId ||
+      (() => {
+        const label = String(polygon?.label || '').trim()
+        if (!label) return ''
+        const byLabel = scCityFeatureByName.value.get(cityMatchKey(label))
+        return byLabel?.id || ''
+      })()
+    if (!id) return
+    if (cityModeState.value === 'overview') {
+      selectedCityId.value = id
+      cityModeState.value = 'detail'
+      return
+    }
+    if (selectedCityId.value === id) {
+      backToCityOverview()
+      return
+    }
     selectedCityId.value = id
-    cityModeState.value = 'detail'
     return
   }
-  if (selectedCityId.value === id) {
-    backToCityOverview()
-    return
+
+  if (mapViewMode.value === 'representative') {
+    const id = resolveRepresentativeRegionScopeId(
+      polygon?.regionScopeId || polygon?.id || polygon?.label || ''
+    )
+    if (!id) return
+
+    if (representativeModeState.value === 'overview') {
+      selectedRepresentativeRegionId.value = id
+      representativeModeState.value = 'detail'
+      return
+    }
+
+    if (selectedRepresentativeRegionId.value === id) {
+      backToRepresentativeOverview()
+      return
+    }
+
+    selectedRepresentativeRegionId.value = id
   }
-  selectedCityId.value = id
 }
 
 const createVisitedMarkers = computed(() => {
@@ -1819,6 +2165,45 @@ const createVisitedMarkers = computed(() => {
       .filter(Boolean)
   }
 
+  if (mapViewMode.value === 'representative') {
+    if (representativeModeState.value === 'overview') {
+      return representativeAreaMetaList.value.map((area) => ({
+        lat: area.centroid.lat,
+        lng: area.centroid.lng,
+        title: `${area.representativeName} • ${area.name} • ${area.clientCount} clientes`,
+        bottomLabel: area.representativeName,
+        value: area.clientCount,
+        color: area.colorHex,
+        size: cityMarkerSize(Math.max(1, area.clientCount)),
+        regionScopeId: area.id,
+        categoria: 'region',
+        kind: 'region',
+        bounce: selectedClientRepresentativeRegionScopeId.value === area.id,
+      }))
+    }
+
+    const areaMeta = representativeAreaMetaById.value.get(selectedRepresentativeRegionId.value)
+    return representativeDetailClients.value
+      .map((cliente: any, index: number) => {
+        const clientId = String(cliente?.id || '')
+        const position = mapPositionByClientId.value.get(clientId)
+        if (!position) return null
+        return {
+          lat: position.lat,
+          lng: position.lng,
+          title: `${cliente.nome}${areaMeta ? ` • ${areaMeta.representativeName}` : ''}${position.approximate ? ' (aprox.)' : ''}`,
+          value: index + 1,
+          color: markerColor(cliente),
+          size: 24,
+          clientId,
+          categoria: categorizeClient(cliente),
+          kind: 'client',
+          bounce: selectedClientId.value === clientId,
+        }
+      })
+      .filter(Boolean)
+  }
+
   const markers: any[] = []
   const meta = pinMetricByClientId.value
   const maxRank = maxRankLimit.value
@@ -1867,6 +2252,19 @@ watch(cityPolygons, (list) => {
   if (!selectedCityId.value) return
   if (!list.some((polygon) => String(polygon.id || '') === selectedCityId.value)) {
     selectedCityId.value = ''
+  }
+})
+
+watch(representativePolygons, (list) => {
+  if (!selectedRepresentativeRegionId.value) return
+  if (
+    !list.some((polygon) => {
+      const regionId = resolveRepresentativeRegionScopeId(polygon.regionScopeId || polygon.id || '')
+      return regionId === selectedRepresentativeRegionId.value
+    })
+  ) {
+    selectedRepresentativeRegionId.value = ''
+    representativeModeState.value = 'overview'
   }
 })
 
@@ -2041,7 +2439,7 @@ const anualVsAnoAnterior = computed(() =>
 
 const rankedPortfolioClientes = computed(() => {
   const list = visibleClientesForRanking.value
-  if (mapViewMode.value === 'city') return visibleClientesForMapMode.value
+  if (mapViewMode.value !== 'clients') return visibleClientesForMapMode.value
 
   const maxRank = maxRankLimit.value
   const limit = topRankLimit.value
@@ -2093,16 +2491,37 @@ function cityLabelById(cityId: string) {
 
 const selectedCityLabel = computed(() => cityLabelById(selectedCityId.value))
 
+function representativeLabelById(regionId: string) {
+  if (!regionId) return ''
+  const area = representativeAreaMetaById.value.get(regionId)
+  if (area) return `${area.representativeName} • ${area.name}`
+  const rawRegion = territoryRegionById.value.get(regionId)
+  if (rawRegion) return `${representativeNameForRegion(rawRegion)} • ${rawRegion.nome}`
+  return ''
+}
+
+const selectedRepresentativeLabel = computed(() =>
+  representativeLabelById(selectedRepresentativeRegionId.value)
+)
+
 const mapScopeDescription = computed(() => {
   if (mapViewMode.value === 'clients') {
     return 'Visualização de clientes (pins clusterizados)'
   }
-  if (cityModeState.value === 'overview') {
-    return 'Visualização por cidade (pin central com total de oportunidades)'
+  if (mapViewMode.value === 'city') {
+    if (cityModeState.value === 'overview') {
+      return 'Visualização por cidade (pin central com total de oportunidades)'
+    }
+    if (!selectedCityId.value) return 'Cidade selecionada'
+    const cityName = cityLabelById(selectedCityId.value)
+    return cityName ? `Cidade selecionada: ${cityName}` : 'Cidade selecionada'
   }
-  if (!selectedCityId.value) return 'Cidade selecionada'
-  const cityName = cityLabelById(selectedCityId.value)
-  return cityName ? `Cidade selecionada: ${cityName}` : 'Cidade selecionada'
+  if (representativeModeState.value === 'overview') {
+    return 'Visualização por representantes (áreas formadas por cidades mescladas)'
+  }
+  if (!selectedRepresentativeRegionId.value) return 'Área selecionada'
+  const areaLabel = representativeLabelById(selectedRepresentativeRegionId.value)
+  return areaLabel ? `Área selecionada: ${areaLabel}` : 'Área selecionada'
 })
 
 const actionPlanTop = computed(() => topTasks(rankedPortfolioClientes.value, { limit: 50 }))
@@ -2204,6 +2623,12 @@ function handleVisitedMarkerClick(marker: any) {
     cityModeState.value = 'detail'
     return
   }
+  if (mapViewMode.value === 'representative' && marker?.regionScopeId) {
+    selectedRepresentativeRegionId.value = resolveRepresentativeRegionScopeId(marker.regionScopeId)
+    if (!selectedRepresentativeRegionId.value) return
+    representativeModeState.value = 'detail'
+    return
+  }
 
   const cliente = clientes.value.find((c) => c.id === marker.clientId)
   if (cliente) {
@@ -2215,6 +2640,11 @@ function handleVisitedMarkerClick(marker: any) {
 function backToCityOverview() {
   cityModeState.value = 'overview'
   selectedCityId.value = ''
+}
+
+function backToRepresentativeOverview() {
+  representativeModeState.value = 'overview'
+  selectedRepresentativeRegionId.value = ''
 }
 
 function selectClientFromList(clientId: string) {
