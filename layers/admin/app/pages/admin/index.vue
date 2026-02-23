@@ -3,11 +3,13 @@
     <div class="w-full px-3 py-4 lg:px-4 lg:py-6 space-y-3">
       <!-- Mapa + painel -->
       <!-- grid de 2 colunas: [mapa/listas | sidebar sticky] -->
-      <div :class="['grid gap-4', isMapExpanded ? 'grid-cols-1' : 'lg:grid-cols-[1fr_300px]']">
+      <div
+        class="grid content-start items-start gap-4 lg:grid-cols-[minmax(0,1fr)_300px] xl:grid-cols-[minmax(0,1fr)_340px]"
+      >
         <div
           :class="[
             'relative rounded-xl border border-gray-200 bg-white shadow-lg overflow-hidden sm:h-[550px]',
-            isMapExpanded ? 'h-[450px] lg:h-[72vh] lg:col-span-2' : 'h-[450px] lg:h-[620px]',
+            isMapExpanded ? 'h-[450px] lg:h-[72vh] lg:col-span-2' : 'h-[450px] lg:h-full',
           ]"
         >
           <BrokerMaps
@@ -96,13 +98,13 @@
         <!-- Painel lateral sticky (lg+) -->
         <div
           :class="[
-            'hidden lg:flex lg:flex-col',
+            'hidden',
             isMapExpanded
-              ? 'lg:order-4 lg:h-auto'
-              : 'lg:row-span-4 lg:sticky lg:top-[5.6rem] lg:self-start lg:h-[calc(100vh-5rem)]',
+              ? 'lg:flex lg:flex-col lg:col-start-2 lg:row-start-2 lg:self-start'
+              : 'lg:flex lg:flex-col lg:col-start-2 lg:row-start-1 lg:sticky lg:top-[5.6rem] lg:self-start lg:h-[calc(100vh-5rem)]',
           ]"
         >
-          <div class="flex-1 min-h-0 overflow-visible">
+          <div :class="isMapExpanded ? 'overflow-visible' : 'flex-1 min-h-0 overflow-visible'">
             <ClientSidePanel
               :is-open="true"
               :client-data="selectedClient"
@@ -117,564 +119,578 @@
         </div>
         <!-- /sidebar -->
 
-        <NLayer variant="paper" size="base" radius="soft" class="shadow-sm lg:col-start-1">
-          <div class="flex flex-col gap-3">
-            <div class="flex flex-wrap items-end gap-3">
-              <div class="min-w-[260px] flex-1">
-                <NTypo
-                  as="label"
-                  size="xs"
-                  weight="semibold"
-                  tone="muted"
-                  class="block mb-1 leading-none"
-                >
-                  Buscar
-                </NTypo>
-                <div class="relative">
-                  <NTypo
-                    as="span"
-                    size="sm"
-                    tone="muted"
-                    class="absolute left-3 top-1/2 -translate-y-1/2"
-                  >
-                    🔎
-                  </NTypo>
-                  <input
-                    v-model="searchQuery"
-                    type="text"
-                    placeholder="Nome, cidade, endereço ou CNPJ..."
-                    class="w-full pl-10 pr-3 py-2 rounded-lg border bg-white border-gray-200 focus:ring-2 focus:ring-sky-400 focus:border-sky-400 transition-colors"
-                  />
-                </div>
+        <div class="space-y-4 lg:col-start-1 lg:row-start-2">
+          <div
+            class="grid grid-cols-2 gap-2 self-start sm:grid-cols-3 lg:order-2 lg:col-start-1 lg:grid-cols-6"
+          >
+            <div class="bg-emerald-50 border border-emerald-100 rounded-lg p-2.5">
+              <NTypo size="xs" tone="muted">Clientes</NTypo>
+              <NTypo size="base" weight="bold" class="tabular-nums text-emerald-500 leading-tight">
+                {{ formatCompactNumber(visitedStats.total) }}
+              </NTypo>
+              <div class="mt-1 text-[10px] font-semibold flex flex-wrap gap-x-2 gap-y-0.5">
+                <span class="text-emerald-700">● {{ visitedStats.clientes }} cli.</span>
+                <span class="text-blue-700">● {{ visitedStats.comerciais }} com.</span>
+                <span class="text-gray-700">● {{ visitedStats.prospectos }} pros.</span>
               </div>
-              <NButton
-                v-if="searchQuery || filterSegmento || filterTipo"
-                @click="handleClearFilters"
-                variant="outline"
-                size="zs"
+              <div class="mt-0.5 text-[10px] font-semibold flex flex-wrap gap-x-2 gap-y-0.5">
+                <span class="text-emerald-700">● {{ visitedStats.ativosVerde }} ativo</span>
+                <span class="text-yellow-700">● {{ visitedStats.ativosAmarelo }} aten.</span>
+                <span class="text-red-700">● {{ visitedStats.ativosVermelho }} crít.</span>
+              </div>
+            </div>
+            <div class="bg-sky-50 border border-sky-100 rounded-lg p-2.5">
+              <NTypo size="xs" tone="muted">Contatos / mês</NTypo>
+              <NTypo size="base" weight="bold" class="tabular-nums text-sky-500 leading-tight">
+                {{ formatCompactNumber(visitedStats.contatosNoMes) }}
+              </NTypo>
+              <div
+                class="mt-1 text-[10px] font-semibold flex items-center gap-1"
+                :class="contatosVsMesAnterior.class"
               >
-                Limpar filtros
-              </NButton>
-            </div>
-
-            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <div>
-                <NTypo
-                  as="label"
-                  size="xs"
-                  weight="semibold"
-                  tone="muted"
-                  class="block mb-1 leading-none"
-                >
-                  Segmento
-                </NTypo>
-                <select
-                  v-model="filterSegmento"
-                  class="w-full px-3 py-2 rounded-lg border bg-white border-gray-200 focus:ring-2 focus:ring-sky-400 focus:border-sky-400 transition-colors"
-                >
-                  <option value="">Todos</option>
-                  <option value="joalheria">💎 Joalheria</option>
-                  <option value="relojoaria">⌚ Relojoaria</option>
-                  <option value="otica">👓 Ótica</option>
-                  <option value="outros">🏪 Outros</option>
-                </select>
-              </div>
-
-              <div>
-                <NTypo
-                  as="label"
-                  size="xs"
-                  weight="semibold"
-                  tone="muted"
-                  class="block mb-1 leading-none"
-                >
-                  Status
-                </NTypo>
-                <select
-                  v-model="filterTipo"
-                  class="w-full px-3 py-2 rounded-lg border bg-white border-gray-200 focus:ring-2 focus:ring-sky-400 focus:border-sky-400 transition-colors"
-                >
-                  <option value="">Todos</option>
-                  <option value="ativo">✅ Ativo (≤90d)</option>
-                  <option value="ativo_mes">📈 Ativo mes (venda no mes)</option>
-                  <option value="atencao">⚠️ Em atenção (91–180d)</option>
-                  <option value="critico">🚨 Crítico / Reativar (&gt;180d)</option>
-                  <option value="potencial">🎯 Potencial</option>
-                  <option value="inativo">⏸️ Inativo</option>
-                </select>
-              </div>
-
-              <div>
-                <NTypo
-                  as="label"
-                  size="xs"
-                  weight="semibold"
-                  tone="muted"
-                  class="block mb-1 leading-none"
-                >
-                  Ranking
-                </NTypo>
-                <NSelect
-                  :model-value="topRankSelectValue"
-                  :options="rankPresets"
-                  size="md"
-                  class="w-full"
-                  :disabled="!maxRankLimit || mapViewMode === 'city'"
-                  @update:modelValue="handleTopRankSelect"
-                />
-              </div>
-
-              <div>
-                <NTypo
-                  as="label"
-                  size="xs"
-                  weight="semibold"
-                  tone="muted"
-                  class="block mb-1 leading-none"
-                >
-                  Visualização
-                </NTypo>
-                <NSelect
-                  :model-value="mapViewMode"
-                  :options="mapViewOptions"
-                  size="md"
-                  class="w-full"
-                  @update:modelValue="handleMapViewModeChange"
-                />
+                <NIcon :name="contatosVsMesAnterior.icon" class="w-3 h-3" />
+                <span class="tabular-nums">{{ contatosVsMesAnterior.text }}</span>
+                <span class="text-slate-500">vs ant.</span>
               </div>
             </div>
-          </div>
-        </NLayer>
-
-        <!-- Stats — linha 2, coluna esquerda -->
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
-          <div class="bg-emerald-50 border border-emerald-100 rounded-lg p-2.5">
-            <NTypo size="xs" tone="muted">Clientes</NTypo>
-            <NTypo size="base" weight="bold" class="tabular-nums text-emerald-500 leading-tight">
-              {{ formatCompactNumber(visitedStats.total) }}
-            </NTypo>
-            <div class="mt-1 text-[10px] font-semibold flex flex-wrap gap-x-2 gap-y-0.5">
-              <span class="text-emerald-700">● {{ visitedStats.clientes }} cli.</span>
-              <span class="text-blue-700">● {{ visitedStats.comerciais }} com.</span>
-              <span class="text-gray-700">● {{ visitedStats.prospectos }} pros.</span>
-            </div>
-            <div class="mt-0.5 text-[10px] font-semibold flex flex-wrap gap-x-2 gap-y-0.5">
-              <span class="text-emerald-700">● {{ visitedStats.ativosVerde }} ativo</span>
-              <span class="text-yellow-700">● {{ visitedStats.ativosAmarelo }} aten.</span>
-              <span class="text-red-700">● {{ visitedStats.ativosVermelho }} crít.</span>
-            </div>
-          </div>
-          <div class="bg-sky-50 border border-sky-100 rounded-lg p-2.5">
-            <NTypo size="xs" tone="muted">Contatos / mês</NTypo>
-            <NTypo size="base" weight="bold" class="tabular-nums text-sky-500 leading-tight">
-              {{ formatCompactNumber(visitedStats.contatosNoMes) }}
-            </NTypo>
-            <div
-              class="mt-1 text-[10px] font-semibold flex items-center gap-1"
-              :class="contatosVsMesAnterior.class"
-            >
-              <NIcon :name="contatosVsMesAnterior.icon" class="w-3 h-3" />
-              <span class="tabular-nums">{{ contatosVsMesAnterior.text }}</span>
-              <span class="text-slate-500">vs ant.</span>
-            </div>
-          </div>
-          <div class="bg-cyan-50 border border-cyan-100 rounded-lg p-2.5">
-            <NTypo size="xs" tone="muted">Apresentações / mês</NTypo>
-            <NTypo size="base" weight="bold" class="tabular-nums text-cyan-600 leading-tight">
-              {{ formatCompactNumber(visitedStats.apresentacoesNoMes) }}
-            </NTypo>
-            <div class="mt-1 text-[10px] font-semibold flex flex-wrap gap-x-2 gap-y-0.5">
-              <span class="inline-flex items-center gap-1 text-slate-700">
-                <NIcon name="mdi:storefront-outline" class="h-3 w-3" />
-                {{ visitedStats.apresentacoesPresencialNoMes }} presencial
-              </span>
-              <span class="inline-flex items-center gap-1 text-slate-700">
-                <NIcon name="mdi:laptop" class="h-3 w-3" />
-                {{ visitedStats.apresentacoesOnlineNoMes }} online
-              </span>
-            </div>
-          </div>
-          <div class="bg-violet-50 border border-violet-100 rounded-lg p-2.5">
-            <NTypo size="xs" tone="muted">Mensal</NTypo>
-            <NTypo size="base" weight="bold" class="tabular-nums text-violet-500 leading-tight">
-              {{ formatCurrency(visitedStats.faturamentoMensal) }}
-            </NTypo>
-            <div v-if="currentMonthGoal > 0" class="mt-1">
-              <div class="flex items-center gap-1.5">
-                <div class="flex-1 bg-violet-200 rounded-full h-1.5">
-                  <div
-                    class="h-1.5 rounded-full transition-all"
-                    :class="
-                      goalProgress && goalProgress.percentage >= 80
-                        ? 'bg-emerald-500'
-                        : goalProgress && goalProgress.percentage >= 50
-                          ? 'bg-violet-500'
-                          : 'bg-amber-500'
-                    "
-                    :style="{ width: `${Math.min(100, goalProgress?.percentage || 0)}%` }"
-                  />
-                </div>
-                <span
-                  class="text-[10px] font-bold tabular-nums"
-                  :class="
-                    goalProgress && goalProgress.percentage >= 80
-                      ? 'text-emerald-600'
-                      : goalProgress && goalProgress.percentage >= 50
-                        ? 'text-violet-600'
-                        : 'text-amber-600'
-                  "
-                >
-                  {{ Math.round(goalProgress?.percentage || 0) }}%
+            <div class="bg-cyan-50 border border-cyan-100 rounded-lg p-2.5">
+              <NTypo size="xs" tone="muted">Apresentações / mês</NTypo>
+              <NTypo size="base" weight="bold" class="tabular-nums text-cyan-600 leading-tight">
+                {{ formatCompactNumber(visitedStats.apresentacoesNoMes) }}
+              </NTypo>
+              <div class="mt-1 text-[10px] font-semibold flex flex-wrap gap-x-2 gap-y-0.5">
+                <span class="inline-flex items-center gap-1 text-slate-700">
+                  <NIcon name="mdi:storefront-outline" class="h-3 w-3" />
+                  {{ visitedStats.apresentacoesPresencialNoMes }} presencial
+                </span>
+                <span class="inline-flex items-center gap-1 text-slate-700">
+                  <NIcon name="mdi:laptop" class="h-3 w-3" />
+                  {{ visitedStats.apresentacoesOnlineNoMes }} online
                 </span>
               </div>
             </div>
-            <div
-              class="mt-0.5 text-[10px] font-semibold flex items-center gap-1"
-              :class="mensalVsMesAnterior.class"
-            >
-              <NIcon :name="mensalVsMesAnterior.icon" class="w-3 h-3" />
-              <span class="tabular-nums">{{ mensalVsMesAnterior.text }}</span>
-              <span class="text-slate-500">vs ant.</span>
-            </div>
-          </div>
-          <div class="bg-amber-50 border border-amber-100 rounded-lg p-2.5">
-            <NTypo size="xs" tone="muted">Trimestral</NTypo>
-            <NTypo size="base" weight="bold" class="tabular-nums text-amber-600 leading-tight">
-              {{ formatCurrency(visitedStats.faturamentoTrimestral) }}
-            </NTypo>
-            <div
-              class="mt-1 text-[10px] font-semibold flex items-center gap-1"
-              :class="trimestralVsTrimestreAnterior.class"
-            >
-              <NIcon :name="trimestralVsTrimestreAnterior.icon" class="w-3 h-3" />
-              <span class="tabular-nums">{{ trimestralVsTrimestreAnterior.text }}</span>
-              <span class="text-slate-500">vs ant.</span>
-            </div>
-            <div
-              class="mt-0.5 text-[10px] font-semibold flex items-center gap-1"
-              :class="trimestralVsMesmoTrimestreAnoAnterior.class"
-            >
-              <NIcon :name="trimestralVsMesmoTrimestreAnoAnterior.icon" class="w-3 h-3" />
-              <span class="tabular-nums">{{ trimestralVsMesmoTrimestreAnoAnterior.text }}</span>
-              <span class="text-slate-500">vs ano ant.</span>
-            </div>
-          </div>
-          <div class="bg-orange-50 border border-orange-100 rounded-lg p-2.5">
-            <NTypo size="xs" tone="muted">Anual</NTypo>
-            <NTypo size="base" weight="bold" class="tabular-nums text-orange-500 leading-tight">
-              {{ formatCurrency(visitedStats.faturamentoAnual) }}
-            </NTypo>
-            <div
-              class="mt-1 text-[10px] font-semibold flex items-center gap-1"
-              :class="anualVsAnoAnterior.class"
-            >
-              <NIcon :name="anualVsAnoAnterior.icon" class="w-3 h-3" />
-              <span class="tabular-nums">{{ anualVsAnoAnterior.text }}</span>
-              <span class="text-slate-500">vs ano ant.</span>
-            </div>
-          </div>
-        </div>
-        <!-- /stats horizontais -->
-
-        <NLayer variant="paper" size="base" radius="soft" class="shadow-sm lg:col-start-1">
-          <div class="flex items-start justify-between gap-3">
-            <div>
-              <NTypo as="h2" size="sm" weight="bold">Próximas apresentações</NTypo>
-              <NTypo size="xs" tone="muted" class="mt-0.5">
-                Reuniões agendadas online e presenciais com vendedor responsável.
+            <div class="bg-violet-50 border border-violet-100 rounded-lg p-2.5">
+              <NTypo size="xs" tone="muted">Mensal</NTypo>
+              <NTypo size="base" weight="bold" class="tabular-nums text-violet-500 leading-tight">
+                {{ formatCurrency(visitedStats.faturamentoMensal) }}
               </NTypo>
-            </div>
-            <span
-              class="inline-flex items-center rounded-full bg-cyan-100 px-2 py-0.5 text-[11px] font-semibold text-cyan-700"
-            >
-              {{ upcomingPresentations.length }} próximas
-            </span>
-          </div>
-
-          <div
-            v-if="!upcomingPresentations.length"
-            class="mt-3 rounded-lg border border-dashed border-slate-200 p-4 text-center"
-          >
-            <NTypo size="sm" tone="muted">
-              Nenhuma apresentação futura encontrada no histórico da carteira.
-            </NTypo>
-          </div>
-
-          <div
-            v-else
-            class="mt-3 divide-y rounded-lg border border-gray-100 bg-white overflow-hidden"
-          >
-            <div
-              v-for="item in upcomingPresentations"
-              :key="item.id"
-              class="flex items-start justify-between gap-3 px-3 py-3 hover:bg-slate-50 transition-colors"
-            >
-              <button
-                type="button"
-                class="min-w-0 flex-1 text-left"
-                @click="selectClientFromList(item.clientId)"
-              >
-                <div class="min-w-0">
-                  <div class="flex flex-wrap items-center gap-2">
-                    <NTypo weight="bold" class="truncate">{{ item.clientName }}</NTypo>
-                    <span
-                      class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold"
+              <div v-if="currentMonthGoal > 0" class="mt-1">
+                <div class="flex items-center gap-1.5">
+                  <div class="flex-1 bg-violet-200 rounded-full h-1.5">
+                    <div
+                      class="h-1.5 rounded-full transition-all"
                       :class="
-                        item.mode === 'presencial'
-                          ? 'bg-amber-100 text-amber-800'
-                          : 'bg-blue-100 text-blue-800'
+                        goalProgress && goalProgress.percentage >= 80
+                          ? 'bg-emerald-500'
+                          : goalProgress && goalProgress.percentage >= 50
+                            ? 'bg-violet-500'
+                            : 'bg-amber-500'
                       "
-                    >
-                      {{ item.mode === 'presencial' ? 'Presencial' : 'Online' }}
-                    </span>
+                      :style="{ width: `${Math.min(100, goalProgress?.percentage || 0)}%` }"
+                    />
                   </div>
-                  <NTypo size="xs" tone="muted" class="mt-1 truncate">
-                    {{ formatDateTime(item.scheduledAt) }}
-                    <span v-if="item.city"> • {{ item.city }}</span>
-                  </NTypo>
+                  <span
+                    class="text-[10px] font-bold tabular-nums"
+                    :class="
+                      goalProgress && goalProgress.percentage >= 80
+                        ? 'text-emerald-600'
+                        : goalProgress && goalProgress.percentage >= 50
+                          ? 'text-violet-600'
+                          : 'text-amber-600'
+                    "
+                  >
+                    {{ Math.round(goalProgress?.percentage || 0) }}%
+                  </span>
                 </div>
-              </button>
-              <div class="shrink-0 text-right">
-                <NTypo size="xs" tone="muted">Vendedor</NTypo>
-                <NTypo size="xs" weight="semibold">{{ item.sellerName }}</NTypo>
-                <a
-                  v-if="item.mode === 'online' && item.meetingLink"
-                  :href="item.meetingLink"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="mt-1 inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700 hover:bg-blue-100"
-                  @click.stop
-                >
-                  <NIcon name="mdi:open-in-new" class="h-3 w-3" />
-                  Abrir reuniao
-                </a>
+              </div>
+              <div
+                class="mt-0.5 text-[10px] font-semibold flex items-center gap-1"
+                :class="mensalVsMesAnterior.class"
+              >
+                <NIcon :name="mensalVsMesAnterior.icon" class="w-3 h-3" />
+                <span class="tabular-nums">{{ mensalVsMesAnterior.text }}</span>
+                <span class="text-slate-500">vs ant.</span>
+              </div>
+            </div>
+            <div class="bg-amber-50 border border-amber-100 rounded-lg p-2.5">
+              <NTypo size="xs" tone="muted">Trimestral</NTypo>
+              <NTypo size="base" weight="bold" class="tabular-nums text-amber-600 leading-tight">
+                {{ formatCurrency(visitedStats.faturamentoTrimestral) }}
+              </NTypo>
+              <div
+                class="mt-1 text-[10px] font-semibold flex items-center gap-1"
+                :class="trimestralVsTrimestreAnterior.class"
+              >
+                <NIcon :name="trimestralVsTrimestreAnterior.icon" class="w-3 h-3" />
+                <span class="tabular-nums">{{ trimestralVsTrimestreAnterior.text }}</span>
+                <span class="text-slate-500">vs ant.</span>
+              </div>
+              <div
+                class="mt-0.5 text-[10px] font-semibold flex items-center gap-1"
+                :class="trimestralVsMesmoTrimestreAnoAnterior.class"
+              >
+                <NIcon :name="trimestralVsMesmoTrimestreAnoAnterior.icon" class="w-3 h-3" />
+                <span class="tabular-nums">{{ trimestralVsMesmoTrimestreAnoAnterior.text }}</span>
+                <span class="text-slate-500">vs ano ant.</span>
+              </div>
+            </div>
+            <div class="bg-orange-50 border border-orange-100 rounded-lg p-2.5">
+              <NTypo size="xs" tone="muted">Anual</NTypo>
+              <NTypo size="base" weight="bold" class="tabular-nums text-orange-500 leading-tight">
+                {{ formatCurrency(visitedStats.faturamentoAnual) }}
+              </NTypo>
+              <div
+                class="mt-1 text-[10px] font-semibold flex items-center gap-1"
+                :class="anualVsAnoAnterior.class"
+              >
+                <NIcon :name="anualVsAnoAnterior.icon" class="w-3 h-3" />
+                <span class="tabular-nums">{{ anualVsAnoAnterior.text }}</span>
+                <span class="text-slate-500">vs ano ant.</span>
               </div>
             </div>
           </div>
-        </NLayer>
-
-        <!-- Plano de ação + Clientes visíveis (linha 3, coluna esquerda) -->
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <!-- Mensagem quando não há clientes -->
-          <div
-            v-if="!clientes.length"
-            class="text-center py-12 lg:py-16 rounded-xl shadow-sm border border-gray-200 bg-white mx-4"
-          >
-            <div class="text-5xl lg:text-6xl mb-3 lg:mb-4">👥</div>
-            <NTypo as="h3" size="lg" weight="bold" class="mb-2 lg:text-xl"
-              >Nenhum cliente cadastrado ainda</NTypo
-            >
-            <NTypo size="sm" tone="muted" class="lg:text-base">
-              Comece adicionando seus clientes usando o formulário acima!
-            </NTypo>
-          </div>
+          <!-- /stats horizontais -->
 
           <NLayer
-            v-else
             variant="paper"
             size="base"
             radius="soft"
-            class="shadow-sm lg:shadow-lg md:order-2"
+            class="self-start shadow-sm lg:order-3 lg:col-start-1"
+          >
+            <div class="flex flex-col gap-3">
+              <div class="flex flex-wrap items-end gap-3">
+                <div class="min-w-[260px] flex-1">
+                  <NTypo
+                    as="label"
+                    size="xs"
+                    weight="semibold"
+                    tone="muted"
+                    class="block mb-1 leading-none"
+                  >
+                    Buscar
+                  </NTypo>
+                  <div class="relative">
+                    <NTypo
+                      as="span"
+                      size="sm"
+                      tone="muted"
+                      class="absolute left-3 top-1/2 -translate-y-1/2"
+                    >
+                      🔎
+                    </NTypo>
+                    <input
+                      v-model="searchQuery"
+                      type="text"
+                      placeholder="Nome, cidade, endereço ou CNPJ..."
+                      class="w-full pl-10 pr-3 py-2 rounded-lg border bg-white border-gray-200 focus:ring-2 focus:ring-sky-400 focus:border-sky-400 transition-colors"
+                    />
+                  </div>
+                </div>
+                <NButton
+                  v-if="searchQuery || filterSegmento || filterTipo"
+                  @click="handleClearFilters"
+                  variant="outline"
+                  size="zs"
+                >
+                  Limpar filtros
+                </NButton>
+              </div>
+
+              <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <div>
+                  <NTypo
+                    as="label"
+                    size="xs"
+                    weight="semibold"
+                    tone="muted"
+                    class="block mb-1 leading-none"
+                  >
+                    Segmento
+                  </NTypo>
+                  <select
+                    v-model="filterSegmento"
+                    class="w-full px-3 py-2 rounded-lg border bg-white border-gray-200 focus:ring-2 focus:ring-sky-400 focus:border-sky-400 transition-colors"
+                  >
+                    <option value="">Todos</option>
+                    <option value="joalheria">💎 Joalheria</option>
+                    <option value="relojoaria">⌚ Relojoaria</option>
+                    <option value="otica">👓 Ótica</option>
+                    <option value="outros">🏪 Outros</option>
+                  </select>
+                </div>
+
+                <div>
+                  <NTypo
+                    as="label"
+                    size="xs"
+                    weight="semibold"
+                    tone="muted"
+                    class="block mb-1 leading-none"
+                  >
+                    Status
+                  </NTypo>
+                  <select
+                    v-model="filterTipo"
+                    class="w-full px-3 py-2 rounded-lg border bg-white border-gray-200 focus:ring-2 focus:ring-sky-400 focus:border-sky-400 transition-colors"
+                  >
+                    <option value="">Todos</option>
+                    <option value="ativo">✅ Ativo (≤90d)</option>
+                    <option value="ativo_mes">📈 Ativo mes (venda no mes)</option>
+                    <option value="atencao">⚠️ Em atenção (91–180d)</option>
+                    <option value="critico">🚨 Crítico / Reativar (&gt;180d)</option>
+                    <option value="potencial">🎯 Potencial</option>
+                    <option value="inativo">⏸️ Inativo</option>
+                  </select>
+                </div>
+
+                <div>
+                  <NTypo
+                    as="label"
+                    size="xs"
+                    weight="semibold"
+                    tone="muted"
+                    class="block mb-1 leading-none"
+                  >
+                    Ranking
+                  </NTypo>
+                  <NSelect
+                    :model-value="topRankSelectValue"
+                    :options="rankPresets"
+                    size="md"
+                    class="w-full"
+                    :disabled="!maxRankLimit || mapViewMode === 'city'"
+                    @update:modelValue="handleTopRankSelect"
+                  />
+                </div>
+
+                <div>
+                  <NTypo
+                    as="label"
+                    size="xs"
+                    weight="semibold"
+                    tone="muted"
+                    class="block mb-1 leading-none"
+                  >
+                    Visualização
+                  </NTypo>
+                  <NSelect
+                    :model-value="mapViewMode"
+                    :options="mapViewOptions"
+                    size="md"
+                    class="w-full"
+                    @update:modelValue="handleMapViewModeChange"
+                  />
+                </div>
+              </div>
+            </div>
+          </NLayer>
+
+          <NLayer
+            variant="paper"
+            size="base"
+            radius="soft"
+            class="self-start shadow-sm lg:order-4 lg:col-start-1"
           >
             <div class="flex items-start justify-between gap-3">
               <div>
-                <NTypo as="h2" size="sm" weight="bold">Clientes visíveis no mapa</NTypo>
+                <NTypo as="h2" size="sm" weight="bold">Próximas apresentações</NTypo>
                 <NTypo size="xs" tone="muted" class="mt-0.5">
-                  {{ mapScopeDescription }}
+                  Reuniões agendadas online e presenciais com vendedor responsável.
                 </NTypo>
               </div>
               <span
-                class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-700"
+                class="inline-flex items-center rounded-full bg-cyan-100 px-2 py-0.5 text-[11px] font-semibold text-cyan-700"
               >
-                {{ mapVisibleClients.length }} clientes
+                {{ upcomingPresentations.length }} próximas
               </span>
             </div>
 
             <div
-              v-if="!mapVisibleClients.length"
+              v-if="!upcomingPresentations.length"
               class="mt-3 rounded-lg border border-dashed border-slate-200 p-4 text-center"
             >
-              <NTypo size="sm" tone="muted">Nenhum cliente no recorte atual do mapa.</NTypo>
+              <NTypo size="sm" tone="muted">
+                Nenhuma apresentação futura encontrada no histórico da carteira.
+              </NTypo>
             </div>
 
             <div
               v-else
               class="mt-3 divide-y rounded-lg border border-gray-100 bg-white overflow-hidden"
             >
-              <button
-                v-for="cliente in pagedMapVisibleClients"
-                :key="cliente.id"
-                type="button"
-                class="w-full px-3 py-3 text-left hover:bg-slate-50 transition-colors"
-                @click="selectClientFromList(cliente.id)"
+              <div
+                v-for="item in upcomingPresentations"
+                :key="item.id"
+                class="flex items-start justify-between gap-3 px-3 py-3 hover:bg-slate-50 transition-colors"
               >
-                <div class="flex items-start justify-between gap-3">
-                  <div class="min-w-0 flex-1">
-                    <NTypo weight="bold" class="truncate">{{ cliente.nome }}</NTypo>
-                    <NTypo size="xs" tone="muted" class="mt-1 truncate">
-                      <span>{{ cliente.cidade || 'Sem cidade' }}</span>
-                      <span v-if="cliente.segmento"> • {{ cliente.segmento }}</span>
-                    </NTypo>
-                  </div>
-                  <span
-                    class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold"
-                    :class="metaForClient(cliente).chipClass"
-                  >
-                    <span class="h-2 w-2 rounded-full" :class="metaForClient(cliente).dotClass" />
-                    {{ metaForClient(cliente).label }}
-                  </span>
-                </div>
-              </button>
-            </div>
-            <div
-              v-if="mapVisibleClients.length > MAP_VISIBLE_CLIENTS_PAGE_SIZE"
-              class="mt-3 flex items-center justify-between gap-3"
-            >
-              <NTypo size="xs" tone="muted">
-                Página {{ mapVisibleClientsPageSafe }} de {{ mapVisibleClientsTotalPages }}
-              </NTypo>
-              <div class="flex items-center gap-2">
-                <NButton
-                  variant="outline"
-                  size="zs"
-                  :disabled="mapVisibleClientsPageSafe <= 1"
-                  @click="goToPrevMapVisibleClientsPage"
+                <button
+                  type="button"
+                  class="min-w-0 flex-1 text-left"
+                  @click="selectClientFromList(item.clientId)"
                 >
-                  Anterior
-                </NButton>
-                <NButton
-                  variant="outline"
-                  size="zs"
-                  :disabled="mapVisibleClientsPageSafe >= mapVisibleClientsTotalPages"
-                  @click="goToNextMapVisibleClientsPage"
-                >
-                  Próxima
-                </NButton>
-              </div>
-            </div>
-          </NLayer>
-
-          <NLayer
-            v-if="actionPlanTop.length"
-            variant="paper"
-            size="base"
-            radius="soft"
-            class="shadow-sm lg:shadow-lg md:order-1"
-          >
-            <div class="flex items-start justify-between gap-3">
-              <div>
-                <NTypo as="h2" size="sm" weight="bold">Plano de ação</NTypo>
-                <NTypo size="xs" tone="muted" class="mt-0.5">
-                  Comece pelos críticos com maior impacto e follow-ups atrasados.
-                </NTypo>
-              </div>
-              <NButton
-                variant="outline"
-                size="zs"
-                leading-icon="mdi:refresh"
-                @click="loadClients()"
-              >
-                Atualizar
-              </NButton>
-            </div>
-
-            <div class="mt-3 divide-y rounded-lg border border-gray-100 bg-white overflow-hidden">
-              <NuxtLink
-                v-for="task in pagedActionPlanTop"
-                :key="task.clientId"
-                :to="`/admin/clients/${task.clientId}`"
-                class="block w-full px-3 py-3 hover:bg-slate-50 transition-colors"
-              >
-                <div class="flex items-start justify-between gap-3">
-                  <div class="min-w-0 flex-1">
+                  <div class="min-w-0">
                     <div class="flex flex-wrap items-center gap-2">
-                      <NTypo weight="bold" class="truncate">{{ task.nome }}</NTypo>
+                      <NTypo weight="bold" class="truncate">{{ item.clientName }}</NTypo>
                       <span
-                        class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold"
-                        :class="metaForKey(task.statusKey).chipClass"
+                        class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                        :class="
+                          item.mode === 'presencial'
+                            ? 'bg-amber-100 text-amber-800'
+                            : 'bg-blue-100 text-blue-800'
+                        "
                       >
-                        <span
-                          class="h-2 w-2 rounded-full"
-                          :class="metaForKey(task.statusKey).dotClass"
-                        />
-                        {{ metaForKey(task.statusKey).emoji }}
-                        {{ metaForKey(task.statusKey).label }}
+                        {{ item.mode === 'presencial' ? 'Presencial' : 'Online' }}
                       </span>
-                      <span
-                        class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-700"
-                      >
-                        {{ task.priority }}
-                      </span>
-
-                      <NButton
-                        v-if="task.telefone"
-                        variant="success"
-                        size="xs"
-                        leading-icon="mdi:whatsapp"
-                        :href="whatsAppUrl(task.telefone, task.nome)"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      />
                     </div>
-
                     <NTypo size="xs" tone="muted" class="mt-1 truncate">
-                      <span v-if="task.cidade">{{ task.cidade }}</span>
-                      <span v-if="task.cidade && task.segmento"> • </span>
-                      <span v-if="task.segmento">{{ task.segmento }}</span>
-                      <span v-if="task.valueMetricLabel && task.valueMetric > 0">
-                        • {{ task.valueMetricLabel }}</span
-                      >
-                    </NTypo>
-
-                    <NTypo v-if="task.reasons.length" size="xs" class="mt-1 text-slate-700">
-                      {{ task.suggestedActionLabel }} • {{ task.reasons.join(' · ') }}
+                      {{ formatDateTime(item.scheduledAt) }}
+                      <span v-if="item.city"> • {{ item.city }}</span>
                     </NTypo>
                   </div>
+                </button>
+                <div class="shrink-0 text-right">
+                  <NTypo size="xs" tone="muted">Vendedor</NTypo>
+                  <NTypo size="xs" weight="semibold">{{ item.sellerName }}</NTypo>
+                  <a
+                    v-if="item.mode === 'online' && item.meetingLink"
+                    :href="item.meetingLink"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="mt-1 inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700 hover:bg-blue-100"
+                    @click.stop
+                  >
+                    <NIcon name="mdi:open-in-new" class="h-3 w-3" />
+                    Abrir reuniao
+                  </a>
                 </div>
-              </NuxtLink>
-            </div>
-            <div
-              v-if="actionPlanTop.length > ACTION_PLAN_PAGE_SIZE"
-              class="mt-3 flex items-center justify-between gap-3"
-            >
-              <NTypo size="xs" tone="muted">
-                Página {{ actionPlanPageSafe }} de {{ actionPlanTotalPages }}
-              </NTypo>
-              <div class="flex items-center gap-2">
-                <NButton
-                  variant="outline"
-                  size="zs"
-                  :disabled="actionPlanPageSafe <= 1"
-                  @click="goToPrevActionPlanPage"
-                >
-                  Anterior
-                </NButton>
-                <NButton
-                  variant="outline"
-                  size="zs"
-                  :disabled="actionPlanPageSafe >= actionPlanTotalPages"
-                  @click="goToNextActionPlanPage"
-                >
-                  Próxima
-                </NButton>
               </div>
             </div>
           </NLayer>
 
-          <div
-            v-if="loadClientsError"
-            class="rounded-xl border border-red-200 bg-red-50 p-3 lg:p-4"
-          >
-            <NTypo size="sm" weight="semibold" class="text-red-700">
-              Falha ao carregar clientes: {{ loadClientsError }}
-            </NTypo>
-            <NTypo size="xs" tone="muted" class="mt-1">
-              Verifique se o Mongo está rodando e se `NUXT_MONGO_URI` / `NUXT_MONGO_DB_NAME` estão
-              configurados.
-            </NTypo>
+          <!-- Plano de ação + Clientes visíveis (linha 3, coluna esquerda) -->
+          <div class="grid grid-cols-1 gap-4 self-start md:grid-cols-2 lg:order-5 lg:col-start-1">
+            <!-- Mensagem quando não há clientes -->
+            <div
+              v-if="!clientes.length"
+              class="text-center py-12 lg:py-16 rounded-xl shadow-sm border border-gray-200 bg-white mx-4"
+            >
+              <div class="text-5xl lg:text-6xl mb-3 lg:mb-4">👥</div>
+              <NTypo as="h3" size="lg" weight="bold" class="mb-2 lg:text-xl"
+                >Nenhum cliente cadastrado ainda</NTypo
+              >
+              <NTypo size="sm" tone="muted" class="lg:text-base">
+                Comece adicionando seus clientes usando o formulário acima!
+              </NTypo>
+            </div>
+
+            <NLayer
+              v-else
+              variant="paper"
+              size="base"
+              radius="soft"
+              class="shadow-sm lg:shadow-lg md:order-2"
+            >
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <NTypo as="h2" size="sm" weight="bold">Clientes visíveis no mapa</NTypo>
+                  <NTypo size="xs" tone="muted" class="mt-0.5">
+                    {{ mapScopeDescription }}
+                  </NTypo>
+                </div>
+                <span
+                  class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-700"
+                >
+                  {{ mapVisibleClients.length }} clientes
+                </span>
+              </div>
+
+              <div
+                v-if="!mapVisibleClients.length"
+                class="mt-3 rounded-lg border border-dashed border-slate-200 p-4 text-center"
+              >
+                <NTypo size="sm" tone="muted">Nenhum cliente no recorte atual do mapa.</NTypo>
+              </div>
+
+              <div
+                v-else
+                class="mt-3 divide-y rounded-lg border border-gray-100 bg-white overflow-hidden"
+              >
+                <button
+                  v-for="cliente in pagedMapVisibleClients"
+                  :key="cliente.id"
+                  type="button"
+                  class="w-full px-3 py-3 text-left hover:bg-slate-50 transition-colors"
+                  @click="selectClientFromList(cliente.id)"
+                >
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0 flex-1">
+                      <NTypo weight="bold" class="truncate">{{ cliente.nome }}</NTypo>
+                      <NTypo size="xs" tone="muted" class="mt-1 truncate">
+                        <span>{{ cliente.cidade || 'Sem cidade' }}</span>
+                        <span v-if="cliente.segmento"> • {{ cliente.segmento }}</span>
+                      </NTypo>
+                    </div>
+                    <span
+                      class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold"
+                      :class="metaForClient(cliente).chipClass"
+                    >
+                      <span class="h-2 w-2 rounded-full" :class="metaForClient(cliente).dotClass" />
+                      {{ metaForClient(cliente).label }}
+                    </span>
+                  </div>
+                </button>
+              </div>
+              <div
+                v-if="mapVisibleClients.length > MAP_VISIBLE_CLIENTS_PAGE_SIZE"
+                class="mt-3 flex items-center justify-between gap-3"
+              >
+                <NTypo size="xs" tone="muted">
+                  Página {{ mapVisibleClientsPageSafe }} de {{ mapVisibleClientsTotalPages }}
+                </NTypo>
+                <div class="flex items-center gap-2">
+                  <NButton
+                    variant="outline"
+                    size="zs"
+                    :disabled="mapVisibleClientsPageSafe <= 1"
+                    @click="goToPrevMapVisibleClientsPage"
+                  >
+                    Anterior
+                  </NButton>
+                  <NButton
+                    variant="outline"
+                    size="zs"
+                    :disabled="mapVisibleClientsPageSafe >= mapVisibleClientsTotalPages"
+                    @click="goToNextMapVisibleClientsPage"
+                  >
+                    Próxima
+                  </NButton>
+                </div>
+              </div>
+            </NLayer>
+
+            <NLayer
+              v-if="actionPlanTop.length"
+              variant="paper"
+              size="base"
+              radius="soft"
+              class="shadow-sm lg:shadow-lg md:order-1"
+            >
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <NTypo as="h2" size="sm" weight="bold">Plano de ação</NTypo>
+                  <NTypo size="xs" tone="muted" class="mt-0.5">
+                    Comece pelos críticos com maior impacto e follow-ups atrasados.
+                  </NTypo>
+                </div>
+                <NButton
+                  variant="outline"
+                  size="zs"
+                  leading-icon="mdi:refresh"
+                  @click="loadClients()"
+                >
+                  Atualizar
+                </NButton>
+              </div>
+
+              <div class="mt-3 divide-y rounded-lg border border-gray-100 bg-white overflow-hidden">
+                <NuxtLink
+                  v-for="task in pagedActionPlanTop"
+                  :key="task.clientId"
+                  :to="`/admin/clients/${task.clientId}`"
+                  class="block w-full px-3 py-3 hover:bg-slate-50 transition-colors"
+                >
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0 flex-1">
+                      <div class="flex flex-wrap items-center gap-2">
+                        <NTypo weight="bold" class="truncate">{{ task.nome }}</NTypo>
+                        <span
+                          class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold"
+                          :class="metaForKey(task.statusKey).chipClass"
+                        >
+                          <span
+                            class="h-2 w-2 rounded-full"
+                            :class="metaForKey(task.statusKey).dotClass"
+                          />
+                          {{ metaForKey(task.statusKey).emoji }}
+                          {{ metaForKey(task.statusKey).label }}
+                        </span>
+                        <span
+                          class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-700"
+                        >
+                          {{ task.priority }}
+                        </span>
+
+                        <NButton
+                          v-if="task.telefone"
+                          variant="success"
+                          size="xs"
+                          leading-icon="mdi:whatsapp"
+                          :href="whatsAppUrl(task.telefone, task.nome)"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        />
+                      </div>
+
+                      <NTypo size="xs" tone="muted" class="mt-1 truncate">
+                        <span v-if="task.cidade">{{ task.cidade }}</span>
+                        <span v-if="task.cidade && task.segmento"> • </span>
+                        <span v-if="task.segmento">{{ task.segmento }}</span>
+                        <span v-if="task.valueMetricLabel && task.valueMetric > 0">
+                          • {{ task.valueMetricLabel }}</span
+                        >
+                      </NTypo>
+
+                      <NTypo v-if="task.reasons.length" size="xs" class="mt-1 text-slate-700">
+                        {{ task.suggestedActionLabel }} • {{ task.reasons.join(' · ') }}
+                      </NTypo>
+                    </div>
+                  </div>
+                </NuxtLink>
+              </div>
+              <div
+                v-if="actionPlanTop.length > ACTION_PLAN_PAGE_SIZE"
+                class="mt-3 flex items-center justify-between gap-3"
+              >
+                <NTypo size="xs" tone="muted">
+                  Página {{ actionPlanPageSafe }} de {{ actionPlanTotalPages }}
+                </NTypo>
+                <div class="flex items-center gap-2">
+                  <NButton
+                    variant="outline"
+                    size="zs"
+                    :disabled="actionPlanPageSafe <= 1"
+                    @click="goToPrevActionPlanPage"
+                  >
+                    Anterior
+                  </NButton>
+                  <NButton
+                    variant="outline"
+                    size="zs"
+                    :disabled="actionPlanPageSafe >= actionPlanTotalPages"
+                    @click="goToNextActionPlanPage"
+                  >
+                    Próxima
+                  </NButton>
+                </div>
+              </div>
+            </NLayer>
+
+            <div
+              v-if="loadClientsError"
+              class="rounded-xl border border-red-200 bg-red-50 p-3 lg:p-4"
+            >
+              <NTypo size="sm" weight="semibold" class="text-red-700">
+                Falha ao carregar clientes: {{ loadClientsError }}
+              </NTypo>
+              <NTypo size="xs" tone="muted" class="mt-1">
+                Verifique se o Mongo está rodando e se `NUXT_MONGO_URI` / `NUXT_MONGO_DB_NAME` estão
+                configurados.
+              </NTypo>
+            </div>
           </div>
+          <!-- /plano + clientes grid -->
         </div>
-        <!-- /plano + clientes grid -->
+        <!-- /left stack -->
       </div>
       <!-- /outer two-col grid -->
 

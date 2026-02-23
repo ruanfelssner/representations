@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-[360px]">
+  <div class="flex h-full w-full">
     <div class="relative h-full w-full">
       <ClientOnly>
         <GoogleMap
