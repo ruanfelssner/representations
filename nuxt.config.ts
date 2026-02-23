@@ -16,6 +16,7 @@ export default defineNuxtConfig({
     googleMapsServerApiKey: '',
     mongoUri: '',
     mongoDbName: '',
+    awesomeApiKey: '',
     public: {
       googleMapsApiKey: '',
       siteName: 'Representations',
