@@ -60,9 +60,7 @@ type HistoricoSummaryResult = {
 
 declare global {
   // eslint-disable-next-line no-var
-  var __clientsHistoricoSummaryCache:
-    | { at: number; value: HistoricoSummaryResult }
-    | undefined
+  var __clientsHistoricoSummaryCache: { at: number; value: HistoricoSummaryResult } | undefined
 }
 
 async function getHistoricoSummary(db: any): Promise<HistoricoSummaryResult> {
@@ -81,7 +79,9 @@ async function getHistoricoSummary(db: any): Promise<HistoricoSummaryResult> {
   const prevMonthStart = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0))
   const month2AgoStart = new Date(Date.UTC(year, month - 2, 1, 0, 0, 0, 0))
   const prevMonthDurationMs = Math.max(0, now.getTime() - monthStart.getTime())
-  const prevMonthCutoff = new Date(Math.min(monthStart.getTime(), prevMonthStart.getTime() + prevMonthDurationMs))
+  const prevMonthCutoff = new Date(
+    Math.min(monthStart.getTime(), prevMonthStart.getTime() + prevMonthDurationMs)
+  )
 
   const monthStartPrevYear = new Date(Date.UTC(year - 1, month, 1, 0, 0, 0, 0))
   const nextMonthStartPrevYear = new Date(Date.UTC(year - 1, month + 1, 1, 0, 0, 0, 0))
@@ -89,10 +89,14 @@ async function getHistoricoSummary(db: any): Promise<HistoricoSummaryResult> {
   const quarterStart = new Date(Date.UTC(year, quarterStartMonth, 1, 0, 0, 0, 0))
   const prevQuarterStart = new Date(Date.UTC(year, quarterStartMonth - 3, 1, 0, 0, 0, 0))
   const quarterDurationMs = Math.max(0, now.getTime() - quarterStart.getTime())
-  const prevQuarterCutoff = new Date(Math.min(quarterStart.getTime(), prevQuarterStart.getTime() + quarterDurationMs))
+  const prevQuarterCutoff = new Date(
+    Math.min(quarterStart.getTime(), prevQuarterStart.getTime() + quarterDurationMs)
+  )
 
   const quarterStartPrevYear = new Date(Date.UTC(year - 1, quarterStartMonth, 1, 0, 0, 0, 0))
-  const nextQuarterStartPrevYear = new Date(Date.UTC(year - 1, quarterStartMonth + 3, 1, 0, 0, 0, 0))
+  const nextQuarterStartPrevYear = new Date(
+    Date.UTC(year - 1, quarterStartMonth + 3, 1, 0, 0, 0, 0)
+  )
   const quarterPrevYearCutoff = new Date(
     Math.min(nextQuarterStartPrevYear.getTime(), quarterStartPrevYear.getTime() + quarterDurationMs)
   )
@@ -100,14 +104,18 @@ async function getHistoricoSummary(db: any): Promise<HistoricoSummaryResult> {
   const yearStart = new Date(Date.UTC(year, 0, 1, 0, 0, 0, 0))
   const prevYearStart = new Date(Date.UTC(year - 1, 0, 1, 0, 0, 0, 0))
   const yearDurationMs = Math.max(0, now.getTime() - yearStart.getTime())
-  const prevYearCutoff = new Date(Math.min(yearStart.getTime(), prevYearStart.getTime() + yearDurationMs))
+  const prevYearCutoff = new Date(
+    Math.min(yearStart.getTime(), prevYearStart.getTime() + yearDurationMs)
+  )
   const farFuture = new Date('9999-12-31T00:00:00.000Z')
 
   const pipeline: any[] = [
     {
       $addFields: {
         dataDate: { $convert: { input: '$data', to: 'date', onError: null, onNull: null } },
-        proximoContatoDate: { $convert: { input: '$proximoContato', to: 'date', onError: null, onNull: null } },
+        proximoContatoDate: {
+          $convert: { input: '$proximoContato', to: 'date', onError: null, onNull: null },
+        },
         totalVendaNum: { $convert: { input: '$totalVenda', to: 'double', onError: 0, onNull: 0 } },
         clientIdStr: { $toString: '$clientId' },
       },
@@ -123,13 +131,20 @@ async function getHistoricoSummary(db: any): Promise<HistoricoSummaryResult> {
               nextActionAt: {
                 $min: {
                   $cond: [
-                    { $and: [{ $ne: ['$proximoContatoDate', null] }, { $gte: ['$proximoContatoDate', now] }] },
+                    {
+                      $and: [
+                        { $ne: ['$proximoContatoDate', null] },
+                        { $gte: ['$proximoContatoDate', now] },
+                      ],
+                    },
                     '$proximoContatoDate',
                     farFuture,
                   ],
                 },
               },
-              totalAllTime: { $sum: { $cond: [{ $in: ['$tipo', SALES_TYPES] }, '$totalVendaNum', 0] } },
+              totalAllTime: {
+                $sum: { $cond: [{ $in: ['$tipo', SALES_TYPES] }, '$totalVendaNum', 0] },
+              },
               total90d: {
                 $sum: {
                   $cond: [
@@ -142,7 +157,9 @@ async function getHistoricoSummary(db: any): Promise<HistoricoSummaryResult> {
               total12m: {
                 $sum: {
                   $cond: [
-                    { $and: [{ $in: ['$tipo', SALES_TYPES] }, { $gte: ['$dataDate', days365Ago] }] },
+                    {
+                      $and: [{ $in: ['$tipo', SALES_TYPES] }, { $gte: ['$dataDate', days365Ago] }],
+                    },
                     '$totalVendaNum',
                     0,
                   ],
@@ -151,7 +168,9 @@ async function getHistoricoSummary(db: any): Promise<HistoricoSummaryResult> {
               totalThisMonth: {
                 $sum: {
                   $cond: [
-                    { $and: [{ $in: ['$tipo', SALES_TYPES] }, { $gte: ['$dataDate', monthStart] }] },
+                    {
+                      $and: [{ $in: ['$tipo', SALES_TYPES] }, { $gte: ['$dataDate', monthStart] }],
+                    },
                     '$totalVendaNum',
                     0,
                   ],
@@ -197,7 +216,13 @@ async function getHistoricoSummary(db: any): Promise<HistoricoSummaryResult> {
               month: {
                 $sum: {
                   $cond: [
-                    { $and: [{ $in: ['$tipo', SALES_TYPES] }, { $gte: ['$dataDate', monthStart] }, { $lt: ['$dataDate', nextMonthStart] }] },
+                    {
+                      $and: [
+                        { $in: ['$tipo', SALES_TYPES] },
+                        { $gte: ['$dataDate', monthStart] },
+                        { $lt: ['$dataDate', nextMonthStart] },
+                      ],
+                    },
                     '$totalVendaNum',
                     0,
                   ],
@@ -206,7 +231,13 @@ async function getHistoricoSummary(db: any): Promise<HistoricoSummaryResult> {
               monthPrev: {
                 $sum: {
                   $cond: [
-                    { $and: [{ $in: ['$tipo', SALES_TYPES] }, { $gte: ['$dataDate', prevMonthStart] }, { $lt: ['$dataDate', monthStart] }] },
+                    {
+                      $and: [
+                        { $in: ['$tipo', SALES_TYPES] },
+                        { $gte: ['$dataDate', prevMonthStart] },
+                        { $lt: ['$dataDate', monthStart] },
+                      ],
+                    },
                     '$totalVendaNum',
                     0,
                   ],
@@ -215,7 +246,13 @@ async function getHistoricoSummary(db: any): Promise<HistoricoSummaryResult> {
               month2Ago: {
                 $sum: {
                   $cond: [
-                    { $and: [{ $in: ['$tipo', SALES_TYPES] }, { $gte: ['$dataDate', month2AgoStart] }, { $lt: ['$dataDate', prevMonthStart] }] },
+                    {
+                      $and: [
+                        { $in: ['$tipo', SALES_TYPES] },
+                        { $gte: ['$dataDate', month2AgoStart] },
+                        { $lt: ['$dataDate', prevMonthStart] },
+                      ],
+                    },
                     '$totalVendaNum',
                     0,
                   ],
@@ -224,7 +261,13 @@ async function getHistoricoSummary(db: any): Promise<HistoricoSummaryResult> {
               monthPrevYear: {
                 $sum: {
                   $cond: [
-                    { $and: [{ $in: ['$tipo', SALES_TYPES] }, { $gte: ['$dataDate', monthStartPrevYear] }, { $lt: ['$dataDate', nextMonthStartPrevYear] }] },
+                    {
+                      $and: [
+                        { $in: ['$tipo', SALES_TYPES] },
+                        { $gte: ['$dataDate', monthStartPrevYear] },
+                        { $lt: ['$dataDate', nextMonthStartPrevYear] },
+                      ],
+                    },
                     '$totalVendaNum',
                     0,
                   ],
@@ -233,7 +276,13 @@ async function getHistoricoSummary(db: any): Promise<HistoricoSummaryResult> {
               quarter: {
                 $sum: {
                   $cond: [
-                    { $and: [{ $in: ['$tipo', SALES_TYPES] }, { $gte: ['$dataDate', quarterStart] }, { $lt: ['$dataDate', now] }] },
+                    {
+                      $and: [
+                        { $in: ['$tipo', SALES_TYPES] },
+                        { $gte: ['$dataDate', quarterStart] },
+                        { $lt: ['$dataDate', now] },
+                      ],
+                    },
                     '$totalVendaNum',
                     0,
                   ],
@@ -242,7 +291,13 @@ async function getHistoricoSummary(db: any): Promise<HistoricoSummaryResult> {
               quarterPrev: {
                 $sum: {
                   $cond: [
-                    { $and: [{ $in: ['$tipo', SALES_TYPES] }, { $gte: ['$dataDate', prevQuarterStart] }, { $lt: ['$dataDate', prevQuarterCutoff] }] },
+                    {
+                      $and: [
+                        { $in: ['$tipo', SALES_TYPES] },
+                        { $gte: ['$dataDate', prevQuarterStart] },
+                        { $lt: ['$dataDate', prevQuarterCutoff] },
+                      ],
+                    },
                     '$totalVendaNum',
                     0,
                   ],
@@ -251,7 +306,13 @@ async function getHistoricoSummary(db: any): Promise<HistoricoSummaryResult> {
               quarterPrevYear: {
                 $sum: {
                   $cond: [
-                    { $and: [{ $in: ['$tipo', SALES_TYPES] }, { $gte: ['$dataDate', quarterStartPrevYear] }, { $lt: ['$dataDate', quarterPrevYearCutoff] }] },
+                    {
+                      $and: [
+                        { $in: ['$tipo', SALES_TYPES] },
+                        { $gte: ['$dataDate', quarterStartPrevYear] },
+                        { $lt: ['$dataDate', quarterPrevYearCutoff] },
+                      ],
+                    },
                     '$totalVendaNum',
                     0,
                   ],
@@ -260,7 +321,13 @@ async function getHistoricoSummary(db: any): Promise<HistoricoSummaryResult> {
               year: {
                 $sum: {
                   $cond: [
-                    { $and: [{ $in: ['$tipo', SALES_TYPES] }, { $gte: ['$dataDate', yearStart] }, { $lt: ['$dataDate', now] }] },
+                    {
+                      $and: [
+                        { $in: ['$tipo', SALES_TYPES] },
+                        { $gte: ['$dataDate', yearStart] },
+                        { $lt: ['$dataDate', now] },
+                      ],
+                    },
                     '$totalVendaNum',
                     0,
                   ],
@@ -269,7 +336,13 @@ async function getHistoricoSummary(db: any): Promise<HistoricoSummaryResult> {
               yearPrevYear: {
                 $sum: {
                   $cond: [
-                    { $and: [{ $in: ['$tipo', SALES_TYPES] }, { $gte: ['$dataDate', prevYearStart] }, { $lt: ['$dataDate', prevYearCutoff] }] },
+                    {
+                      $and: [
+                        { $in: ['$tipo', SALES_TYPES] },
+                        { $gte: ['$dataDate', prevYearStart] },
+                        { $lt: ['$dataDate', prevYearCutoff] },
+                      ],
+                    },
                     '$totalVendaNum',
                     0,
                   ],
@@ -295,7 +368,8 @@ async function getHistoricoSummary(db: any): Promise<HistoricoSummaryResult> {
   for (const r of rows as any[]) {
     const clientId = String(r?._id || '')
     if (!clientId) continue
-    const lastContactAt = r.lastContactAt instanceof Date ? r.lastContactAt.toISOString() : undefined
+    const lastContactAt =
+      r.lastContactAt instanceof Date ? r.lastContactAt.toISOString() : undefined
     const nextActionAt =
       r.nextActionAt instanceof Date && r.nextActionAt.getTime() !== farFuture.getTime()
         ? r.nextActionAt.toISOString()
@@ -340,11 +414,11 @@ async function getHistoricoSummary(db: any): Promise<HistoricoSummaryResult> {
 
 async function populateVisitas(db: any, clients: any[]): Promise<void> {
   if (!clients.length) return
-  
+
   // Coletar tanto ObjectId quanto string do _id
   const clientIdsAsObjects: any[] = []
   const clientIdsAsStrings: string[] = []
-  
+
   for (const c of clients) {
     if (c._id) {
       clientIdsAsObjects.push(c._id) // ObjectId original
@@ -352,34 +426,33 @@ async function populateVisitas(db: any, clients: any[]): Promise<void> {
       clientIdsAsStrings.push(idStr) // String
     }
   }
-  
+
   if (!clientIdsAsObjects.length) return
-  
+
   // Buscar usando $or para cobrir ambos os casos (ObjectId e string)
   const historico = await db
     .collection('historicoCliente')
     .find(
-      { 
-        $or: [
-          { clientId: { $in: clientIdsAsObjects } },
-          { clientId: { $in: clientIdsAsStrings } }
-        ]
+      {
+        $or: [{ clientId: { $in: clientIdsAsObjects } }, { clientId: { $in: clientIdsAsStrings } }],
       },
-      { 
-        projection: { 
-          clientId: 1, 
-          tipo: 1, 
-          data: 1, 
-          descricao: 1, 
+      {
+        projection: {
+          clientId: 1,
+          userId: 1,
+          tipo: 1,
+          data: 1,
+          descricao: 1,
+          meetingLink: 1,
           proximoContato: 1,
           totalVenda: 1,
           createdAt: 1,
         },
-        sort: { data: -1 }
+        sort: { data: -1 },
       }
     )
     .toArray()
-  
+
   const visitasByClientId = new Map<string, any[]>()
   for (const evento of historico) {
     // Normalizar clientId para string hexadecimal
@@ -398,23 +471,25 @@ async function populateVisitas(db: any, clients: any[]): Promise<void> {
         clientIdStr = String(evento.clientId)
       }
     }
-    
+
     if (!clientIdStr) continue
-    
+
     if (!visitasByClientId.has(clientIdStr)) {
       visitasByClientId.set(clientIdStr, [])
     }
-    
+
     visitasByClientId.get(clientIdStr)!.push({
+      userId: evento.userId,
       tipo: evento.tipo,
       data: evento.data,
       descricao: evento.descricao,
+      meetingLink: evento.meetingLink,
       proximoContato: evento.proximoContato,
       totalVenda: evento.totalVenda,
       createdAt: evento.createdAt,
     })
   }
-  
+
   for (const client of clients) {
     let clientIdStr = ''
     if (client._id) {
@@ -426,14 +501,17 @@ async function populateVisitas(db: any, clients: any[]): Promise<void> {
         clientIdStr = String(client._id)
       }
     }
-    
+
     const visitas = visitasByClientId.get(clientIdStr) || []
     client.visitas = visitas
   }
 }
 
 export default defineEventHandler(async (event) => {
-  const url = new URL((event as any)?.node?.req?.url || (event as any)?.req?.url || '', 'http://localhost')
+  const url = new URL(
+    (event as any)?.node?.req?.url || (event as any)?.req?.url || '',
+    'http://localhost'
+  )
   const queryParsed = ClientsQuerySchema.safeParse({
     exclude: url.searchParams.getAll('exclude'),
     stateId: url.searchParams.get('stateId') || undefined,
@@ -451,7 +529,12 @@ export default defineEventHandler(async (event) => {
 
   const db = await getMongoDb()
   await ensureTerritoryIndexes(db)
-  const { byClientId: summaryByClientId, salesTotals, contactsThisMonth, contactsPrevMonth } = await getHistoricoSummary(db)
+  const {
+    byClientId: summaryByClientId,
+    salesTotals,
+    contactsThisMonth,
+    contactsPrevMonth,
+  } = await getHistoricoSummary(db)
   const clients = await db
     .collection('clients')
     .find({}, { projection: { rawOrders: 0 } })
@@ -482,9 +565,11 @@ export default defineEventHandler(async (event) => {
   })
 
   let filtered = excludeInactive ? mapped.filter((c: any) => c?.status !== 'inativo') : mapped
-  if (stateIdFilter) filtered = filtered.filter((c: any) => String(c?.stateId || '') === stateIdFilter)
+  if (stateIdFilter)
+    filtered = filtered.filter((c: any) => String(c?.stateId || '') === stateIdFilter)
   if (cityIdFilter) filtered = filtered.filter((c: any) => String(c?.cityId || '') === cityIdFilter)
-  if (regionIdFilter) filtered = filtered.filter((c: any) => String(c?.regionId || '') === regionIdFilter)
+  if (regionIdFilter)
+    filtered = filtered.filter((c: any) => String(c?.regionId || '') === regionIdFilter)
 
   const center = filtered.reduce(
     (acc: { lat: number; lng: number; n: number }, c: any) => {
@@ -503,5 +588,8 @@ export default defineEventHandler(async (event) => {
       ? { center: { lat: center.lat / center.n, lng: center.lng / center.n }, zoom: 7 }
       : { center: { lat: -27.5954, lng: -48.548 }, zoom: 7 }
 
-  return { success: true, data: { clients: filtered, mapSettings, salesTotals, contactsThisMonth, contactsPrevMonth } }
+  return {
+    success: true,
+    data: { clients: filtered, mapSettings, salesTotals, contactsThisMonth, contactsPrevMonth },
+  }
 })

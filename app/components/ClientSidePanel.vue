@@ -33,11 +33,11 @@
               <NTypo v-if="clientData?.endereco" size="xs" class="text-white/90 mt-1">
                 {{ clientData.endereco }}
               </NTypo>
-              
+
               <NTypo v-if="clientData?.email" size="xs" class="text-white/90 mt-1">
                 {{ clientData.email }}
               </NTypo>
-              
+
               <NTypo v-if="clientData?.telefone" size="xs" class="text-white/90 mt-1">
                 {{ clientData.telefone }}
               </NTypo>
@@ -85,13 +85,13 @@
                     class="w-full rounded-lg px-3 py-2 text-left text-sm text-[color:var(--ntypo-default)] hover:bg-[color:var(--layer-muted)]"
                     @click="selectAction('visita_fisica')"
                   >
-                    Visita fisica
+                    Agendar apresentação presencial
                   </button>
                   <button
                     class="w-full rounded-lg px-3 py-2 text-left text-sm text-[color:var(--ntypo-default)] hover:bg-[color:var(--layer-muted)]"
                     @click="selectAction('atendimento_online')"
                   >
-                    Atendimento online
+                    Agendar apresentação online
                   </button>
                   <button
                     class="w-full rounded-lg px-3 py-2 text-left text-sm text-[color:var(--ntypo-default)] hover:bg-[color:var(--layer-muted)]"
@@ -527,9 +527,9 @@ function labelTipo(tipo: string) {
   if (tipo === 'venda_fisica') return 'Venda física'
   if (tipo === 'venda_online') return 'Venda online'
   if (tipo === 'venda_telefone') return 'Venda por telefone'
-  if (tipo === 'visita_fisica') return 'Visita'
+  if (tipo === 'visita_fisica') return 'Apresentação presencial'
   if (tipo === 'ligacao') return 'Ligação'
-  if (tipo === 'atendimento_online') return 'Atendimento online'
+  if (tipo === 'atendimento_online') return 'Apresentação online'
   return tipo
 }
 

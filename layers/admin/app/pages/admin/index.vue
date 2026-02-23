@@ -247,7 +247,7 @@
         </NLayer>
 
         <!-- Stats — linha 2, coluna esquerda -->
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
           <div class="bg-emerald-50 border border-emerald-100 rounded-lg p-2.5">
             <NTypo size="xs" tone="muted">Clientes</NTypo>
             <NTypo size="base" weight="bold" class="tabular-nums text-emerald-500 leading-tight">
@@ -276,6 +276,22 @@
               <NIcon :name="contatosVsMesAnterior.icon" class="w-3 h-3" />
               <span class="tabular-nums">{{ contatosVsMesAnterior.text }}</span>
               <span class="text-slate-500">vs ant.</span>
+            </div>
+          </div>
+          <div class="bg-cyan-50 border border-cyan-100 rounded-lg p-2.5">
+            <NTypo size="xs" tone="muted">Apresentações / mês</NTypo>
+            <NTypo size="base" weight="bold" class="tabular-nums text-cyan-600 leading-tight">
+              {{ formatCompactNumber(visitedStats.apresentacoesNoMes) }}
+            </NTypo>
+            <div class="mt-1 text-[10px] font-semibold flex flex-wrap gap-x-2 gap-y-0.5">
+              <span class="inline-flex items-center gap-1 text-slate-700">
+                <NIcon name="mdi:storefront-outline" class="h-3 w-3" />
+                {{ visitedStats.apresentacoesPresencialNoMes }} presencial
+              </span>
+              <span class="inline-flex items-center gap-1 text-slate-700">
+                <NIcon name="mdi:laptop" class="h-3 w-3" />
+                {{ visitedStats.apresentacoesOnlineNoMes }} online
+              </span>
             </div>
           </div>
           <div class="bg-violet-50 border border-violet-100 rounded-lg p-2.5">
@@ -359,6 +375,83 @@
           </div>
         </div>
         <!-- /stats horizontais -->
+
+        <NLayer variant="paper" size="base" radius="soft" class="shadow-sm lg:col-start-1">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <NTypo as="h2" size="sm" weight="bold">Próximas apresentações</NTypo>
+              <NTypo size="xs" tone="muted" class="mt-0.5">
+                Reuniões agendadas online e presenciais com vendedor responsável.
+              </NTypo>
+            </div>
+            <span
+              class="inline-flex items-center rounded-full bg-cyan-100 px-2 py-0.5 text-[11px] font-semibold text-cyan-700"
+            >
+              {{ upcomingPresentations.length }} próximas
+            </span>
+          </div>
+
+          <div
+            v-if="!upcomingPresentations.length"
+            class="mt-3 rounded-lg border border-dashed border-slate-200 p-4 text-center"
+          >
+            <NTypo size="sm" tone="muted">
+              Nenhuma apresentação futura encontrada no histórico da carteira.
+            </NTypo>
+          </div>
+
+          <div
+            v-else
+            class="mt-3 divide-y rounded-lg border border-gray-100 bg-white overflow-hidden"
+          >
+            <div
+              v-for="item in upcomingPresentations"
+              :key="item.id"
+              class="flex items-start justify-between gap-3 px-3 py-3 hover:bg-slate-50 transition-colors"
+            >
+              <button
+                type="button"
+                class="min-w-0 flex-1 text-left"
+                @click="selectClientFromList(item.clientId)"
+              >
+                <div class="min-w-0">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <NTypo weight="bold" class="truncate">{{ item.clientName }}</NTypo>
+                    <span
+                      class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                      :class="
+                        item.mode === 'presencial'
+                          ? 'bg-amber-100 text-amber-800'
+                          : 'bg-blue-100 text-blue-800'
+                      "
+                    >
+                      {{ item.mode === 'presencial' ? 'Presencial' : 'Online' }}
+                    </span>
+                  </div>
+                  <NTypo size="xs" tone="muted" class="mt-1 truncate">
+                    {{ formatDateTime(item.scheduledAt) }}
+                    <span v-if="item.city"> • {{ item.city }}</span>
+                  </NTypo>
+                </div>
+              </button>
+              <div class="shrink-0 text-right">
+                <NTypo size="xs" tone="muted">Vendedor</NTypo>
+                <NTypo size="xs" weight="semibold">{{ item.sellerName }}</NTypo>
+                <a
+                  v-if="item.mode === 'online' && item.meetingLink"
+                  :href="item.meetingLink"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="mt-1 inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700 hover:bg-blue-100"
+                  @click.stop
+                >
+                  <NIcon name="mdi:open-in-new" class="h-3 w-3" />
+                  Abrir reuniao
+                </a>
+              </div>
+            </div>
+          </div>
+        </NLayer>
 
         <!-- Plano de ação + Clientes visíveis (linha 3, coluna esquerda) -->
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -670,6 +763,18 @@ type ClientMapPosition = {
   approximate: boolean
 }
 
+type UpcomingPresentation = {
+  id: string
+  clientId: string
+  clientName: string
+  city: string
+  sellerId: string
+  sellerName: string
+  mode: 'presencial' | 'online'
+  scheduledAt: string
+  meetingLink?: string
+}
+
 const visitedMapData = ref<MapData | null>(null)
 const scCityFeatures = ref<CityGeoFeature[]>([])
 const loadedCityUfKey = ref('')
@@ -704,6 +809,7 @@ const contactsPrevMonth = ref(0)
 const loadClientsError = ref('')
 const isSidePanelOpen = ref(false)
 const selectedClient = ref<Cliente | null>(null)
+const presentationSellers = ref<Array<{ id: string; nome: string }>>([])
 const isModalNovaVisitaOpen = ref(false)
 const modalActionType = ref<
   | 'visita_fisica'
@@ -1000,7 +1106,7 @@ function normalizeUf(value: unknown) {
 
 function collectPortfolioUfs() {
   const ufs = new Set<string>()
-  for (const cliente of clientes.value as any[]) {
+  for (const cliente of mapScopedClientes.value as any[]) {
     const uf = normalizeUf(cliente?.estado || cliente?.endereco?.uf)
     if (uf) ufs.add(uf)
   }
@@ -1057,6 +1163,18 @@ async function loadTerritories() {
   }
 }
 
+async function loadPresentationSellers() {
+  try {
+    const res = await $fetch<{ success: boolean; data: Array<{ id: string; nome: string }> }>(
+      '/api/v1/users?role=vendedor&ativo=true'
+    )
+    presentationSellers.value = Array.isArray(res?.data) ? res.data : []
+  } catch (error) {
+    console.error('Erro ao carregar vendedores para apresentações:', error)
+    presentationSellers.value = []
+  }
+}
+
 watch(mapViewMode, () => {
   selectedCityId.value = ''
   cityModeState.value = 'overview'
@@ -1078,6 +1196,7 @@ onMounted(async () => {
 
     await loadClients()
     await loadTerritories()
+    await loadPresentationSellers()
   } catch (error) {
     console.error('Erro ao carregar dados do mapa:', error)
   }
@@ -1771,6 +1890,85 @@ const carteiraBuckets = computed(() => {
   }
 })
 
+function presentationModeForEvent(evento: any): 'presencial' | 'online' | null {
+  const tipo = String(evento?.tipo || '')
+  if (tipo === 'visita_fisica') return 'presencial'
+  if (tipo === 'atendimento_online') return 'online'
+  return null
+}
+
+function normalizeExternalUrl(value: unknown) {
+  const link = String(value || '').trim()
+  if (!link) return undefined
+  if (/^https?:\/\//i.test(link)) return link
+  return `https://${link}`
+}
+
+const presentationSellersById = computed(() => {
+  const map = new Map<string, string>()
+  for (const seller of presentationSellers.value) {
+    map.set(String(seller.id), seller.nome)
+  }
+  return map
+})
+
+const presentationInsights = computed(() => {
+  const now = new Date()
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+  const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+
+  let monthTotal = 0
+  let monthPresencial = 0
+  let monthOnline = 0
+  const upcoming: UpcomingPresentation[] = []
+
+  for (const cliente of mapScopedClientes.value as any[]) {
+    const visitas = Array.isArray(cliente?.visitas) ? cliente.visitas : []
+    for (let index = 0; index < visitas.length; index += 1) {
+      const evento = visitas[index]
+      const mode = presentationModeForEvent(evento)
+      if (!mode) continue
+
+      const dateValue = new Date(String(evento?.data || ''))
+      if (Number.isNaN(dateValue.getTime())) continue
+
+      if (dateValue >= monthStart && dateValue < nextMonthStart) {
+        monthTotal += 1
+        if (mode === 'presencial') monthPresencial += 1
+        if (mode === 'online') monthOnline += 1
+      }
+
+      if (dateValue >= now) {
+        const clientId = String(cliente?.id || '')
+        if (!clientId) continue
+        const sellerId = String(evento?.userId || '')
+        upcoming.push({
+          id: `${clientId}:${evento?.data || 'sem-data'}:${index}`,
+          clientId,
+          clientName: String(cliente?.nome || 'Cliente'),
+          city: String(cliente?.cidade || cliente?.endereco?.cidade || ''),
+          sellerId,
+          sellerName: presentationSellersById.value.get(sellerId) || 'Sem vendedor',
+          mode,
+          scheduledAt: dateValue.toISOString(),
+          meetingLink: mode === 'online' ? normalizeExternalUrl(evento?.meetingLink) : undefined,
+        })
+      }
+    }
+  }
+
+  upcoming.sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
+
+  return {
+    monthTotal,
+    monthPresencial,
+    monthOnline,
+    upcoming,
+  }
+})
+
+const upcomingPresentations = computed(() => presentationInsights.value.upcoming.slice(0, 8))
+
 const visitedStats = computed(() => {
   const carteira = carteiraBuckets.value
   return {
@@ -1782,6 +1980,9 @@ const visitedStats = computed(() => {
     ativosAmarelo: carteira.amarelo,
     ativosVermelho: carteira.vermelho,
     contatosNoMes: contactsThisMonth.value,
+    apresentacoesNoMes: presentationInsights.value.monthTotal,
+    apresentacoesPresencialNoMes: presentationInsights.value.monthPresencial,
+    apresentacoesOnlineNoMes: presentationInsights.value.monthOnline,
     faturamentoMensal: salesTotals.value.month,
     faturamentoTrimestral: salesTotals.value.quarter,
     faturamentoAnual: salesTotals.value.year,
@@ -1962,6 +2163,16 @@ function formatDate(dateString: string): string {
   }).format(date)
 }
 
+function formatDateTime(dateString: string): string {
+  const date = new Date(dateString)
+  return new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date)
+}
+
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
@@ -1997,7 +2208,15 @@ function selectClientFromList(clientId: string) {
   isSidePanelOpen.value = true
 }
 
-function handleAddAction(action: 'visita_fisica' | 'atendimento_online' | 'venda' | 'ligacao') {
+function handleAddAction(
+  action:
+    | 'visita_fisica'
+    | 'atendimento_online'
+    | 'ligacao'
+    | 'venda_fisica'
+    | 'venda_online'
+    | 'venda_telefone'
+) {
   editingEvento.value = null
   modalActionType.value = action
   isModalNovaVisitaOpen.value = true

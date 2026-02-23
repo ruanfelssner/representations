@@ -3,27 +3,43 @@
     <Transition name="fade">
       <div v-if="isOpen" class="fixed inset-0 z-50 overflow-y-auto">
         <!-- Overlay -->
-        <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity" @click="$emit('close')" />
+        <div
+          class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+          @click="$emit('close')"
+        />
 
         <!-- Modal -->
         <div class="flex min-h-full items-center justify-center p-4">
-          <div class="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+          <div
+            class="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+          >
             <!-- Header -->
-            <div class="bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-5 text-white flex-shrink-0">
+            <div
+              class="bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-5 text-white flex-shrink-0"
+            >
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3">
-                    <span class="text-3xl">{{ actionMeta.emoji }}</span>
-                    <div>
-                      <h3 class="text-xl font-bold">{{ evento ? 'Editar Acao' : 'Registrar Acao' }}</h3>
-                      <p class="text-sm text-emerald-100">{{ actionMeta.label }} • {{ clienteNome }}</p>
-                    </div>
+                  <span class="text-3xl">{{ actionMeta.emoji }}</span>
+                  <div>
+                    <h3 class="text-xl font-bold">
+                      {{ evento ? 'Editar Acao' : 'Registrar Acao' }}
+                    </h3>
+                    <p class="text-sm text-emerald-100">
+                      {{ actionMeta.label }} • {{ clienteNome }}
+                    </p>
                   </div>
+                </div>
                 <button
                   @click="$emit('close')"
                   class="rounded-lg p-2 hover:bg-white/20 transition-colors"
                 >
                   <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
               </div>
@@ -42,8 +58,8 @@
                       v-model="form.actionType"
                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                     >
-                      <option value="visita_fisica">Visita fisica</option>
-                      <option value="atendimento_online">Atendimento online</option>
+                      <option value="visita_fisica">Apresentação presencial</option>
+                      <option value="atendimento_online">Apresentação online</option>
                       <option value="ligacao">Ligacao</option>
                       <option value="venda_fisica">Venda fisica</option>
                       <option value="venda_online">Venda online</option>
@@ -60,7 +76,12 @@
                       v-model="form.userId"
                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                     >
-                      <option value="">Selecione...</option>
+                      <option value="" disabled>
+                        {{ isLoadingSellers ? 'Carregando vendedores...' : 'Selecione...' }}
+                      </option>
+                      <option v-if="showLegacySellerOption" :value="form.userId">
+                        Vendedor atual (nao listado)
+                      </option>
                       <option v-for="seller in sellers" :key="seller.id" :value="seller.id">
                         {{ seller.nome }}
                       </option>
@@ -71,12 +92,24 @@
                 <!-- Data da Acao -->
                 <div>
                   <label class="block text-sm font-semibold text-gray-700 mb-2">
-                    📅 Data da acao *
+                    📅 Data e horário da ação *
                   </label>
                   <input
                     v-model="form.data"
                     type="datetime-local"
                     required
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div v-if="form.actionType === 'atendimento_online'">
+                  <label class="block text-sm font-semibold text-gray-700 mb-2">
+                    🔗 Link da reuniao online
+                  </label>
+                  <input
+                    v-model="form.meetingLink"
+                    type="url"
+                    placeholder="https://meet.google.com/..."
                     class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                   />
                 </div>
@@ -125,7 +158,14 @@
 
                 <!-- Campos de Venda (aparecem se tipo = venda) -->
                 <Transition name="slide-down">
-                  <div v-if="form.actionType === 'venda_fisica' || form.actionType === 'venda_online' || form.actionType === 'venda_telefone'" class="space-y-4 bg-emerald-50 rounded-xl p-4 border border-emerald-200">
+                  <div
+                    v-if="
+                      form.actionType === 'venda_fisica' ||
+                      form.actionType === 'venda_online' ||
+                      form.actionType === 'venda_telefone'
+                    "
+                    class="space-y-4 bg-emerald-50 rounded-xl p-4 border border-emerald-200"
+                  >
                     <!-- Valor da Venda -->
                     <div>
                       <label class="block text-sm font-semibold text-emerald-800 mb-2">
@@ -147,7 +187,7 @@
                       <label class="block text-sm font-semibold text-emerald-800 mb-2">
                         🛒 Produtos Vendidos
                       </label>
-                      
+
                       <!-- Lista de Produtos Adicionados -->
                       <div v-if="form.produtos.length > 0" class="space-y-2 mb-3">
                         <div
@@ -158,8 +198,10 @@
                           <div class="flex-1">
                             <div class="font-medium text-gray-900">{{ item.nome }}</div>
                             <div class="text-sm text-gray-600">
-                              {{ item.quantidade }}x {{ formatCurrency(item.precoUnitario) }}
-                              = <span class="font-semibold text-emerald-700">{{ formatCurrency(item.quantidade * item.precoUnitario) }}</span>
+                              {{ item.quantidade }}x {{ formatCurrency(item.precoUnitario) }} =
+                              <span class="font-semibold text-emerald-700">{{
+                                formatCurrency(item.quantidade * item.precoUnitario)
+                              }}</span>
                             </div>
                           </div>
                           <button
@@ -180,7 +222,15 @@
                         >
                           <option value="">Selecione um produto...</option>
                           <option v-for="produto in produtos" :key="produto.id" :value="produto.id">
-                            {{ produto.categoria === 'oculos' ? '👓' : produto.categoria === 'relogio' ? '⌚' : produto.categoria === 'semijoia' ? '💍' : '🎁' }}
+                            {{
+                              produto.categoria === 'oculos'
+                                ? '👓'
+                                : produto.categoria === 'relogio'
+                                  ? '⌚'
+                                  : produto.categoria === 'semijoia'
+                                    ? '💍'
+                                    : '🎁'
+                            }}
                             {{ produto.nome }} - {{ formatCurrency(produto.valor) }}
                           </option>
                         </select>
@@ -206,7 +256,9 @@
                         <button
                           type="button"
                           @click="adicionarProduto"
-                          :disabled="!novoProduto.produtoId || !novoProduto.quantidade || !novoProduto.preco"
+                          :disabled="
+                            !novoProduto.produtoId || !novoProduto.quantidade || !novoProduto.preco
+                          "
                           class="w-full px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium text-sm"
                         >
                           ➕ Adicionar Produto
@@ -219,7 +271,9 @@
             </div>
 
             <!-- Footer Actions -->
-            <div class="border-t border-gray-200 px-6 py-4 bg-gray-50 flex gap-3 justify-end flex-shrink-0">
+            <div
+              class="border-t border-gray-200 px-6 py-4 bg-gray-50 flex gap-3 justify-end flex-shrink-0"
+            >
               <button
                 type="button"
                 @click="$emit('close')"
@@ -249,7 +303,13 @@ import type { ProdutoDto } from '~/types/produto'
 interface Props {
   isOpen: boolean
   clienteNome: string
-  initialActionType?: 'visita_fisica' | 'atendimento_online' | 'ligacao' | 'venda_fisica' | 'venda_online' | 'venda_telefone'
+  initialActionType?:
+    | 'visita_fisica'
+    | 'atendimento_online'
+    | 'ligacao'
+    | 'venda_fisica'
+    | 'venda_online'
+    | 'venda_telefone'
   defaultUserId?: string
   evento?: any // Evento existente para edição
 }
@@ -257,10 +317,17 @@ interface Props {
 type NovoEventoPayload = {
   id?: string
   data: string
-  descricao: string
-  tipo: 'visita_fisica' | 'venda_fisica' | 'ligacao'
+  descricao?: string
+  tipo:
+    | 'visita_fisica'
+    | 'ligacao'
+    | 'atendimento_online'
+    | 'venda_fisica'
+    | 'venda_online'
+    | 'venda_telefone'
   userId: string
   items?: Array<{ produtoId: string; nome: string; quantidade: number; valorUnitario: number }>
+  meetingLink?: string
   duracao?: number
   proximoContato?: string
   resultado?: 'sucesso' | 'pendente' | 'fracasso'
@@ -275,14 +342,27 @@ const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
 const produtos = ref<ProdutoDto[]>([])
+const isLoadingSellers = ref(false)
 
 const form = ref({
   data: new Date().toISOString().slice(0, 16),
-  actionType: 'visita_fisica' as 'visita_fisica' | 'atendimento_online' | 'ligacao' | 'venda_fisica' | 'venda_online' | 'venda_telefone',
+  actionType: 'visita_fisica' as
+    | 'visita_fisica'
+    | 'atendimento_online'
+    | 'ligacao'
+    | 'venda_fisica'
+    | 'venda_online'
+    | 'venda_telefone',
   userId: '',
   descricao: '',
   valorVenda: 0,
-  produtos: [] as Array<{ produtoId: string; nome: string; quantidade: number; precoUnitario: number }>,
+  produtos: [] as Array<{
+    produtoId: string
+    nome: string
+    quantidade: number
+    precoUnitario: number
+  }>,
+  meetingLink: '',
   duracao: undefined as number | undefined,
   proximoContato: '',
 })
@@ -306,29 +386,50 @@ const actionMeta = computed(() => {
     case 'ligacao':
       return { label: 'Ligacao', emoji: '📞', tipo: 'ligacao' as const }
     case 'atendimento_online':
-      return { label: 'Atendimento online', emoji: '💻', tipo: 'ligacao' as const }
+      return { label: 'Apresentação online', emoji: '💻', tipo: 'atendimento_online' as const }
     case 'visita_fisica':
     default:
-      return { label: 'Visita fisica', emoji: '📝', tipo: 'visita_fisica' as const }
+      return { label: 'Apresentação presencial', emoji: '🧑‍💼', tipo: 'visita_fisica' as const }
   }
+})
+
+const hasSelectedSellerInOptions = computed(() => {
+  const selectedSellerId = String(form.value.userId || '')
+  if (!selectedSellerId) return false
+  return sellers.value.some((seller) => seller.id === selectedSellerId)
+})
+
+const showLegacySellerOption = computed(() => {
+  if (!props.evento) return false
+  const selectedSellerId = String(form.value.userId || '')
+  if (!selectedSellerId) return false
+  if (!sellers.value.length) return false
+  return !hasSelectedSellerInOptions.value
 })
 
 const loadSellers = async () => {
   if (!import.meta.client) return
+  isLoadingSellers.value = true
   try {
     const res = await $fetch<{ success: boolean; data: Array<{ id: string; nome: string }> }>(
       '/api/v1/users?role=vendedor&ativo=true'
     )
     sellers.value = Array.isArray(res.data) ? res.data : []
-    if (!form.value.userId && props.defaultUserId) {
-      form.value.userId = props.defaultUserId
-    }
-    if (!form.value.userId && sellers.value.length) {
-      form.value.userId = sellers.value[0].id
+
+    const selectedSellerId = String(form.value.userId || '')
+    const hasSelectedSeller = sellers.value.some((seller) => seller.id === selectedSellerId)
+
+    if (!selectedSellerId || (!props.evento && !hasSelectedSeller)) {
+      const preferredFromDefault = props.defaultUserId
+        ? sellers.value.find((seller) => seller.id === props.defaultUserId)
+        : null
+      form.value.userId = preferredFromDefault?.id || sellers.value[0]?.id || ''
     }
   } catch (error) {
     console.error('Erro ao carregar vendedores:', error)
     sellers.value = []
+  } finally {
+    isLoadingSellers.value = false
   }
 }
 
@@ -344,29 +445,52 @@ const loadProducts = async () => {
   }
 }
 
-watch(() => form.value.actionType, (tipo) => {
-  const isVenda = tipo === 'venda_fisica' || tipo === 'venda_online' || tipo === 'venda_telefone'
-  if (!isVenda) {
-    form.value.valorVenda = 0
-    form.value.produtos = []
-  }
-})
-
-watch(() => novoProduto.value.produtoId, (produtoId) => {
-  if (produtoId) {
-    const produto = produtos.value.find(p => p.id === produtoId)
-    if (produto) {
-      novoProduto.value.preco = produto.valor
+watch(
+  () => form.value.actionType,
+  (tipo) => {
+    const isVenda = tipo === 'venda_fisica' || tipo === 'venda_online' || tipo === 'venda_telefone'
+    if (!isVenda) {
+      form.value.valorVenda = 0
+      form.value.produtos = []
+    }
+    if (tipo !== 'atendimento_online') {
+      form.value.meetingLink = ''
     }
   }
-})
+)
+
+watch(
+  () => novoProduto.value.produtoId,
+  (produtoId) => {
+    if (produtoId) {
+      const produto = produtos.value.find((p) => p.id === produtoId)
+      if (produto) {
+        novoProduto.value.preco = produto.valor
+      }
+    }
+  }
+)
 
 const isFormValid = computed(() => {
+  if (isLoadingSellers.value) return false
   if (!form.value.data) return false
   if (!form.value.userId) return false
-  const isVenda = form.value.actionType === 'venda_fisica' || form.value.actionType === 'venda_online' || form.value.actionType === 'venda_telefone'
+  if (
+    sellers.value.length > 0 &&
+    !hasSelectedSellerInOptions.value &&
+    !showLegacySellerOption.value
+  ) {
+    return false
+  }
+  const isVenda =
+    form.value.actionType === 'venda_fisica' ||
+    form.value.actionType === 'venda_online' ||
+    form.value.actionType === 'venda_telefone'
   if (isVenda) {
-    if (form.value.produtos.length === 0 && (!form.value.valorVenda || form.value.valorVenda <= 0)) {
+    if (
+      form.value.produtos.length === 0 &&
+      (!form.value.valorVenda || form.value.valorVenda <= 0)
+    ) {
       return false
     }
   }
@@ -374,9 +498,10 @@ const isFormValid = computed(() => {
 })
 
 function adicionarProduto() {
-  if (!novoProduto.value.produtoId || !novoProduto.value.quantidade || !novoProduto.value.preco) return
+  if (!novoProduto.value.produtoId || !novoProduto.value.quantidade || !novoProduto.value.preco)
+    return
 
-  const produto = produtos.value.find(p => p.id === novoProduto.value.produtoId)
+  const produto = produtos.value.find((p) => p.id === novoProduto.value.produtoId)
   if (!produto) return
 
   form.value.produtos.push({
@@ -405,14 +530,27 @@ function formatCurrency(value: number): string {
   }).format(value)
 }
 
+function normalizeMeetingLink(value: string) {
+  const trimmed = value.trim()
+  if (!trimmed) return undefined
+  if (/^https?:\/\//i.test(trimmed)) return trimmed
+  return `https://${trimmed}`
+}
+
 function handleSubmit() {
   if (!isFormValid.value) return
 
-  const isVenda = form.value.actionType === 'venda_fisica' || form.value.actionType === 'venda_online' || form.value.actionType === 'venda_telefone'
-  
+  const isVenda =
+    form.value.actionType === 'venda_fisica' ||
+    form.value.actionType === 'venda_online' ||
+    form.value.actionType === 'venda_telefone'
+
   // Calcular o total dos produtos
-  const totalProdutos = form.value.produtos.reduce((sum, p) => sum + (p.quantidade * p.precoUnitario), 0)
-  
+  const totalProdutos = form.value.produtos.reduce(
+    (sum, p) => sum + p.quantidade * p.precoUnitario,
+    0
+  )
+
   // Se tem produtos E o valor manual é diferente da soma, substituir por um item genérico
   const items =
     isVenda && form.value.valorVenda > 0 && form.value.valorVenda !== totalProdutos
@@ -443,10 +581,16 @@ function handleSubmit() {
           : undefined
 
   const descricaoBase = form.value.descricao.trim()
-  const descricao =
+  const descricaoPrefix =
     form.value.actionType === 'atendimento_online'
-      ? `Atendimento online - ${descricaoBase}`
-      : descricaoBase
+      ? 'Apresentação online'
+      : form.value.actionType === 'visita_fisica'
+        ? 'Apresentação presencial'
+        : ''
+  const descricao =
+    descricaoBase && descricaoPrefix
+      ? `${descricaoPrefix} - ${descricaoBase}`
+      : descricaoBase || descricaoPrefix || undefined
 
   const payload: NovoEventoPayload = {
     data: new Date(form.value.data).toISOString(),
@@ -454,8 +598,14 @@ function handleSubmit() {
     tipo: actionMeta.value.tipo,
     userId: form.value.userId,
     items,
+    meetingLink:
+      form.value.actionType === 'atendimento_online'
+        ? normalizeMeetingLink(form.value.meetingLink)
+        : undefined,
     duracao: form.value.duracao,
-    proximoContato: form.value.proximoContato ? new Date(form.value.proximoContato).toISOString() : undefined,
+    proximoContato: form.value.proximoContato
+      ? new Date(form.value.proximoContato).toISOString()
+      : undefined,
     resultado: isVenda ? 'sucesso' : 'pendente',
   }
 
@@ -476,42 +626,49 @@ function resetForm() {
     descricao: '',
     valorVenda: 0,
     produtos: [],
+    meetingLink: '',
     duracao: undefined,
     proximoContato: '',
   }
 }
 
 // Reset form when modal closes
-watch(() => props.isOpen, (isOpen) => {
-  if (isOpen) {
-    if (props.evento) {
-      // Preencher formulário com dados do evento existente
-      const eventoData = new Date(props.evento.data)
-      const items = props.evento.items || []
-      form.value = {
-        data: eventoData.toISOString().slice(0, 16),
-        actionType: props.evento.tipo || 'visita_fisica',
-        userId: props.evento.userId || props.defaultUserId || '',
-        descricao: props.evento.descricao || '',
-        valorVenda: props.evento.totalVenda || 0,
-        produtos: items.map((item: any) => ({
-          produtoId: item.produtoId,
-          nome: item.nome,
-          quantidade: item.quantidade,
-          precoUnitario: item.valorUnitario,
-        })),
-        duracao: props.evento.duracao,
-        proximoContato: props.evento.proximoContato ? new Date(props.evento.proximoContato).toISOString().slice(0, 16) : '',
+watch(
+  () => props.isOpen,
+  (isOpen) => {
+    if (isOpen) {
+      if (props.evento) {
+        // Preencher formulário com dados do evento existente
+        const eventoData = new Date(props.evento.data)
+        const items = props.evento.items || []
+        form.value = {
+          data: eventoData.toISOString().slice(0, 16),
+          actionType: props.evento.tipo || 'visita_fisica',
+          userId: props.evento.userId || props.defaultUserId || '',
+          descricao: props.evento.descricao || '',
+          valorVenda: props.evento.totalVenda || 0,
+          produtos: items.map((item: any) => ({
+            produtoId: item.produtoId,
+            nome: item.nome,
+            quantidade: item.quantidade,
+            precoUnitario: item.valorUnitario,
+          })),
+          meetingLink: props.evento.meetingLink || '',
+          duracao: props.evento.duracao,
+          proximoContato: props.evento.proximoContato
+            ? new Date(props.evento.proximoContato).toISOString().slice(0, 16)
+            : '',
+        }
+      } else {
+        resetForm()
       }
-    } else {
-      resetForm()
+      loadSellers()
+      loadProducts()
+      return
     }
-    loadSellers()
-    loadProducts()
-    return
+    resetForm()
   }
-  resetForm()
-})
+)
 </script>
 
 <style scoped>

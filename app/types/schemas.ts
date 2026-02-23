@@ -36,12 +36,7 @@ export const ClientSalesStageSchema = z.enum([
   'reativacao',
 ])
 
-export const ClientNextActionTypeSchema = z.enum([
-  'ligar',
-  'visitar',
-  'enviar_catalogo',
-  'cobrar',
-])
+export const ClientNextActionTypeSchema = z.enum(['ligar', 'visitar', 'enviar_catalogo', 'cobrar'])
 
 export const ClientStatusSchema = z.enum(['ativo', 'inativo', 'potencial'])
 export const ClientStoreProductSchema = z.enum([
@@ -74,7 +69,9 @@ export const TerritoryStateSchema = z.object({
 
 export type TerritoryState = z.infer<typeof TerritoryStateSchema>
 
-export const TerritoryStateDtoSchema = TerritoryStateSchema.omit({ _id: true }).extend({ id: z.string() })
+export const TerritoryStateDtoSchema = TerritoryStateSchema.omit({ _id: true }).extend({
+  id: z.string(),
+})
 export type TerritoryStateDto = z.infer<typeof TerritoryStateDtoSchema>
 
 export const TerritoryCitySchema = z.object({
@@ -92,7 +89,9 @@ export const TerritoryCitySchema = z.object({
 
 export type TerritoryCity = z.infer<typeof TerritoryCitySchema>
 
-export const TerritoryCityDtoSchema = TerritoryCitySchema.omit({ _id: true }).extend({ id: z.string() })
+export const TerritoryCityDtoSchema = TerritoryCitySchema.omit({ _id: true }).extend({
+  id: z.string(),
+})
 export type TerritoryCityDto = z.infer<typeof TerritoryCityDtoSchema>
 
 export const TerritoryRegionSchema = z.object({
@@ -110,7 +109,9 @@ export const TerritoryRegionSchema = z.object({
 
 export type TerritoryRegion = z.infer<typeof TerritoryRegionSchema>
 
-export const TerritoryRegionDtoSchema = TerritoryRegionSchema.omit({ _id: true }).extend({ id: z.string() })
+export const TerritoryRegionDtoSchema = TerritoryRegionSchema.omit({ _id: true }).extend({
+  id: z.string(),
+})
 export type TerritoryRegionDto = z.infer<typeof TerritoryRegionDtoSchema>
 
 // DB schema (segmento é livre no banco; UI pode usar um enum próprio)
@@ -255,7 +256,12 @@ export type User = z.infer<typeof UserSchema>
 export const UserDtoSchema = UserSchema.omit({ _id: true }).extend({ id: z.string() })
 export type UserDto = z.infer<typeof UserDtoSchema>
 
-export const ProdutoLinhaSchema = z.enum(['steel-and-gold', 'silver-and-gold', 'gold-10k', 'gold-18k'])
+export const ProdutoLinhaSchema = z.enum([
+  'steel-and-gold',
+  'silver-and-gold',
+  'gold-10k',
+  'gold-18k',
+])
 export type ProdutoLinha = z.infer<typeof ProdutoLinhaSchema>
 
 export const ProdutoSchema = z.object({
@@ -342,6 +348,7 @@ export const HistoricoClienteSchema = z.object({
 
   resultado: HistoricoClienteResultadoSchema.default('pendente'),
   feedback: z.string().optional(),
+  meetingLink: z.string().trim().optional(),
 
   totalVenda: z.number().min(0).default(0),
   duracao: z.number().min(0).optional(),
