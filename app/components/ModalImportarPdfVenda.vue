@@ -568,7 +568,8 @@ const parseItemLine = (line: string): ParsedItem | null => {
   const refMatch = line.match(/[A-Z]{2,}\d{2,}[A-Z0-9]*/i)
   if (!refMatch) return null
 
-  const currencyRegex = /\d{1,3}(?:\.\d{3})*,\d{2}|\d+\.\d{2}/
+  // Aceita valores BRL com e sem separador de milhar: 700,00 | 23.800,00 | 23800,00
+  const currencyRegex = /\d+(?:\.\d{3})*,\d{2}|\d+\.\d{2}/
   const currencyMatches = [...line.matchAll(new RegExp(currencyRegex.source, 'g'))]
   if (!currencyMatches.length) return null
 
