@@ -67,6 +67,18 @@
                 @click="closeMenu"
               />
               <NNavItem 
+                to="/admin/kits" 
+                icon="mdi:shopping" 
+                label="Kits" 
+                @click="closeMenu"
+              />
+              <NNavItem 
+                to="/admin/kits-categorias" 
+                icon="mdi:shape-outline" 
+                label="Categorias Kits" 
+                @click="closeMenu"
+              />
+              <NNavItem 
                 to="/admin/whatsapp-templates" 
                 icon="mdi:whatsapp" 
                 label="Templates WhatsApp" 

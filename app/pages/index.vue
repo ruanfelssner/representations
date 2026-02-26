@@ -175,13 +175,13 @@
             class="group overflow-hidden rounded-xl bg-white shadow-md transition-all hover:-translate-y-1 hover:shadow-xl"
           >
             <img :src="kit.image" :alt="kit.alt" class="h-64 w-full object-cover" />
-            <div class="space-y-3 p-6">
+            <div class="space-y-3 p-5">
               <p class="text-xs uppercase tracking-[1px] text-[#A8842F]">{{ kit.code }}</p>
-              <h3 class="text-2xl [font-family:'Playfair_Display',serif]">{{ kit.line }}</h3>
+              <h3 class="text-[1.35rem] [font-family:'Playfair_Display',serif]">{{ kit.line }}</h3>
               <div class="flex flex-wrap items-start gap-2">
                 <p class="text-lg font-semibold text-[#2A2A2A]">
                   {{ formatCurrency(kit.unitPrice) }}
-                  <span class="text-xs font-medium uppercase tracking-[1px] text-[#7A6A48]">
+                  <span class="text-[10px] font-medium tracking-[0.5px] text-[#7A6A48]">
                     preço unitário
                   </span>
                 </p>
@@ -192,28 +192,12 @@
                   {{ Math.round(((kit.precoOuro18kReferencia - kit.unitPrice) / kit.precoOuro18kReferencia) * 100) }}% vs ouro 18k
                 </span>
               </div>
-              <p class="text-sm text-[#5A5A5A]">{{ kit.quickDescription }}</p>
-              <p class="text-sm text-[#5A5A5A]">Numeração do kit: 14 ao 31 (18 alianças)</p>
-              <div class="flex flex-wrap gap-1.5 text-[11px] font-medium">
-                <span class="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-emerald-700">
-                  18+ peças → case grátis
-                </span>
-                <span class="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-amber-700">
-                  30+ peças → case + caixa
-                </span>
-              </div>
+              <p v-if="kit.quickDescription" class="text-sm text-[#5A5A5A]">{{ kit.quickDescription }}</p>
+              <p class="text-sm text-[#5A5A5A]">Numeração do kit: {{ getKitRangeLabel(kit) }}</p>
               <div class="flex flex-col gap-2 pt-1">
                 <button type="button" :class="secondaryButtonClass" @click="openKitDetails(kit)">
                   Ver mais informações
                 </button>
-                <a
-                  :href="conditionsLink"
-                  target="_blank"
-                  rel="noopener"
-                  class="text-center text-xs font-semibold uppercase tracking-[1px] text-[#8B7A57] transition hover:text-[#A8842F]"
-                >
-                  Consultar valores no WhatsApp
-                </a>
               </div>
             </div>
           </article>
@@ -227,35 +211,38 @@
           class="grid gap-4 rounded-xl border border-[#E7DBC8] bg-[#FCFAF6] p-4 md:grid-cols-[220px_1fr]"
         >
           <div class="space-y-2">
-                <div class="overflow-hidden rounded-lg border border-[#E8DECC] bg-white">
-                  <img
-                    :src="selectedKit.image"
-                    :alt="selectedKit.alt"
-                    class="h-full w-full object-cover"
-                  />
-                </div>
-                <!-- Miniaturas da galeria -->
-                <div v-if="selectedKit.galleryUrls?.length" class="flex flex-wrap gap-1.5">
-                  <img
-                    v-for="(url, idx) in selectedKit.galleryUrls"
-                    :key="idx"
-                    :src="url"
-                    :alt="`${selectedKit.alt} ${(idx as number) + 1}`"
-                    class="h-14 w-14 cursor-pointer rounded border border-[#E8DECC] object-cover transition hover:border-[#C6A64B]"
-                  />
-                </div>
-                <!-- Catálogo PDF -->
-                <a
-                  v-if="selectedKit.catalogPdfUrl"
-                  :href="selectedKit.catalogPdfUrl"
-                  target="_blank"
-                  rel="noopener"
-                  class="inline-flex items-center gap-1.5 text-xs font-semibold text-[#A8842F] underline hover:text-[#7A5E1A]"
-                >
-                  <NIcon name="mdi:file-pdf-box" class="h-4 w-4" />
-                  Ver catálogo PDF
-                </a>
-              </div>
+            <div class="overflow-hidden rounded-lg border border-[#E8DECC] bg-white">
+              <img
+                src="/estojo-frente.png"
+                alt="Estojo do kit completo de alianças"
+                class="h-full w-full object-cover"
+              />
+            </div>
+            <p class="text-[11px] text-center font-medium text-[#6A5A3C]">
+              Imagem ilustrativa do kit completo.
+            </p>
+            <!-- Miniaturas da galeria -->
+            <div v-if="selectedKit.galleryUrls?.length" class="flex flex-wrap gap-1.5">
+              <img
+                v-for="(url, idx) in selectedKit.galleryUrls"
+                :key="idx"
+                :src="url"
+                :alt="`${selectedKit.alt} ${(idx as number) + 1}`"
+                class="h-14 w-14 cursor-pointer rounded border border-[#E8DECC] object-cover transition hover:border-[#C6A64B]"
+              />
+            </div>
+            <!-- Catálogo PDF -->
+            <a
+              v-if="selectedKit.catalogPdfUrl"
+              :href="selectedKit.catalogPdfUrl"
+              target="_blank"
+              rel="noopener"
+              class="inline-flex items-center gap-1.5 text-xs font-semibold text-[#A8842F] underline hover:text-[#7A5E1A]"
+            >
+              <NIcon name="mdi:file-pdf-box" class="h-4 w-4" />
+              Ver catálogo PDF
+            </a>
+          </div>
           <div class="space-y-2">
             <p class="text-xs uppercase tracking-[1px] text-[#A8842F]">{{ selectedKit.code }}</p>
             <h3 class="text-2xl [font-family:'Playfair_Display',serif] text-[#2A2A2A]">
@@ -267,7 +254,7 @@
             <p class="text-sm text-[#4F4F4F]">{{ selectedKit.fullDescription }}</p>
             <p class="text-xs leading-relaxed text-[#6A6A6A]">
               <span class="font-medium text-[#4F4F4F]">Numeração:</span> aro
-              {{ fixedRangeStart }} ao {{ fixedRangeEnd }} ({{ minimumKitQuantity }} peças)
+              {{ ringTableStart }} ao {{ ringTableEnd }} ({{ ringSizes.length }} tamanhos disponíveis)
               <span class="mx-1 text-[#B5A27B]">|</span>
               <span class="font-medium text-[#4F4F4F]">Altura x Largura:</span>
               {{ selectedKit.dimensions }}
@@ -299,10 +286,10 @@
         <div class="rounded-xl border border-[#E6DCCB] bg-white p-4">
           <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h4 class="text-base font-semibold text-[#2A2A2A]">
-              Tabela de numeração (aro 10 ao 50)
+              Tabela de numeração (aro {{ ringTableStart }} ao {{ ringTableEnd }})
             </h4>
             <p class="text-xs uppercase tracking-[1px] text-[#8B7A57]">
-              Mínimo sugerido: 1 unidade do aro 14 ao 31
+              Mínimo sugerido: 1 unidade do aro {{ fixedRangeStart }} ao {{ fixedRangeEnd }}
             </p>
           </div>
           <div class="overflow-hidden rounded-lg border border-[#EFE5D6] bg-[#FFFCF7]">
@@ -910,7 +897,7 @@
 
 <script setup lang="ts">
 import { z } from 'zod'
-import { ProdutoDtoSchema } from '~/types/schemas'
+import { KitCategoryDtoSchema, KitDtoSchema, ProdutoDtoSchema } from '~/types/schemas'
 
 definePageMeta({
   layout: false,
@@ -976,7 +963,25 @@ const aboutPillars = [
   },
 ]
 
-type KitCategory = 'steel-and-gold' | 'silver-and-gold' | 'gold-10k' | 'gold-18k'
+type KitCategory = string
+
+const STANDARD_RING_SIZES = Array.from({ length: 41 }, (_, index) => index + 10)
+
+function normalizeKitSizes(input: unknown) {
+  if (!Array.isArray(input)) return [...STANDARD_RING_SIZES]
+
+  const normalized = Array.from(
+    new Set(
+      input
+        .map((value) => Number(value))
+        .filter((value) => Number.isFinite(value))
+        .map((value) => Math.floor(value))
+        .filter((value) => value > 0)
+    )
+  ).sort((a, b) => a - b)
+
+  return normalized.length ? normalized : [...STANDARD_RING_SIZES]
+}
 
 type Kit = {
   code: string
@@ -992,6 +997,7 @@ type Kit = {
   caseDescription: string
   caseSize: string
   note: string
+  availableSizes: number[]
   /** Preço do equivalente em ouro 18k para comparação (vindo do DB) */
   precoOuro18kReferencia?: number
   /** Imagens da galeria (vindas do DB) */
@@ -1035,16 +1041,17 @@ function createKit(config: KitConfig): Kit {
     caseDescription,
     caseSize,
     note: 'Valores unitários e peso podem variar levemente conforme acabamento, aro e personalização.',
+    availableSizes: [...STANDARD_RING_SIZES],
   }
 }
 
-const kits: Kit[] = [
+const fallbackKits: Kit[] = [
   createKit({
     code: 'AEX0100',
     line: 'Kit Aço + Ouro 4,3mm',
     image: '/aco-e-ouro/AEX0100.png',
     alt: 'Kit AEX0100 aliança 4,3mm aço e ouro',
-    category: 'steel-and-gold',
+    category: 'aco-e-ouro',
     quickDescription: 'Especial abaulada anatômica em aço e ouro 416 (10k).',
     fullDescription: 'Aliança 4,3mm, envelopada aço e ouro 416 (10k) abaulada anatômica.',
     dimensions: '2,00 mm x 4,30 mm',
@@ -1056,7 +1063,7 @@ const kits: Kit[] = [
     line: 'Kit Aço + Ouro 5,3mm',
     image: '/aco-e-ouro/AEX0101.png',
     alt: 'Kit AEX0101 aliança 5,3mm aço e ouro',
-    category: 'steel-and-gold',
+    category: 'aco-e-ouro',
     quickDescription: 'Especial abaulada anatômica em aço e ouro 416 (10k).',
     fullDescription: 'Aliança 5,3mm, envelopada aço e ouro 416 (10k) abaulada anatômica.',
     dimensions: '2,00 mm x 5,30 mm',
@@ -1068,7 +1075,7 @@ const kits: Kit[] = [
     line: 'Kit Aço + Ouro 6,3mm',
     image: '/aco-e-ouro/AEX0102.png',
     alt: 'Kit AEX0102 aliança 6,3mm aço e ouro',
-    category: 'steel-and-gold',
+    category: 'aco-e-ouro',
     quickDescription: 'Especial abaulada anatômica em aço e ouro 416 (10k).',
     fullDescription: 'Aliança 6,3mm, envelopada aço e ouro 416 (10k) abaulada anatômica.',
     dimensions: '2,00 mm x 6,30 mm',
@@ -1080,7 +1087,7 @@ const kits: Kit[] = [
     line: 'Kit Aço + Ouro 7,3mm',
     image: '/aco-e-ouro/AEX0105.png',
     alt: 'Kit AEX0105 aliança 7,3mm aço e ouro',
-    category: 'steel-and-gold',
+    category: 'aco-e-ouro',
     quickDescription: 'Especial abaulada anatômica em aço e ouro 416 (10k).',
     fullDescription: 'Aliança 7,3mm, envelopada aço e ouro 416 (10k) abaulada anatômica.',
     dimensions: '2,00 mm x 7,30 mm',
@@ -1092,7 +1099,7 @@ const kits: Kit[] = [
     line: 'Kit Aço + Ouro 5,3mm Chanfrada',
     image: '/aco-e-ouro/AEX0112.png',
     alt: 'Kit AEX0112 aliança 5,3mm chanfrada aço e ouro',
-    category: 'steel-and-gold',
+    category: 'aco-e-ouro',
     quickDescription: 'Especial reta chanfrada (desquinada) anatômica em aço e ouro 416 (10k).',
     fullDescription:
       'Aliança 5,3mm, envelopada aço e ouro 416 (10k) chanfrada (desquinada) anatômica.',
@@ -1105,7 +1112,7 @@ const kits: Kit[] = [
     line: 'Kit Aço + Ouro 3,3mm',
     image: '/aco-e-ouro/AEX0113.png',
     alt: 'Kit AEX0113 aliança 3,3mm aço e ouro',
-    category: 'steel-and-gold',
+    category: 'aco-e-ouro',
     quickDescription: 'Especial abaulada anatômica em aço e ouro 416 (10k).',
     fullDescription: 'Aliança 3,3mm, envelopada aço e ouro 416 (10k) abaulada anatômica.',
     dimensions: '1,90 mm x 3,30 mm',
@@ -1117,7 +1124,7 @@ const kits: Kit[] = [
     line: 'Kit Aço + Ouro 6mm Reta',
     image: '/aco-e-ouro/AEX0114.png',
     alt: 'Kit AEX0114 aliança 6mm reta aço e ouro',
-    category: 'steel-and-gold',
+    category: 'aco-e-ouro',
     quickDescription: 'Especial reta anatômica em aço e ouro 416 (10k).',
     fullDescription: 'Aliança 6mm, envelopada aço e ouro 416 (10k) reta anatômica.',
     dimensions: '1,90 mm x 6,00 mm',
@@ -1129,7 +1136,7 @@ const kits: Kit[] = [
     line: 'Kit Aço + Ouro 4mm Reta',
     image: '/aco-e-ouro/AEX0117.png',
     alt: 'Kit AEX0117 aliança 4mm reta aço e ouro',
-    category: 'steel-and-gold',
+    category: 'aco-e-ouro',
     quickDescription: 'Especial reta anatômica em aço e ouro 416 (10k).',
     fullDescription: 'Aliança 4mm, envelopada aço e ouro 416 (10k) reta anatômica.',
     dimensions: '2,00 mm x 4,00 mm',
@@ -1141,7 +1148,7 @@ const kits: Kit[] = [
     line: 'Kit Aço + Ouro 3mm Reta',
     image: '/aco-e-ouro/AEX0213.png',
     alt: 'Kit AEX0213 aliança 3mm reta aço e ouro',
-    category: 'steel-and-gold',
+    category: 'aco-e-ouro',
     quickDescription: 'Especial reta anatômica em aço e ouro 416 (10k).',
     fullDescription: 'Aliança 3mm, envelopada aço e ouro 416 (10k) reta anatômica.',
     dimensions: '1,90 mm x 3,00 mm',
@@ -1153,7 +1160,7 @@ const kits: Kit[] = [
     line: 'Kit Aço + Ouro 4mm Friso Central',
     image: '/aco-e-ouro/AEX0214.png',
     alt: 'Kit AEX0214 aliança 4mm com friso central aço e ouro',
-    category: 'steel-and-gold',
+    category: 'aco-e-ouro',
     quickDescription: 'Especial reta anatômica com friso central em aço e ouro 416 (10k).',
     fullDescription: 'Aliança 4mm, envelopada aço e ouro 416 (10k) com friso central anatômica.',
     dimensions: '2,00 mm x 4,00 mm',
@@ -1162,26 +1169,37 @@ const kits: Kit[] = [
   }),
 ]
 
-const kitFilterTabs = [
-  { id: 'all', label: 'Todos os Kits' },
-  { id: 'steel-and-gold', label: 'Aço e Ouro' },
-] as const
+type KitFilterTab = {
+  id: string
+  label: string
+}
 
-type KitFilter = (typeof kitFilterTabs)[number]['id']
+const activeKitFilter = ref<string>('all')
 
-const activeKitFilter = ref<KitFilter>('all')
-
-// Fetch DB products to enrich hardcoded kit data (thumbnail, gallery, PDF, 18k ref price)
 const ProdutosResponseSchema = z.object({ success: z.boolean(), data: z.array(ProdutoDtoSchema) })
+const KitCategoriesResponseSchema = z.object({
+  success: z.boolean(),
+  data: z.array(KitCategoryDtoSchema),
+})
+const KitsResponseSchema = z.object({ success: z.boolean(), data: z.array(KitDtoSchema) })
+
 const { data: dbProducts } = await useFetch('/api/v1/produtos', {
   transform: (res: unknown) => ProdutosResponseSchema.parse(res).data,
 })
 
-/** Merge hardcoded kits with DB data where codes match */
-const enrichedKits = computed<Kit[]>(() => {
-  return kits.map((kit) => {
-  const db = dbProducts.value?.find((p: { codigo: string }) => p.codigo === kit.code)
+const { data: dbKitCategories } = await useFetch('/api/v1/kit-categories?ativo=true', {
+  transform: (res: unknown) => KitCategoriesResponseSchema.parse(res).data,
+})
+
+const { data: dbKits } = await useFetch('/api/v1/kits?ativo=true', {
+  transform: (res: unknown) => KitsResponseSchema.parse(res).data,
+})
+
+const fallbackEnrichedKits = computed<Kit[]>(() => {
+  return fallbackKits.map((kit) => {
+    const db = dbProducts.value?.find((product: { codigo: string }) => product.codigo === kit.code)
     if (!db) return kit
+
     return {
       ...kit,
       image: db.thumbnailUrl || kit.image,
@@ -1199,37 +1217,132 @@ const enrichedKits = computed<Kit[]>(() => {
   })
 })
 
+const dbDrivenKits = computed<Kit[]>(() => {
+  if (!dbKits.value?.length) return []
+
+  const productsById = new Map((dbProducts.value || []).map((product) => [product.id, product]))
+
+  return dbKits.value.map((kit) => {
+    const fallbackByCode = fallbackKits.find((item) => item.code === kit.codigo)
+    const referenceProduct = kit.produtoReferenciaId
+      ? productsById.get(kit.produtoReferenciaId)
+      : undefined
+
+    return {
+      code: kit.codigo,
+      line: kit.nome,
+      image: kit.fotoDestaqueUrl || fallbackByCode?.image || '/logo.webp',
+      alt: kit.imagemAlt || fallbackByCode?.alt || `Kit ${kit.codigo}`,
+      category: kit.categoria?.slug || fallbackByCode?.category || 'sem-categoria',
+      quickDescription:
+        kit.descricaoRapida || fallbackByCode?.quickDescription || '',
+      fullDescription:
+        kit.descricaoCompleta ||
+        fallbackByCode?.fullDescription ||
+        kit.descricaoRapida ||
+        'Consulte detalhes e disponibilidade.',
+      dimensions: kit.dimensoes || fallbackByCode?.dimensions || '--',
+      unitWeight: kit.pesoUnitario ?? fallbackByCode?.unitWeight ?? 0,
+      unitPrice: kit.precoUnitario,
+      caseDescription:
+        fallbackByCode?.caseDescription ||
+        'Case organizadora com 18 nichos para exposição e transporte das alianças.',
+      caseSize: fallbackByCode?.caseSize || 'Aproximadamente 30 cm x 22 cm x 8 cm.',
+      note:
+        kit.nota ||
+        fallbackByCode?.note ||
+        'Valores unitários e peso podem variar levemente conforme acabamento, aro e personalização.',
+      availableSizes: normalizeKitSizes(kit.tamanhosDisponiveis ?? fallbackByCode?.availableSizes),
+      precoOuro18kReferencia: referenceProduct?.precoOuro18kReferencia,
+      galleryUrls: kit.galeriaUrls?.length ? kit.galeriaUrls : undefined,
+      catalogPdfUrl: referenceProduct?.catalogPdfUrl || fallbackByCode?.catalogPdfUrl,
+    }
+  })
+})
+
+const enrichedKits = computed<Kit[]>(() => {
+  return dbDrivenKits.value.length ? dbDrivenKits.value : fallbackEnrichedKits.value
+})
+
+const kitFilterTabs = computed<KitFilterTab[]>(() => {
+  if (dbKitCategories.value?.length) {
+    return [
+      { id: 'all', label: 'Todos os Kits' },
+      ...dbKitCategories.value.map((category) => ({
+        id: category.slug,
+        label: category.nome,
+      })),
+    ]
+  }
+
+  return [
+    { id: 'all', label: 'Todos os Kits' },
+    { id: 'aco-e-ouro', label: 'Aço e Ouro' },
+  ]
+})
+
+watch(kitFilterTabs, (tabs) => {
+  if (!tabs.some((tab) => tab.id === activeKitFilter.value)) {
+    activeKitFilter.value = 'all'
+  }
+})
+
 const filteredKits = computed(() => {
   const source = enrichedKits.value
-  if (activeKitFilter.value === 'all') {
-    return source
-  }
-  return source.filter((kit: Kit) => kit.category === activeKitFilter.value)
+  const filtered =
+    activeKitFilter.value === 'all'
+      ? source
+      : source.filter((kit: Kit) => kit.category === activeKitFilter.value)
+
+  return [...filtered].sort((a: Kit, b: Kit) =>
+    String(a.code || '').localeCompare(String(b.code || ''), 'pt-BR', {
+      numeric: true,
+      sensitivity: 'base',
+    })
+  )
 })
 
 const isKitDetailsOpen = ref(false)
 const selectedKit = ref<Kit | null>(null)
 
-const ringSizeStart = 10
-const ringSizeEnd = 50
-const fixedRangeStart = 14
-const fixedRangeEnd = 31
-const minimumKitQuantity = fixedRangeEnd - fixedRangeStart + 1
+const preferredRangeStart = 14
+const preferredRangeEnd = 31
 
-const ringSizes = Array.from(
-  { length: ringSizeEnd - ringSizeStart + 1 },
-  (_, index) => ringSizeStart + index
+const ringSizes = computed<number[]>(() => {
+  return normalizeKitSizes(selectedKit.value?.availableSizes)
+})
+
+const suggestedRangeSizes = computed<number[]>(() => {
+  const preferredSizes = ringSizes.value.filter(
+    (size) => size >= preferredRangeStart && size <= preferredRangeEnd
+  )
+  return preferredSizes.length ? preferredSizes : ringSizes.value
+})
+
+const ringTableStart = computed(() => ringSizes.value[0] ?? STANDARD_RING_SIZES[0])
+const ringTableEnd = computed(
+  () => ringSizes.value[ringSizes.value.length - 1] ?? STANDARD_RING_SIZES[STANDARD_RING_SIZES.length - 1]
 )
+const fixedRangeStart = computed(
+  () => suggestedRangeSizes.value[0] ?? STANDARD_RING_SIZES[0]
+)
+const fixedRangeEnd = computed(
+  () => suggestedRangeSizes.value[suggestedRangeSizes.value.length - 1] ??
+    STANDARD_RING_SIZES[STANDARD_RING_SIZES.length - 1]
+)
+const minimumKitQuantity = computed(() => suggestedRangeSizes.value.length)
+const suggestedRangeSet = computed(() => new Set(suggestedRangeSizes.value))
+
 const caseBonusMinimumQuantity = 18
 /** 30+ peças ganham caixa de estoque adicional além do case de mostruário */
 const storageBonusMinimumQuantity = 30
 
 function getDefaultRingQuantity(size: number) {
-  return size >= fixedRangeStart && size <= fixedRangeEnd ? 1 : 0
+  return suggestedRangeSet.value.has(size) ? 1 : 0
 }
 
 function createDefaultRingQuantities() {
-  return ringSizes.reduce<Record<number, number>>((accumulator, size) => {
+  return ringSizes.value.reduce<Record<number, number>>((accumulator, size) => {
     accumulator[size] = getDefaultRingQuantity(size)
     return accumulator
   }, {})
@@ -1264,7 +1377,7 @@ function decrementRingQuantity(size: number) {
 }
 
 const totalSelectedUnits = computed(() => {
-  return ringSizes.reduce((accumulator, size) => accumulator + getRingQuantity(size), 0)
+  return ringSizes.value.reduce((accumulator, size) => accumulator + getRingQuantity(size), 0)
 })
 
 const hasCaseBonus = computed(() => totalSelectedUnits.value >= caseBonusMinimumQuantity)
@@ -1279,7 +1392,7 @@ const piecesToStorageBonus = computed(() => {
 })
 
 const selectedRingsSummary = computed(() => {
-  const selectedSizes = ringSizes
+  const selectedSizes = ringSizes.value
     .map((size) => {
       return {
         size,
@@ -1303,6 +1416,13 @@ const currencyFormatter = new Intl.NumberFormat('pt-BR', {
 
 function formatCurrency(value: number) {
   return currencyFormatter.format(value)
+}
+
+function getKitRangeLabel(kit: Kit) {
+  const sizes = normalizeKitSizes(kit.availableSizes)
+  const start = sizes[0]
+  const end = sizes[sizes.length - 1]
+  return `${start} ao ${end} (${sizes.length} alianças)`
 }
 
 function formatWeight(value: number) {
@@ -1470,7 +1590,7 @@ const requestOrderLink = computed(() => {
     'Olá! Quero solicitar pedido de kit.',
     `Modelo: ${selectedKit.value.code} - ${selectedKit.value.line}`,
     `Descrição: ${selectedKit.value.fullDescription}`,
-    `Faixa mínima sugerida: ${fixedRangeStart} ao ${fixedRangeEnd} (${minimumKitQuantity} unidades)`,
+    `Faixa mínima sugerida: ${fixedRangeStart.value} ao ${fixedRangeEnd.value} (${minimumKitQuantity.value} unidades)`,
     `Seleção de aros: ${selectedRingsSummary.value}`,
     `Quantidade total: ${totalSelectedUnits.value} unidades`,
     `Case brinde: ${hasCaseBonus.value ? 'Sim' : `Não (faltam ${piecesToCaseBonus.value} peça(s))`}`,

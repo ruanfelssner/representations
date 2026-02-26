@@ -306,6 +306,83 @@ export type Produto = z.infer<typeof ProdutoSchema>
 export const ProdutoDtoSchema = ProdutoSchema.omit({ _id: true }).extend({ id: z.string() })
 export type ProdutoDto = z.infer<typeof ProdutoDtoSchema>
 
+export const KitCategorySlugSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .regex(
+    /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+    'Slug inválido. Use minúsculas, números e hífen (ex: aco-e-ouro).'
+  )
+
+export const DefaultKitCategories = [
+  { slug: 'aco-e-ouro', nome: 'Aço e Ouro', ordem: 10 },
+  { slug: 'prata-e-ouro', nome: 'Prata e Ouro', ordem: 20 },
+  { slug: 'prata', nome: 'Prata', ordem: 30 },
+  { slug: 'ouro', nome: 'Ouro', ordem: 40 },
+  { slug: 'ouro-e-diamante', nome: 'Ouro e Diamante', ordem: 50 },
+] as const
+
+export const KitCategorySchema = z.object({
+  _id: z.string(),
+  slug: KitCategorySlugSchema,
+  nome: z.string().min(1),
+  ordem: z.number().int().min(0).default(0),
+  ativo: z.boolean().default(true),
+  createdAt: IsoDateTimeSchema,
+  updatedAt: IsoDateTimeSchema,
+})
+
+export type KitCategory = z.infer<typeof KitCategorySchema>
+
+export const KitCategoryDtoSchema = KitCategorySchema.omit({ _id: true }).extend({ id: z.string() })
+export type KitCategoryDto = z.infer<typeof KitCategoryDtoSchema>
+
+export const KitCategoryRefSchema = z.object({
+  id: z.string(),
+  slug: KitCategorySlugSchema,
+  nome: z.string(),
+})
+
+export type KitCategoryRef = z.infer<typeof KitCategoryRefSchema>
+
+export const KitSchema = z.object({
+  _id: z.string(),
+  codigo: z.string().min(1),
+  nome: z.string().min(1),
+  categoriaId: z.string().min(1),
+  produtoReferenciaId: z.string().optional(),
+  descricaoRapida: z.string().optional(),
+  descricaoCompleta: z.string().optional(),
+  precoUnitario: z.number().min(0),
+  tamanhosDisponiveis: z.array(z.string().min(1)).default([]),
+  destaque: z.boolean().default(false),
+  ativo: z.boolean().default(true),
+  imagemAlt: z.string().optional(),
+  dimensoes: z.string().optional(),
+  pesoUnitario: z.number().min(0).optional(),
+  nota: z.string().optional(),
+  fotoDestaqueFileId: z.string().optional(),
+  galeriaFileIds: z.array(z.string()).default([]),
+  createdAt: IsoDateTimeSchema,
+  updatedAt: IsoDateTimeSchema,
+})
+
+export type Kit = z.infer<typeof KitSchema>
+
+export const KitDtoSchema = KitSchema.omit({
+  _id: true,
+  fotoDestaqueFileId: true,
+  galeriaFileIds: true,
+}).extend({
+  id: z.string(),
+  fotoDestaqueUrl: z.string().optional(),
+  galeriaUrls: z.array(z.string()).optional(),
+  categoria: KitCategoryRefSchema.optional(),
+})
+
+export type KitDto = z.infer<typeof KitDtoSchema>
+
 export const HistoricoValorSchema = z.object({
   _id: z.union([z.string(), z.any()]).optional(),
   produtoId: z.string(),
