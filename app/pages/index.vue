@@ -845,22 +845,20 @@
 
     <footer class="bg-[#262626] py-10 text-[#F8F6F2]">
       <NContainer>
-        <div class="grid gap-6 text-sm md:grid-cols-2">
-          <div>
+        <div class="grid gap-8 text-sm lg:grid-cols-[1fr_1.2fr]">
+          <div class="space-y-3">
             <p class="[font-family:'Playfair_Display',serif] text-xl">
               Felssner Representações – Linha Vi&Va
             </p>
-            <p class="mt-2 text-[#F8F6F2]/80">Envio para todo o Brasil</p>
+            <p class="text-[#F8F6F2]/80">Envio para todo o Brasil</p>
             <a
               href="https://felssner.com.br"
               target="_blank"
               rel="noopener"
-              class="mt-2 block text-[#F8F6F2]/85 hover:text-[#C6A64B]"
+              class="block text-[#F8F6F2]/85 hover:text-[#C6A64B]"
             >
               felssner.com.br
             </a>
-          </div>
-          <div class="space-y-2 md:text-right">
             <a
               :href="catalogLink"
               target="_blank"
@@ -870,6 +868,12 @@
               WhatsApp: (47) 98802-5140
             </a>
             <a
+              href="mailto:contato@felssner.com.br"
+              class="block text-[#F8F6F2]/85 hover:text-[#C6A64B]"
+            >
+              contato@felssner.com.br
+            </a>
+            <a
               href="https://instagram.com/felssnerrepresentacoes"
               target="_blank"
               rel="noopener"
@@ -877,6 +881,22 @@
             >
               @felssnerrepresentacoes
             </a>
+            <p class="pt-1 text-[#F8F6F2]/75">
+              Av. Emanoel Pinto, 547 - Sala 02 - Centro, Balneário Piçarras - SC, 88380-000
+            </p>
+          </div>
+
+          <div
+            class="mx-auto w-full max-w-[420px] overflow-hidden rounded-xl border border-white/10 bg-[#1F1F1F] shadow-lg lg:mx-0 lg:justify-self-end"
+          >
+            <iframe
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d4225.669972054454!2d-48.673226199999995!3d-26.7646286!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x94d8d31624e49831%3A0x11090e690578a550!2sVia%20Alian%C3%A7a%20-%20Joias%20e%20Alian%C3%A7as%20em%20Ouro!5e1!3m2!1spt-BR!2sbr!4v1772141104441!5m2!1spt-BR!2sbr"
+              title="Mapa da Felssner Representações"
+              class="h-48 w-full border-0 sm:h-56 lg:h-64"
+              allowfullscreen
+              loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade"
+            />
           </div>
         </div>
       </NContainer>
