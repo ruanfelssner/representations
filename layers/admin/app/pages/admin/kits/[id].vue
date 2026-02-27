@@ -88,7 +88,7 @@
               class="inline-flex items-center rounded-md border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-600 transition hover:border-sky-400 hover:text-sky-700"
               @click="useStandardSizes"
             >
-              Usar tamanhos padrão (10 ao 50)
+              Usar tamanhos padrão (10 ao 35)
             </button>
           </div>
         </div>
@@ -278,7 +278,12 @@ const form = ref({
 })
 
 const tamanhosInput = ref('')
-const standardSizes = Array.from({ length: 41 }, (_, index) => String(index + 10))
+const RING_SIZE_MIN = 10
+const RING_SIZE_MAX = 35
+const standardSizes = Array.from(
+  { length: RING_SIZE_MAX - RING_SIZE_MIN + 1 },
+  (_, index) => String(index + RING_SIZE_MIN)
+)
 
 const currentData = ref<z.infer<typeof KitDtoSchema> | null>(null)
 
@@ -310,8 +315,12 @@ function parseSizesInput(input: string) {
     new Set(
       input
         .split(/[,\n;|]+/g)
-        .map((value) => value.trim())
-        .filter(Boolean)
+        .map((value) => Number(value.trim()))
+        .filter((value) => Number.isFinite(value))
+        .map((value) => Math.floor(value))
+        .filter((value) => value >= RING_SIZE_MIN && value <= RING_SIZE_MAX)
+        .sort((a, b) => a - b)
+        .map((value) => String(value))
     )
   )
 }
@@ -347,7 +356,7 @@ async function load() {
     pesoUnitario: kit.pesoUnitario,
     nota: kit.nota || '',
   }
-  tamanhosInput.value = (kit.tamanhosDisponiveis || []).join(', ')
+  tamanhosInput.value = parseSizesInput((kit.tamanhosDisponiveis || []).join(', ')).join(', ')
 }
 
 onMounted(load)

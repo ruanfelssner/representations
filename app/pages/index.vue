@@ -985,7 +985,12 @@ const aboutPillars = [
 
 type KitCategory = string
 
-const STANDARD_RING_SIZES = Array.from({ length: 41 }, (_, index) => index + 10)
+const RING_SIZE_MIN = 10
+const RING_SIZE_MAX = 35
+const STANDARD_RING_SIZES = Array.from(
+  { length: RING_SIZE_MAX - RING_SIZE_MIN + 1 },
+  (_, index) => index + RING_SIZE_MIN
+)
 
 function normalizeKitSizes(input: unknown) {
   if (!Array.isArray(input)) return [...STANDARD_RING_SIZES]
@@ -996,7 +1001,7 @@ function normalizeKitSizes(input: unknown) {
         .map((value) => Number(value))
         .filter((value) => Number.isFinite(value))
         .map((value) => Math.floor(value))
-        .filter((value) => value > 0)
+        .filter((value) => value >= RING_SIZE_MIN && value <= RING_SIZE_MAX)
     )
   ).sort((a, b) => a - b)
 

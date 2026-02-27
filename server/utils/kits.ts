@@ -33,17 +33,8 @@ function toNumber(value: unknown) {
   return undefined
 }
 
-function normalizeStringArray(value: unknown): string[] {
-  if (!Array.isArray(value)) return []
-  return Array.from(
-    new Set(
-      value
-        .map((item) => (typeof item === 'string' ? item : typeof item === 'number' ? String(item) : ''))
-        .map((item) => item.trim())
-        .filter(Boolean)
-    )
-  )
-}
+const RING_SIZE_MIN = 10
+const RING_SIZE_MAX = 35
 
 function optionalString(value: unknown) {
   if (typeof value !== 'string') return undefined
@@ -81,12 +72,17 @@ export function normalizeSizes(input: unknown): string[] {
       ? input.split(/[,\n;|]+/g)
       : []
 
-  const normalized = raw
-    .map((v) => (typeof v === 'number' ? String(v) : typeof v === 'string' ? v : ''))
-    .map((v) => v.trim())
-    .filter(Boolean)
+  const normalizedNumbers = Array.from(
+    new Set(
+      raw
+        .map((value) => (typeof value === 'number' ? value : typeof value === 'string' ? Number(value.trim()) : NaN))
+        .filter((value) => Number.isFinite(value))
+        .map((value) => Math.floor(value))
+        .filter((value) => value >= RING_SIZE_MIN && value <= RING_SIZE_MAX)
+    )
+  ).sort((a, b) => a - b)
 
-  return Array.from(new Set(normalized))
+  return normalizedNumbers.map((value) => String(value))
 }
 
 export function toKitMediaUrl(fileId: string) {
@@ -146,7 +142,7 @@ export function toKitApi(doc: any, categoriesById?: Map<string, any>) {
     descricaoRapida: optionalString(doc.descricaoRapida),
     descricaoCompleta: optionalString(doc.descricaoCompleta),
     precoUnitario: toNumber(doc.precoUnitario) ?? 0,
-    tamanhosDisponiveis: normalizeStringArray(doc.tamanhosDisponiveis),
+    tamanhosDisponiveis: normalizeSizes(doc.tamanhosDisponiveis),
     destaque: doc.destaque === true,
     ativo: doc.ativo !== false,
     imagemAlt: optionalString(doc.imagemAlt),
