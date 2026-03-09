@@ -1715,7 +1715,17 @@ const filteredClientes = computed(() => {
 
 const cityFilterOptions = computed(() => {
   const map = new Map<string, { value: string; label: string; count: number }>()
-  for (const cliente of portfolioClientes.value as any[]) {
+  const regionId =
+    mapViewMode.value === 'representative' && representativeModeState.value === 'detail'
+      ? selectedRepresentativeRegionId.value
+      : ''
+  const sourceClientes = regionId
+    ? (portfolioClientes.value as any[]).filter((cliente) =>
+        matchesRepresentativeScope(cliente as any, regionId)
+      )
+    : (portfolioClientes.value as any[])
+
+  for (const cliente of sourceClientes) {
     const rawName = String(cliente?.cidade || cliente?.endereco?.cidade || '').trim()
     if (!rawName) continue
     const normalized = normalizeCityNameForMatch(rawName)
@@ -1734,9 +1744,46 @@ const cityFilterOptions = computed(() => {
     })
   }
 
+  if (regionId) {
+    const regionCityIds = regionCityIdSetByRegionId.value.get(regionId)
+    for (const rawCityId of regionCityIds || []) {
+      const cityId = String(rawCityId || '').trim()
+      if (!cityId) continue
+      const numericCityId = normalizeNumericId(cityId)
+
+      const city =
+        territoryCityById.value.get(cityId) ||
+        (numericCityId ? territoryCityById.value.get(numericCityId) : undefined)
+      const geoFeature =
+        scCityFeatureById.value.get(cityId) ||
+        (numericCityId ? scCityFeatureById.value.get(numericCityId) : undefined)
+
+      const cityLabel = String(city?.nome || geoFeature?.name || '').trim()
+      if (!cityLabel) continue
+
+      const normalizedCity = normalizeCityNameForMatch(cityLabel)
+      if (!normalizedCity) continue
+
+      if (!map.has(normalizedCity)) {
+        map.set(normalizedCity, {
+          value: normalizedCity,
+          label: cityLabel,
+          count: 0,
+        })
+      }
+    }
+  }
+
   return Array.from(map.values()).sort((a, b) =>
     a.label.localeCompare(b.label, 'pt-BR', { sensitivity: 'base' })
   )
+})
+
+watch(cityFilterOptions, (options) => {
+  if (!filterCidade.value) return
+  if (!options.some((option) => option.value === filterCidade.value)) {
+    filterCidade.value = ''
+  }
 })
 
 function matchesCityScope(cliente: any, cityScopeId: string) {
