@@ -978,6 +978,17 @@ function normalizeCityNameForMatch(value: string | undefined) {
     .trim()
 }
 
+function alphabeticalNameKey(value: string | undefined) {
+  const normalized = normalizeText(value).replace(/\s+/g, ' ').trim()
+  if (!normalized) return ''
+
+  // Desconsidera prefixos numéricos comuns (ex.: CNPJ no início) para ordenar por nome.
+  const withoutLeadingNumbers = normalized.replace(/^[\d\s./-]+/, ' ').trim()
+  const withoutAnyNumbers = withoutLeadingNumbers.replace(/\d+/g, ' ').replace(/\s+/g, ' ').trim()
+
+  return withoutAnyNumbers || normalized
+}
+
 function cityMatchKey(value: string | undefined, uf?: string) {
   const cityName = normalizeCityNameForMatch(value)
   if (!cityName) return ''
@@ -1670,9 +1681,13 @@ const filteredClientes = computed(() => {
   // Ordenação alfabética por nome
   if (alphabeticalOrder.value) {
     const direction = alphabeticalOrder.value === 'asc' ? 1 : -1
-    result = [...result].sort(
-      (a, b) => direction * a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' })
-    )
+    result = [...result].sort((a, b) => {
+      const keyA = alphabeticalNameKey(a.nome)
+      const keyB = alphabeticalNameKey(b.nome)
+      const byKey = keyA.localeCompare(keyB, 'pt-BR', { sensitivity: 'base' })
+      if (byKey !== 0) return direction * byKey
+      return direction * a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' })
+    })
   }
 
   return result
