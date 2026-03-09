@@ -317,7 +317,7 @@
                 </NButton>
               </div>
 
-              <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-6">
+              <div class="grid grid-cols-1 gap-3 sm:grid-cols-5 xl:grid-cols-6">
                 <div>
                   <NTypo
                     as="label"
@@ -375,8 +375,9 @@
                   >
                     <option value="">Todos</option>
                     <option value="joalheria">💎 Joalheria</option>
+                    <option value="bijuteria">📿 Bijuteria</option>
                     <option value="relojoaria">⌚ Relojoaria</option>
-                    <option value="otica">👓 Ótica</option>
+                    <option value="otica">👓 Ótica / Óptica</option>
                     <option value="outros">🏪 Outros</option>
                   </select>
                 </div>
@@ -442,88 +443,6 @@
                     class="w-full"
                     @update:modelValue="handleMapViewModeChange"
                   />
-                </div>
-              </div>
-            </div>
-          </NLayer>
-
-          <NLayer
-            variant="paper"
-            size="base"
-            radius="soft"
-            class="self-start shadow-sm lg:order-4 lg:col-start-1"
-          >
-            <div class="flex items-start justify-between gap-3">
-              <div>
-                <NTypo as="h2" size="sm" weight="bold">Próximas apresentações</NTypo>
-                <NTypo size="xs" tone="muted" class="mt-0.5">
-                  Reuniões agendadas online e presenciais com vendedor responsável.
-                </NTypo>
-              </div>
-              <span
-                class="inline-flex items-center rounded-full bg-cyan-100 px-2 py-0.5 text-[11px] font-semibold text-cyan-700"
-              >
-                {{ upcomingPresentations.length }} próximas
-              </span>
-            </div>
-
-            <div
-              v-if="!upcomingPresentations.length"
-              class="mt-3 rounded-lg border border-dashed border-slate-200 p-4 text-center"
-            >
-              <NTypo size="sm" tone="muted">
-                Nenhuma apresentação futura encontrada no histórico da carteira.
-              </NTypo>
-            </div>
-
-            <div
-              v-else
-              class="mt-3 divide-y rounded-lg border border-gray-100 bg-white overflow-hidden"
-            >
-              <div
-                v-for="item in upcomingPresentations"
-                :key="item.id"
-                class="flex items-start justify-between gap-3 px-3 py-3 hover:bg-slate-50 transition-colors"
-              >
-                <button
-                  type="button"
-                  class="min-w-0 flex-1 text-left"
-                  @click="selectClientFromList(item.clientId)"
-                >
-                  <div class="min-w-0">
-                    <div class="flex flex-wrap items-center gap-2">
-                      <NTypo weight="bold" class="truncate">{{ item.clientName }}</NTypo>
-                      <span
-                        class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold"
-                        :class="
-                          item.mode === 'presencial'
-                            ? 'bg-amber-100 text-amber-800'
-                            : 'bg-blue-100 text-blue-800'
-                        "
-                      >
-                        {{ item.mode === 'presencial' ? 'Presencial' : 'Online' }}
-                      </span>
-                    </div>
-                    <NTypo size="xs" tone="muted" class="mt-1 truncate">
-                      {{ formatDateTime(item.scheduledAt) }}
-                      <span v-if="item.city"> • {{ item.city }}</span>
-                    </NTypo>
-                  </div>
-                </button>
-                <div class="shrink-0 text-right">
-                  <NTypo size="xs" tone="muted">Vendedor</NTypo>
-                  <NTypo size="xs" weight="semibold">{{ item.sellerName }}</NTypo>
-                  <a
-                    v-if="item.mode === 'online' && item.meetingLink"
-                    :href="item.meetingLink"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="mt-1 inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700 hover:bg-blue-100"
-                    @click.stop
-                  >
-                    <NIcon name="mdi:open-in-new" class="h-3 w-3" />
-                    Abrir reuniao
-                  </a>
                 </div>
               </div>
             </div>
@@ -750,6 +669,88 @@
               </NTypo>
             </div>
           </div>
+
+          <NLayer
+            variant="paper"
+            size="base"
+            radius="soft"
+            class="self-start shadow-sm lg:order-4 lg:col-start-1"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <NTypo as="h2" size="sm" weight="bold">Próximas apresentações</NTypo>
+                <NTypo size="xs" tone="muted" class="mt-0.5">
+                  Reuniões agendadas online e presenciais com vendedor responsável.
+                </NTypo>
+              </div>
+              <span
+                class="inline-flex items-center rounded-full bg-cyan-100 px-2 py-0.5 text-[11px] font-semibold text-cyan-700"
+              >
+                {{ upcomingPresentations.length }} próximas
+              </span>
+            </div>
+
+            <div
+              v-if="!upcomingPresentations.length"
+              class="mt-3 rounded-lg border border-dashed border-slate-200 p-4 text-center"
+            >
+              <NTypo size="sm" tone="muted">
+                Nenhuma apresentação futura encontrada no histórico da carteira.
+              </NTypo>
+            </div>
+
+            <div
+              v-else
+              class="mt-3 divide-y rounded-lg border border-gray-100 bg-white overflow-hidden"
+            >
+              <div
+                v-for="item in upcomingPresentations"
+                :key="item.id"
+                class="flex items-start justify-between gap-3 px-3 py-3 hover:bg-slate-50 transition-colors"
+              >
+                <button
+                  type="button"
+                  class="min-w-0 flex-1 text-left"
+                  @click="selectClientFromList(item.clientId)"
+                >
+                  <div class="min-w-0">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <NTypo weight="bold" class="truncate">{{ item.clientName }}</NTypo>
+                      <span
+                        class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                        :class="
+                          item.mode === 'presencial'
+                            ? 'bg-amber-100 text-amber-800'
+                            : 'bg-blue-100 text-blue-800'
+                        "
+                      >
+                        {{ item.mode === 'presencial' ? 'Presencial' : 'Online' }}
+                      </span>
+                    </div>
+                    <NTypo size="xs" tone="muted" class="mt-1 truncate">
+                      {{ formatDateTime(item.scheduledAt) }}
+                      <span v-if="item.city"> • {{ item.city }}</span>
+                    </NTypo>
+                  </div>
+                </button>
+                <div class="shrink-0 text-right">
+                  <NTypo size="xs" tone="muted">Vendedor</NTypo>
+                  <NTypo size="xs" weight="semibold">{{ item.sellerName }}</NTypo>
+                  <a
+                    v-if="item.mode === 'online' && item.meetingLink"
+                    :href="item.meetingLink"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="mt-1 inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700 hover:bg-blue-100"
+                    @click.stop
+                  >
+                    <NIcon name="mdi:open-in-new" class="h-3 w-3" />
+                    Abrir reuniao
+                  </a>
+                </div>
+              </div>
+            </div>
+          </NLayer>
           <!-- /plano + clientes grid -->
         </div>
         <!-- /left stack -->
@@ -976,6 +977,18 @@ function normalizeCityNameForMatch(value: string | undefined) {
     .replace(/[^a-z0-9\s]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
+}
+
+const KNOWN_SEGMENT_FILTERS = new Set(['bijuteria', 'joalheria', 'relojoaria', 'otica'])
+
+function segmentFilterKey(value: string | undefined) {
+  const normalized = normalizeText(value).replace(/\s+/g, ' ').trim()
+  if (!normalized) return ''
+
+  if (normalized === 'otica' || normalized === 'optica') return 'otica'
+  if (normalized === 'bijouteria') return 'bijuteria'
+
+  return normalized
 }
 
 function alphabeticalNameKey(value: string | undefined) {
@@ -1658,7 +1671,14 @@ const filteredClientes = computed(() => {
 
   // Filtro por segmento
   if (filterSegmento.value) {
-    result = result.filter((cliente) => cliente.segmento === filterSegmento.value)
+    const selectedSegment = segmentFilterKey(filterSegmento.value)
+    if (selectedSegment === 'outros') {
+      result = result.filter(
+        (cliente) => !KNOWN_SEGMENT_FILTERS.has(segmentFilterKey(cliente.segmento))
+      )
+    } else {
+      result = result.filter((cliente) => segmentFilterKey(cliente.segmento) === selectedSegment)
+    }
   }
 
   // Filtro por tipo
