@@ -306,7 +306,9 @@
                   </div>
                 </div>
                 <NButton
-                  v-if="searchQuery || filterSegmento || filterTipo"
+                  v-if="
+                    searchQuery || filterSegmento || filterTipo || filterCidade || alphabeticalOrder
+                  "
                   @click="handleClearFilters"
                   variant="outline"
                   size="zs"
@@ -315,7 +317,48 @@
                 </NButton>
               </div>
 
-              <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-6">
+                <div>
+                  <NTypo
+                    as="label"
+                    size="xs"
+                    weight="semibold"
+                    tone="muted"
+                    class="block mb-1 leading-none"
+                  >
+                    Cidade
+                  </NTypo>
+                  <select
+                    v-model="filterCidade"
+                    class="w-full px-3 py-2 rounded-lg border bg-white border-gray-200 focus:ring-2 focus:ring-sky-400 focus:border-sky-400 transition-colors"
+                  >
+                    <option value="">Todas</option>
+                    <option v-for="city in cityFilterOptions" :key="city.value" :value="city.value">
+                      {{ city.label }} ({{ city.count }})
+                    </option>
+                  </select>
+                </div>
+
+                <div>
+                  <NTypo
+                    as="label"
+                    size="xs"
+                    weight="semibold"
+                    tone="muted"
+                    class="block mb-1 leading-none"
+                  >
+                    Ordem alfabética
+                  </NTypo>
+                  <select
+                    v-model="alphabeticalOrder"
+                    class="w-full px-3 py-2 rounded-lg border bg-white border-gray-200 focus:ring-2 focus:ring-sky-400 focus:border-sky-400 transition-colors"
+                  >
+                    <option value="">Padrão</option>
+                    <option value="asc">A → Z</option>
+                    <option value="desc">Z → A</option>
+                  </select>
+                </div>
+
                 <div>
                   <NTypo
                     as="label"
@@ -873,6 +916,8 @@ const isModalEditarClienteOpen = ref(false)
 const searchQuery = ref('')
 const filterSegmento = ref('')
 const filterTipo = ref('')
+const filterCidade = ref('')
+const alphabeticalOrder = ref<'' | 'asc' | 'desc'>('')
 const mostrarClientes = ref(true)
 const mostrarComerciais = ref(true)
 const mostrarProspectos = ref(false)
@@ -1580,8 +1625,6 @@ const portfolioClientes = computed(() => {
   return clientes.value.filter((c) => (c as any)?.status !== 'inativo')
 })
 
-const cityClientesBase = computed(() => portfolioClientes.value)
-
 const filteredClientes = computed(() => {
   let result = portfolioClientes.value
 
@@ -1616,7 +1659,49 @@ const filteredClientes = computed(() => {
     }
   }
 
+  // Filtro por cidade
+  if (filterCidade.value) {
+    result = result.filter((cliente) => {
+      const cityName = String((cliente as any)?.cidade || (cliente as any)?.endereco?.cidade || '')
+      return normalizeCityNameForMatch(cityName) === filterCidade.value
+    })
+  }
+
+  // Ordenação alfabética por nome
+  if (alphabeticalOrder.value) {
+    const direction = alphabeticalOrder.value === 'asc' ? 1 : -1
+    result = [...result].sort(
+      (a, b) => direction * a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' })
+    )
+  }
+
   return result
+})
+
+const cityFilterOptions = computed(() => {
+  const map = new Map<string, { value: string; label: string; count: number }>()
+  for (const cliente of portfolioClientes.value as any[]) {
+    const rawName = String(cliente?.cidade || cliente?.endereco?.cidade || '').trim()
+    if (!rawName) continue
+    const normalized = normalizeCityNameForMatch(rawName)
+    if (!normalized) continue
+
+    const existing = map.get(normalized)
+    if (existing) {
+      existing.count += 1
+      continue
+    }
+
+    map.set(normalized, {
+      value: normalized,
+      label: rawName,
+      count: 1,
+    })
+  }
+
+  return Array.from(map.values()).sort((a, b) =>
+    a.label.localeCompare(b.label, 'pt-BR', { sensitivity: 'base' })
+  )
 })
 
 function matchesCityScope(cliente: any, cityScopeId: string) {
@@ -1641,20 +1726,20 @@ function matchesCityScope(cliente: any, cityScopeId: string) {
 const mapScopedClientes = computed(() => {
   if (mapViewMode.value === 'city') {
     if (cityModeState.value === 'detail' && selectedCityId.value) {
-      return cityClientesBase.value.filter((cliente) =>
+      return filteredClientes.value.filter((cliente) =>
         matchesCityScope(cliente as any, selectedCityId.value)
       )
     }
-    return cityClientesBase.value
+    return filteredClientes.value
   }
 
   if (mapViewMode.value === 'representative') {
     if (representativeModeState.value === 'detail' && selectedRepresentativeRegionId.value) {
-      return cityClientesBase.value.filter((cliente) =>
+      return filteredClientes.value.filter((cliente) =>
         matchesRepresentativeScope(cliente as any, selectedRepresentativeRegionId.value)
       )
     }
-    return cityClientesBase.value
+    return filteredClientes.value
   }
 
   return filteredClientes.value
@@ -1700,7 +1785,7 @@ const visibleClientesForRanking = computed(() => {
 })
 
 const cityAggregationSourceClientes = computed(() => {
-  return cityClientesBase.value.filter((cliente) => {
+  return filteredClientes.value.filter((cliente) => {
     if (!isCategoryVisible(cliente)) return false
     const categoria = categorizeClient(cliente)
     return categoria === 'cliente' || categoria === 'prospecto'
@@ -2018,9 +2103,15 @@ watch(maxRankLimit, (maxValue) => {
 })
 
 watch(
-  () => [searchQuery.value, filterSegmento.value, filterTipo.value],
-  ([query, segmento, tipo]) => {
-    if (!query && !segmento && !tipo && maxRankLimit.value) {
+  () => [
+    searchQuery.value,
+    filterSegmento.value,
+    filterTipo.value,
+    filterCidade.value,
+    alphabeticalOrder.value,
+  ],
+  ([query, segmento, tipo, cidade, ordem]) => {
+    if (!query && !segmento && !tipo && !cidade && !ordem && maxRankLimit.value) {
       topRankLimit.value = Math.min(DEFAULT_TOP_RANK, maxRankLimit.value)
     }
   }
@@ -2045,6 +2136,8 @@ function handleClearFilters() {
   searchQuery.value = ''
   filterSegmento.value = ''
   filterTipo.value = ''
+  filterCidade.value = ''
+  alphabeticalOrder.value = ''
 }
 
 function handleMapViewModeChange(value: string | number) {
