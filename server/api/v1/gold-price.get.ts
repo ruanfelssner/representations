@@ -29,12 +29,22 @@ function parseQuoteValue(raw: string, fieldName: string) {
 export default defineCachedEventHandler(
   async () => {
     const { awesomeApiKey } = useRuntimeConfig()
-    const response = await $fetch<unknown>(
-      `https://economia.awesomeapi.com.br/json/last/XAU-BRL${awesomeApiKey ? `?token=${awesomeApiKey}` : ''}`,
-      {
-        timeout: 10_000,
-      },
-    )
+
+    let response: unknown
+    try {
+      response = await $fetch<unknown>(
+        `https://economia.awesomeapi.com.br/json/last/XAU-BRL${awesomeApiKey ? `?token=${awesomeApiKey}` : ''}`,
+        {
+          timeout: 10_000,
+        },
+      )
+    }
+    catch {
+      throw createError({
+        statusCode: 503,
+        statusMessage: 'Serviço de cotação do ouro indisponível no momento.',
+      })
+    }
 
     const parsed = AwesomeGoldQuoteSchema.safeParse(response)
     if (!parsed.success) {
