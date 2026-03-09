@@ -317,7 +317,7 @@
                 </NButton>
               </div>
 
-              <div class="grid grid-cols-1 gap-3 sm:grid-cols-5 xl:grid-cols-6">
+              <div class="grid grid-cols-6 gap-3">
                 <div>
                   <NTypo
                     as="label"
