@@ -84,6 +84,56 @@ function normalizeSaleType(tipo: string): string {
   return 'outro'
 }
 
+function firstNonEmpty(...values: unknown[]): string {
+  for (const value of values) {
+    const text = String(value || '').trim()
+    if (text) return text
+  }
+  return ''
+}
+
+function cityFromEndereco(endereco: unknown): string {
+  if (!endereco) return ''
+
+  if (typeof endereco === 'object') {
+    const obj = endereco as any
+    return firstNonEmpty(obj?.cidade, obj?.municipio)
+  }
+
+  if (typeof endereco === 'string') {
+    const raw = endereco.trim()
+    if (!raw) return ''
+
+    // Tenta extrair "CIDADE - UF" de endereços em string livre.
+    const cityUfMatch = raw.match(/,\s*([^,]+?)\s*-\s*[A-Za-z]{2}\b/i)
+    if (cityUfMatch?.[1]) return cityUfMatch[1].trim()
+
+    return ''
+  }
+
+  return ''
+}
+
+function clientDisplayName(client: any): string {
+  return (
+    firstNonEmpty(
+      client?.nome,
+      client?.razao_social,
+      client?.razaoSocial,
+      client?.nome_fantasia,
+      client?.nomeFantasia,
+      client?.company?.nomeFantasia
+    ) || firstNonEmpty(client?.cnpj) || 'Cliente não identificado'
+  )
+}
+
+function clientDisplayCity(client: any): string {
+  return (
+    firstNonEmpty(client?.cidade, client?.municipio, cityFromEndereco(client?.endereco)) ||
+    'Cidade não informada'
+  )
+}
+
 export default defineEventHandler(async (event) => {
   try {
     const { userId } = getRouterParams(event)
@@ -204,8 +254,14 @@ export default defineEventHandler(async (event) => {
               _id: 1,
               nome: 1,
               cidade: 1,
+              municipio: 1,
               endereco: 1,
               company: 1,
+              nome_fantasia: 1,
+              nomeFantasia: 1,
+              razao_social: 1,
+              razaoSocial: 1,
+              cnpj: 1,
             })
             .toArray()
 
@@ -214,10 +270,8 @@ export default defineEventHandler(async (event) => {
       const clientId = normalizeId((client as any)?._id)
       if (!clientId) continue
 
-      const nome =
-        String((client as any)?.nome || (client as any)?.company?.nomeFantasia || '').trim() ||
-        'Cliente sem nome'
-      const cidade = String((client as any)?.cidade || (client as any)?.endereco?.cidade || '').trim()
+      const nome = clientDisplayName(client)
+      const cidade = clientDisplayCity(client)
 
       clientById.set(clientId, { nome, cidade })
     }

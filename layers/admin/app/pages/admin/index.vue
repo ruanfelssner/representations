@@ -332,7 +332,7 @@
                     v-model="filterCidade"
                     class="w-full px-3 py-2 rounded-lg border bg-white border-gray-200 focus:ring-2 focus:ring-sky-400 focus:border-sky-400 transition-colors"
                   >
-                    <option value="">Todas</option>
+                    <option value="">Todas ({{ cityFilterAllCount }})</option>
                     <option v-for="city in cityFilterOptions" :key="city.value" :value="city.value">
                       {{ city.label }} ({{ city.count }})
                     </option>
@@ -1713,17 +1713,26 @@ const filteredClientes = computed(() => {
   return result
 })
 
+const cityFilterRepresentativeRegionId = computed(() =>
+  mapViewMode.value === 'representative' && representativeModeState.value === 'detail'
+    ? selectedRepresentativeRegionId.value
+    : ''
+)
+
+const cityFilterSourceClientes = computed(() => {
+  const regionId = cityFilterRepresentativeRegionId.value
+  if (!regionId) return portfolioClientes.value as any[]
+  return (portfolioClientes.value as any[]).filter((cliente) =>
+    matchesRepresentativeScope(cliente as any, regionId)
+  )
+})
+
+const cityFilterAllCount = computed(() => cityFilterSourceClientes.value.length)
+
 const cityFilterOptions = computed(() => {
   const map = new Map<string, { value: string; label: string; count: number }>()
-  const regionId =
-    mapViewMode.value === 'representative' && representativeModeState.value === 'detail'
-      ? selectedRepresentativeRegionId.value
-      : ''
-  const sourceClientes = regionId
-    ? (portfolioClientes.value as any[]).filter((cliente) =>
-        matchesRepresentativeScope(cliente as any, regionId)
-      )
-    : (portfolioClientes.value as any[])
+  const regionId = cityFilterRepresentativeRegionId.value
+  const sourceClientes = cityFilterSourceClientes.value
 
   for (const cliente of sourceClientes) {
     const rawName = String(cliente?.cidade || cliente?.endereco?.cidade || '').trim()
