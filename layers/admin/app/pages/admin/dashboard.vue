@@ -827,7 +827,7 @@
             size="xs"
             leading-icon="mdi:refresh"
             :disabled="rankingPending"
-            @click="refreshRanking()"
+            @click="refreshRankingSection()"
           />
         </div>
 
@@ -881,60 +881,141 @@
           <div
             v-for="(seller, index) in rankingVendedores"
             :key="seller.userId"
-            class="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-indigo-200 hover:bg-indigo-50/50 transition-all"
+            class="rounded-lg border border-gray-100 transition-all hover:border-indigo-200"
           >
-            <!-- Posição -->
+            <div class="flex items-center gap-3 p-3 hover:bg-indigo-50/50">
+              <!-- Posição -->
+              <div
+                class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm"
+                :class="[
+                  index === 0 ? 'bg-yellow-400 text-yellow-900' : '',
+                  index === 1 ? 'bg-gray-300 text-gray-700' : '',
+                  index === 2 ? 'bg-orange-400 text-orange-900' : '',
+                  index > 2 ? 'bg-gray-100 text-gray-600' : '',
+                ]"
+              >
+                {{ index + 1 }}
+              </div>
+
+              <!-- Info do vendedor -->
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2">
+                  <NTypo size="sm" weight="semibold" class="truncate">{{ seller.nome }}</NTypo>
+                  <NTypo
+                    v-if="seller.ativo === false"
+                    as="span"
+                    size="xs"
+                    class="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800"
+                  >
+                    inativo
+                  </NTypo>
+                  <NTypo
+                    v-if="!seller.encontrado"
+                    as="span"
+                    size="xs"
+                    class="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-800"
+                  >
+                    não listado
+                  </NTypo>
+                </div>
+                <div class="flex items-center gap-3 mt-0.5">
+                  <NTypo size="xs" tone="muted">
+                    {{ seller.numeroVendas }} {{ seller.numeroVendas === 1 ? 'venda' : 'vendas' }}
+                  </NTypo>
+                  <span class="text-gray-300">•</span>
+                  <NTypo size="xs" tone="muted">
+                    {{ seller.clientesUnicos }}
+                    {{ seller.clientesUnicos === 1 ? 'cliente' : 'clientes' }}
+                  </NTypo>
+                </div>
+              </div>
+
+              <!-- Valor total -->
+              <div class="text-right">
+                <NTypo size="sm" weight="bold" class="text-indigo-600">
+                  {{ formatCurrency(seller.totalVendido) }}
+                </NTypo>
+                <NTypo size="xs" tone="muted"
+                  >Ticket {{ formatCurrency(seller.ticketMedio) }}</NTypo
+                >
+              </div>
+
+              <NButton
+                size="xs"
+                variant="outline"
+                :loading="isSellerDetailsLoading(seller.userId)"
+                :trailing-icon="
+                  isSellerExpanded(seller.userId) ? 'mdi:chevron-up' : 'mdi:chevron-down'
+                "
+                @click="toggleSellerExpanded(seller.userId)"
+              >
+                {{ isSellerExpanded(seller.userId) ? 'Ocultar' : 'Ver vendas' }}
+              </NButton>
+            </div>
+
             <div
-              class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm"
-              :class="[
-                index === 0 ? 'bg-yellow-400 text-yellow-900' : '',
-                index === 1 ? 'bg-gray-300 text-gray-700' : '',
-                index === 2 ? 'bg-orange-400 text-orange-900' : '',
-                index > 2 ? 'bg-gray-100 text-gray-600' : '',
-              ]"
+              v-if="isSellerExpanded(seller.userId)"
+              class="border-t border-gray-100 bg-gray-50/60 p-3 space-y-2"
             >
-              {{ index + 1 }}
-            </div>
-
-            <!-- Info do vendedor -->
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2">
-                <NTypo size="sm" weight="semibold" class="truncate">{{ seller.nome }}</NTypo>
-                <NTypo
-                  v-if="seller.ativo === false"
-                  as="span"
-                  size="xs"
-                  class="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800"
-                >
-                  inativo
-                </NTypo>
-                <NTypo
-                  v-if="!seller.encontrado"
-                  as="span"
-                  size="xs"
-                  class="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-800"
-                >
-                  não listado
-                </NTypo>
+              <div v-if="isSellerDetailsLoading(seller.userId)" class="space-y-2">
+                <div v-for="i in 3" :key="i" class="h-8 rounded bg-gray-100 animate-pulse" />
               </div>
-              <div class="flex items-center gap-3 mt-0.5">
-                <NTypo size="xs" tone="muted">
-                  {{ seller.numeroVendas }} {{ seller.numeroVendas === 1 ? 'venda' : 'vendas' }}
-                </NTypo>
-                <span class="text-gray-300">•</span>
-                <NTypo size="xs" tone="muted">
-                  {{ seller.clientesUnicos }}
-                  {{ seller.clientesUnicos === 1 ? 'cliente' : 'clientes' }}
-                </NTypo>
-              </div>
-            </div>
 
-            <!-- Valor total -->
-            <div class="text-right">
-              <NTypo size="sm" weight="bold" class="text-indigo-600">
-                {{ formatCurrency(seller.totalVendido) }}
-              </NTypo>
-              <NTypo size="xs" tone="muted">Ticket {{ formatCurrency(seller.ticketMedio) }}</NTypo>
+              <div
+                v-else-if="sellerDetailsErrorByUserId[seller.userId]"
+                class="rounded-lg border border-red-200 bg-red-50 p-3"
+              >
+                <NTypo size="xs" class="text-red-700">{{
+                  sellerDetailsErrorByUserId[seller.userId]
+                }}</NTypo>
+              </div>
+
+              <div
+                v-else-if="sellerDetailsRows(seller.userId).length === 0"
+                class="rounded-lg border border-gray-200 bg-white p-3"
+              >
+                <NTypo size="xs" tone="muted">Nenhuma venda encontrada para este vendedor.</NTypo>
+              </div>
+
+              <div v-else class="space-y-2">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                  <NTypo size="xs" tone="muted">{{ sellerDetailsSummaryText(seller.userId) }}</NTypo>
+                  <NTypo size="xs" tone="muted">{{ rankingPeriodLabel }}</NTypo>
+                </div>
+
+                <div class="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+                  <table class="min-w-full text-left text-xs">
+                    <thead class="bg-gray-50">
+                      <tr>
+                        <th class="px-3 py-2 font-semibold text-gray-700">Data</th>
+                        <th class="px-3 py-2 font-semibold text-gray-700">Cliente</th>
+                        <th class="px-3 py-2 font-semibold text-gray-700">Cidade</th>
+                        <th class="px-3 py-2 font-semibold text-gray-700">Canal</th>
+                        <th class="px-3 py-2 text-right font-semibold text-gray-700">Valor</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr
+                        v-for="row in sellerDetailsRows(seller.userId)"
+                        :key="`${row.eventId}-${row.data}`"
+                        class="border-t border-gray-100"
+                      >
+                        <td class="px-3 py-2 whitespace-nowrap text-gray-700">
+                          {{ formatShortDate(row.data) }}
+                        </td>
+                        <td class="px-3 py-2 whitespace-nowrap text-gray-900">
+                          {{ row.clientNome }}
+                        </td>
+                        <td class="px-3 py-2 whitespace-nowrap text-gray-700">{{ row.cidade }}</td>
+                        <td class="px-3 py-2 whitespace-nowrap text-gray-700">{{ row.tipoLabel }}</td>
+                        <td class="px-3 py-2 whitespace-nowrap text-right font-semibold text-emerald-700">
+                          {{ formatCurrencyPrecise(row.valor) }}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1124,6 +1205,34 @@ const RankingSellersResponseSchema = z.object({
   }),
 })
 
+const RankingSellerDetailsRowSchema = z.object({
+  eventId: z.string(),
+  tipo: z.string(),
+  tipoLabel: z.string(),
+  data: z.string(),
+  valor: z.number(),
+  clientId: z.string(),
+  clientNome: z.string(),
+  cidade: z.string(),
+})
+
+const RankingSellerDetailsResponseSchema = z.object({
+  success: z.boolean(),
+  data: z.object({
+    userId: z.string(),
+    scope: z.enum(['month', 'year']),
+    year: z.number(),
+    month: z.number().nullable(),
+    periodLabel: z.string(),
+    totalEventos: z.number().int().min(0),
+    returnedEventos: z.number().int().min(0),
+    limit: z.number().int().min(1),
+    rows: z.array(RankingSellerDetailsRowSchema),
+  }),
+})
+
+type RankingSellerDetailsPayload = z.infer<typeof RankingSellerDetailsResponseSchema>['data']
+
 const rankingQuery = computed(() => {
   const base: Record<string, string | number> = {
     scope: rankingScope.value,
@@ -1156,6 +1265,100 @@ const rankingMonthOptions = Array.from({ length: 12 }, (_, index) => {
 const rankingYearOptions = computed(() =>
   Array.from({ length: 6 }, (_, offset) => new Date().getFullYear() - offset)
 )
+
+const SELLER_DETAILS_LIMIT = 300
+const expandedSellerIds = ref<string[]>([])
+const sellerDetailsByUserId = ref<Record<string, RankingSellerDetailsPayload>>({})
+const sellerDetailsLoadingByUserId = ref<Record<string, boolean>>({})
+const sellerDetailsErrorByUserId = ref<Record<string, string>>({})
+
+function resetSellerDetailsState() {
+  expandedSellerIds.value = []
+  sellerDetailsByUserId.value = {}
+  sellerDetailsLoadingByUserId.value = {}
+  sellerDetailsErrorByUserId.value = {}
+}
+
+watch([rankingScope, rankingYear, rankingMonth], () => {
+  resetSellerDetailsState()
+})
+
+function isSellerExpanded(userId: string): boolean {
+  return expandedSellerIds.value.includes(userId)
+}
+
+function isSellerDetailsLoading(userId: string): boolean {
+  return Boolean(sellerDetailsLoadingByUserId.value[userId])
+}
+
+function sellerDetailsRows(userId: string) {
+  return sellerDetailsByUserId.value[userId]?.rows || []
+}
+
+function sellerDetailsSummaryText(userId: string): string {
+  const details = sellerDetailsByUserId.value[userId]
+  if (!details) return 'Sem detalhes carregados'
+  if (details.totalEventos <= details.returnedEventos) {
+    return `${details.returnedEventos} vendas listadas`
+  }
+  return `${details.returnedEventos} de ${details.totalEventos} vendas listadas`
+}
+
+async function fetchSellerDetails(userId: string) {
+  if (!userId) return
+  if (sellerDetailsByUserId.value[userId] || sellerDetailsLoadingByUserId.value[userId]) return
+
+  sellerDetailsLoadingByUserId.value = {
+    ...sellerDetailsLoadingByUserId.value,
+    [userId]: true,
+  }
+  sellerDetailsErrorByUserId.value = {
+    ...sellerDetailsErrorByUserId.value,
+    [userId]: '',
+  }
+
+  try {
+    const response = await $fetch(`/api/v1/admin/ranking-vendedores/${encodeURIComponent(userId)}`, {
+      query: {
+        ...rankingQuery.value,
+        limit: SELLER_DETAILS_LIMIT,
+      },
+    })
+    const parsed = RankingSellerDetailsResponseSchema.parse(response)
+    sellerDetailsByUserId.value = {
+      ...sellerDetailsByUserId.value,
+      [userId]: parsed.data,
+    }
+  } catch (error) {
+    console.error('Erro ao carregar detalhes do vendedor:', error)
+    sellerDetailsErrorByUserId.value = {
+      ...sellerDetailsErrorByUserId.value,
+      [userId]: 'Falha ao carregar detalhes das vendas deste vendedor.',
+    }
+  } finally {
+    sellerDetailsLoadingByUserId.value = {
+      ...sellerDetailsLoadingByUserId.value,
+      [userId]: false,
+    }
+  }
+}
+
+async function toggleSellerExpanded(userId: string) {
+  if (!userId) return
+
+  if (isSellerExpanded(userId)) {
+    expandedSellerIds.value = expandedSellerIds.value.filter((id) => id !== userId)
+    return
+  }
+
+  expandedSellerIds.value = [...expandedSellerIds.value, userId]
+  await fetchSellerDetails(userId)
+}
+
+async function refreshRankingSection() {
+  resetSellerDetailsState()
+  await refreshRanking()
+}
 
 const commercialKpis = computed(() => {
   return (
@@ -1416,7 +1619,7 @@ const anualVsAnoAnterior = computed(() =>
 )
 
 async function refreshAll() {
-  await Promise.all([refresh(), refreshCommercialKpis(), refreshRanking()])
+  await Promise.all([refresh(), refreshCommercialKpis(), refreshRankingSection()])
 }
 
 function formatCurrency(value: number): string {
@@ -1458,6 +1661,17 @@ function formatDateTime(iso: string): string {
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
+  }).format(d)
+}
+
+function formatShortDate(iso: string): string {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return '—'
+  return new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
   }).format(d)
 }
 </script>
