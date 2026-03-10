@@ -32,19 +32,26 @@
       </NLayer>
 
       <div v-if="parsed" class="space-y-4">
-        <NLayer variant="paper" size="sm" radius="soft" class="space-y-2">
+        <NLayer variant="paper" size="sm" radius="soft" class="space-y-3">
           <div class="flex flex-wrap items-center gap-2">
             <NTypo size="xs" tone="muted">Documento</NTypo>
             <NTypo size="sm" weight="semibold">{{ documentId || 'Nao encontrado' }}</NTypo>
           </div>
-          <div class="flex flex-wrap items-center gap-2">
-            <NTypo size="xs" tone="muted">Pedido</NTypo>
-            <NInput v-model="pedidoCodigo" type="text" size="sm" class="max-w-[160px]" />
+          <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <NSelect v-model="sellerId" label="Representante / Vendedor" size="sm" :disabled="isLoadingSellers">
+              <option value="" disabled>
+                {{ isLoadingSellers ? 'Carregando vendedores...' : 'Selecione...' }}
+              </option>
+              <option v-for="seller in sellers" :key="seller.id" :value="seller.id">
+                {{ seller.nome }}{{ seller.ativo === false ? ' (inativo)' : '' }}
+              </option>
+            </NSelect>
+            <NInput v-model="pedidoCodigo" label="Numero do pedido" type="text" size="sm" />
+            <NInput v-model="saleDate" label="Data da venda" type="datetime-local" size="sm" />
           </div>
-          <div class="flex flex-wrap items-center gap-2">
-            <NTypo size="xs" tone="muted">Data da venda</NTypo>
-            <NInput v-model="saleDate" type="datetime-local" size="sm" class="max-w-[220px]" />
-          </div>
+          <NTypo v-if="!isLoadingSellers && !sellers.length" size="xs" tone="danger">
+            Nenhum vendedor encontrado para vincular a venda.
+          </NTypo>
         </NLayer>
 
         <NLayer variant="paper" size="sm" radius="soft" class="space-y-3">
@@ -144,7 +151,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import type { Cliente } from '~/types/client'
-import type { ProdutoDto } from '~/types/schemas'
+import type { ProdutoDto, UserDto } from '~/types/schemas'
 import { useClientsApi } from '~/composables/useClientsApi'
 import { useHistoricoClienteApi } from '~/composables/useHistoricoClienteApi'
 
@@ -170,6 +177,9 @@ const parseError = ref('')
 const parsed = ref(false)
 const documentId = ref('')
 const pedidoCodigo = ref('')
+const sellerId = ref('')
+const sellers = ref<Array<Pick<UserDto, 'id' | 'nome' | 'ativo'>>>([])
+const isLoadingSellers = ref(false)
 const items = ref<ParsedItem[]>([])
 const client = ref<Cliente | null>(null)
 const products = ref<ProdutoDto[]>([])
@@ -200,6 +210,7 @@ const totalGeral = computed(() =>
 const canRegister = computed(() => {
   if (isParsing.value || isSaving.value) return false
   if (!parsed.value || !items.value.length) return false
+  if (!sellerId.value) return false
   if (client.value) return true
   return Boolean(newClient.value.nome.trim() && newClient.value.endereco_completo.trim())
 })
@@ -209,6 +220,7 @@ watch(
   (open) => {
     if (open) {
       resetAll()
+      loadSellers()
       loadProducts()
     }
   }
@@ -218,13 +230,15 @@ const triggerFilePicker = () => {
   fileInput.value?.click()
 }
 
-const resetAll = () => {
+const resetAll = (opts?: { preserveSeller?: boolean }) => {
+  const preservedSeller = opts?.preserveSeller ? sellerId.value : ''
   fileName.value = ''
   isParsing.value = false
   parseError.value = ''
   parsed.value = false
   documentId.value = ''
   pedidoCodigo.value = ''
+  sellerId.value = preservedSeller
   items.value = []
   client.value = null
   saveError.value = ''
@@ -255,12 +269,37 @@ const loadProducts = async () => {
   }
 }
 
+const loadSellers = async () => {
+  if (!import.meta.client) return
+  isLoadingSellers.value = true
+  try {
+    const res = await $fetch<{
+      success: boolean
+      data: Array<Pick<UserDto, 'id' | 'nome' | 'ativo'>>
+    }>('/api/v1/users?role=vendedor')
+    sellers.value = Array.isArray(res.data) ? res.data : []
+
+    const currentSelectedSeller = String(sellerId.value || '')
+    const hasCurrentSelectedSeller = sellers.value.some((seller) => seller.id === currentSelectedSeller)
+    if (!currentSelectedSeller || !hasCurrentSelectedSeller) {
+      const activeSellers = sellers.value.filter((seller) => seller.ativo !== false)
+      sellerId.value = activeSellers[0]?.id || sellers.value[0]?.id || ''
+    }
+  } catch (error) {
+    console.error('Erro ao carregar vendedores:', error)
+    sellers.value = []
+    sellerId.value = ''
+  } finally {
+    isLoadingSellers.value = false
+  }
+}
+
 const handleFileChange = async (event: Event) => {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
   if (!file) return
 
-  resetAll()
+  resetAll({ preserveSeller: true })
   fileName.value = file.name
   isParsing.value = true
   parseError.value = ''
@@ -351,7 +390,7 @@ const handleRegister = async () => {
     const saleDateValue = saleDate.value ? new Date(saleDate.value) : new Date()
     await createEvento({
       clientId: targetClient.id,
-      userId: 'user-app',
+      userId: sellerId.value,
       tipo: 'venda_fisica',
       data: saleDateValue.toISOString(),
       descricao: `Importacao PDF ${fileName.value || ''}`.trim(),
@@ -369,7 +408,7 @@ const handleRegister = async () => {
 }
 
 const handleSuccessReset = () => {
-  resetAll()
+  resetAll({ preserveSeller: true })
 }
 
 const handleSuccessClose = () => {
