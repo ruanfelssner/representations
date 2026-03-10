@@ -979,7 +979,9 @@
 
               <div v-else class="space-y-2">
                 <div class="flex flex-wrap items-center justify-between gap-2">
-                  <NTypo size="xs" tone="muted">{{ sellerDetailsSummaryText(seller.userId) }}</NTypo>
+                  <NTypo size="xs" tone="muted">{{
+                    sellerDetailsSummaryText(seller.userId)
+                  }}</NTypo>
                   <NTypo size="xs" tone="muted">{{ rankingPeriodLabel }}</NTypo>
                 </div>
 
@@ -992,6 +994,7 @@
                         <th class="px-3 py-2 font-semibold text-gray-700">Cidade</th>
                         <th class="px-3 py-2 font-semibold text-gray-700">Canal</th>
                         <th class="px-3 py-2 text-right font-semibold text-gray-700">Valor</th>
+                        <th class="px-3 py-2 font-semibold text-gray-700">Ação</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1007,9 +1010,64 @@
                           {{ row.clientNome }}
                         </td>
                         <td class="px-3 py-2 whitespace-nowrap text-gray-700">{{ row.cidade }}</td>
-                        <td class="px-3 py-2 whitespace-nowrap text-gray-700">{{ row.tipoLabel }}</td>
-                        <td class="px-3 py-2 whitespace-nowrap text-right font-semibold text-emerald-700">
+                        <td class="px-3 py-2 whitespace-nowrap text-gray-700">
+                          {{ row.tipoLabel }}
+                        </td>
+                        <td
+                          class="px-3 py-2 whitespace-nowrap text-right font-semibold text-emerald-700"
+                        >
                           {{ formatCurrencyPrecise(row.valor) }}
+                        </td>
+                        <td class="px-3 py-2 align-top">
+                          <div class="flex min-w-[17rem] flex-col gap-1.5">
+                            <div class="flex items-center gap-1.5">
+                              <NSelect
+                                :model-value="transferTargetByEventId[row.eventId] || ''"
+                                size="sm"
+                                class="min-w-[11rem]"
+                                @update:model-value="onTransferTargetChange(row.eventId, $event)"
+                              >
+                                <option value="">Transferir para...</option>
+                                <option
+                                  v-for="option in transferSellerOptionsForCurrentSeller(
+                                    seller.userId
+                                  )"
+                                  :key="option.value"
+                                  :value="option.value"
+                                >
+                                  {{ option.label }}
+                                </option>
+                              </NSelect>
+
+                              <NButton
+                                size="xs"
+                                variant="outline"
+                                :loading="isTransferringSale(row.eventId)"
+                                :disabled="
+                                  isTransferringSale(row.eventId) ||
+                                  !canTransferSale(row.eventId, seller.userId)
+                                "
+                                @click="transferSaleRow(row, seller.userId)"
+                              >
+                                Transferir
+                              </NButton>
+                            </div>
+
+                            <NTypo
+                              v-if="transferSaleErrorByEventId[row.eventId]"
+                              size="xs"
+                              class="text-red-600"
+                            >
+                              {{ transferSaleErrorByEventId[row.eventId] }}
+                            </NTypo>
+                            <NTypo
+                              v-else-if="transferSaleSuccessByEventId[row.eventId]"
+                              size="xs"
+                              class="text-emerald-700"
+                            >
+                              {{ transferSaleSuccessByEventId[row.eventId] }}
+                            </NTypo>
+                          </div>
                         </td>
                       </tr>
                     </tbody>
@@ -1231,7 +1289,28 @@ const RankingSellerDetailsResponseSchema = z.object({
   }),
 })
 
+const SellerTransferUserSchema = z.object({
+  id: z.string(),
+  nome: z.string(),
+})
+
+const SellerTransferUsersResponseSchema = z.object({
+  success: z.boolean(),
+  data: z.array(SellerTransferUserSchema),
+})
+
+const SellerTransferResponseSchema = z.object({
+  success: z.boolean(),
+  data: z.object({
+    eventId: z.string(),
+    fromUserId: z.string(),
+    toUserId: z.string(),
+    changed: z.boolean(),
+  }),
+})
+
 type RankingSellerDetailsPayload = z.infer<typeof RankingSellerDetailsResponseSchema>['data']
+type RankingSellerDetailsRow = z.infer<typeof RankingSellerDetailsRowSchema>
 
 const rankingQuery = computed(() => {
   const base: Record<string, string | number> = {
@@ -1250,6 +1329,14 @@ const {
   query: rankingQuery,
   transform: (res) => RankingSellersResponseSchema.parse(res).data,
   watch: [rankingScope, rankingYear, rankingMonth],
+})
+
+const { data: sellerTransferUsersData } = await useFetch('/api/v1/users', {
+  query: {
+    role: 'vendedor',
+    ativo: 'true',
+  },
+  transform: (res) => SellerTransferUsersResponseSchema.parse(res).data,
 })
 
 const rankingVendedores = computed(() => rankingData.value?.ranking || [])
@@ -1271,12 +1358,45 @@ const expandedSellerIds = ref<string[]>([])
 const sellerDetailsByUserId = ref<Record<string, RankingSellerDetailsPayload>>({})
 const sellerDetailsLoadingByUserId = ref<Record<string, boolean>>({})
 const sellerDetailsErrorByUserId = ref<Record<string, string>>({})
+const transferTargetByEventId = ref<Record<string, string>>({})
+const transferSaleLoadingByEventId = ref<Record<string, boolean>>({})
+const transferSaleErrorByEventId = ref<Record<string, string>>({})
+const transferSaleSuccessByEventId = ref<Record<string, string>>({})
+
+const sellerNameByUserId = computed<Record<string, string>>(() => {
+  const names: Record<string, string> = {}
+
+  for (const user of sellerTransferUsersData.value || []) {
+    if (!user.id) continue
+    names[user.id] = user.nome || user.id
+  }
+
+  for (const seller of rankingVendedores.value) {
+    if (!seller.userId) continue
+    if (!names[seller.userId]) names[seller.userId] = seller.nome || seller.userId
+  }
+
+  return names
+})
+
+const transferSellerOptions = computed(() => {
+  const options = Object.entries(sellerNameByUserId.value).map(([value, label]) => ({
+    value,
+    label,
+  }))
+  options.sort((a, b) => a.label.localeCompare(b.label, 'pt-BR', { sensitivity: 'base' }))
+  return options
+})
 
 function resetSellerDetailsState() {
   expandedSellerIds.value = []
   sellerDetailsByUserId.value = {}
   sellerDetailsLoadingByUserId.value = {}
   sellerDetailsErrorByUserId.value = {}
+  transferTargetByEventId.value = {}
+  transferSaleLoadingByEventId.value = {}
+  transferSaleErrorByEventId.value = {}
+  transferSaleSuccessByEventId.value = {}
 }
 
 watch([rankingScope, rankingYear, rankingMonth], () => {
@@ -1287,12 +1407,40 @@ function isSellerExpanded(userId: string): boolean {
   return expandedSellerIds.value.includes(userId)
 }
 
+function isTransferringSale(eventId: string): boolean {
+  return Boolean(transferSaleLoadingByEventId.value[eventId])
+}
+
 function isSellerDetailsLoading(userId: string): boolean {
   return Boolean(sellerDetailsLoadingByUserId.value[userId])
 }
 
 function sellerDetailsRows(userId: string) {
   return sellerDetailsByUserId.value[userId]?.rows || []
+}
+
+function transferSellerOptionsForCurrentSeller(currentUserId: string) {
+  return transferSellerOptions.value.filter((option) => option.value !== currentUserId)
+}
+
+function onTransferTargetChange(eventId: string, targetUserId: string) {
+  transferTargetByEventId.value = {
+    ...transferTargetByEventId.value,
+    [eventId]: String(targetUserId || '').trim(),
+  }
+  transferSaleErrorByEventId.value = {
+    ...transferSaleErrorByEventId.value,
+    [eventId]: '',
+  }
+  transferSaleSuccessByEventId.value = {
+    ...transferSaleSuccessByEventId.value,
+    [eventId]: '',
+  }
+}
+
+function canTransferSale(eventId: string, currentUserId: string): boolean {
+  const targetUserId = String(transferTargetByEventId.value[eventId] || '').trim()
+  return Boolean(targetUserId && targetUserId !== currentUserId)
 }
 
 function sellerDetailsSummaryText(userId: string): string {
@@ -1304,9 +1452,32 @@ function sellerDetailsSummaryText(userId: string): string {
   return `${details.returnedEventos} de ${details.totalEventos} vendas listadas`
 }
 
-async function fetchSellerDetails(userId: string) {
+function clearSellerDetailsCacheForUsers(userIds: string[]) {
+  const uniqueUserIds = Array.from(new Set(userIds.filter(Boolean)))
+  if (!uniqueUserIds.length) return
+
+  const nextDetails = { ...sellerDetailsByUserId.value }
+  const nextLoading = { ...sellerDetailsLoadingByUserId.value }
+  const nextErrors = { ...sellerDetailsErrorByUserId.value }
+
+  for (const userId of uniqueUserIds) {
+    delete nextDetails[userId]
+    delete nextLoading[userId]
+    delete nextErrors[userId]
+  }
+
+  sellerDetailsByUserId.value = nextDetails
+  sellerDetailsLoadingByUserId.value = nextLoading
+  sellerDetailsErrorByUserId.value = nextErrors
+}
+
+async function fetchSellerDetails(userId: string, opts: { force?: boolean } = {}) {
   if (!userId) return
-  if (sellerDetailsByUserId.value[userId] || sellerDetailsLoadingByUserId.value[userId]) return
+  if (
+    !opts.force &&
+    (sellerDetailsByUserId.value[userId] || sellerDetailsLoadingByUserId.value[userId])
+  )
+    return
 
   sellerDetailsLoadingByUserId.value = {
     ...sellerDetailsLoadingByUserId.value,
@@ -1318,12 +1489,15 @@ async function fetchSellerDetails(userId: string) {
   }
 
   try {
-    const response = await $fetch(`/api/v1/admin/ranking-vendedores/${encodeURIComponent(userId)}`, {
-      query: {
-        ...rankingQuery.value,
-        limit: SELLER_DETAILS_LIMIT,
-      },
-    })
+    const response = await $fetch(
+      `/api/v1/admin/ranking-vendedores/${encodeURIComponent(userId)}`,
+      {
+        query: {
+          ...rankingQuery.value,
+          limit: SELLER_DETAILS_LIMIT,
+        },
+      }
+    )
     const parsed = RankingSellerDetailsResponseSchema.parse(response)
     sellerDetailsByUserId.value = {
       ...sellerDetailsByUserId.value,
@@ -1339,6 +1513,97 @@ async function fetchSellerDetails(userId: string) {
     sellerDetailsLoadingByUserId.value = {
       ...sellerDetailsLoadingByUserId.value,
       [userId]: false,
+    }
+  }
+}
+
+async function transferSaleRow(row: RankingSellerDetailsRow, fromUserId: string) {
+  const eventId = String(row.eventId || '').trim()
+  const toUserId = String(transferTargetByEventId.value[eventId] || '').trim()
+
+  transferSaleErrorByEventId.value = {
+    ...transferSaleErrorByEventId.value,
+    [eventId]: '',
+  }
+  transferSaleSuccessByEventId.value = {
+    ...transferSaleSuccessByEventId.value,
+    [eventId]: '',
+  }
+
+  if (!eventId) {
+    transferSaleErrorByEventId.value = {
+      ...transferSaleErrorByEventId.value,
+      [eventId]: 'Venda inválida para transferência.',
+    }
+    return
+  }
+
+  if (!toUserId) {
+    transferSaleErrorByEventId.value = {
+      ...transferSaleErrorByEventId.value,
+      [eventId]: 'Selecione o representante de destino.',
+    }
+    return
+  }
+
+  if (toUserId === fromUserId) {
+    transferSaleErrorByEventId.value = {
+      ...transferSaleErrorByEventId.value,
+      [eventId]: 'Selecione um representante diferente do atual.',
+    }
+    return
+  }
+
+  const targetName = sellerNameByUserId.value[toUserId] || toUserId
+  const confirmed = confirm(
+    `Transferir a venda de ${formatShortDate(row.data)} (${formatCurrencyPrecise(row.valor)}) para ${targetName}?`
+  )
+  if (!confirmed) return
+
+  transferSaleLoadingByEventId.value = {
+    ...transferSaleLoadingByEventId.value,
+    [eventId]: true,
+  }
+
+  try {
+    const response = await $fetch('/api/v1/admin/ranking-vendedores/transfer-venda', {
+      method: 'POST',
+      body: {
+        eventId,
+        toUserId,
+      },
+    })
+    const parsed = SellerTransferResponseSchema.parse(response)
+    const affectedUserIds = Array.from(new Set([parsed.data.fromUserId, parsed.data.toUserId]))
+
+    clearSellerDetailsCacheForUsers(affectedUserIds)
+
+    await refreshRanking()
+    await Promise.all(
+      affectedUserIds
+        .filter((userId) => isSellerExpanded(userId))
+        .map((userId) => fetchSellerDetails(userId, { force: true }))
+    )
+
+    transferSaleSuccessByEventId.value = {
+      ...transferSaleSuccessByEventId.value,
+      [eventId]: parsed.data.changed
+        ? `Venda transferida para ${sellerNameByUserId.value[parsed.data.toUserId] || parsed.data.toUserId}.`
+        : 'Venda já estava com este representante.',
+    }
+  } catch (error: any) {
+    console.error('Erro ao transferir venda:', error)
+    const message =
+      String(error?.data?.statusMessage || error?.statusMessage || error?.message || '').trim() ||
+      'Falha ao transferir venda.'
+    transferSaleErrorByEventId.value = {
+      ...transferSaleErrorByEventId.value,
+      [eventId]: message,
+    }
+  } finally {
+    transferSaleLoadingByEventId.value = {
+      ...transferSaleLoadingByEventId.value,
+      [eventId]: false,
     }
   }
 }
